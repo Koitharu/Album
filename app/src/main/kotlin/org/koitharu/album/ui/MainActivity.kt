@@ -1,5 +1,6 @@
 package org.koitharu.album.ui
 
+import android.Manifest
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,17 +15,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import org.koitharu.album.ui.gallery.Gallery
-import org.koitharu.album.ui.gallery.GalleryItem
-import org.koitharu.album.ui.gallery.GalleryItem.Image
-import org.koitharu.album.ui.gallery.GalleryViewModel
+import org.koitharu.album.ui.album.AlbumContent
+import org.koitharu.album.ui.album.AlbumItem.Media
+import org.koitharu.album.ui.album.AlbumScope
+import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.util.rememberPermissionCheck
-import org.koitharu.album.ui.viewer.ImageViewer
+import org.koitharu.album.ui.viewer.ViewerScreen
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -36,13 +36,13 @@ class MainActivity : ComponentActivity() {
                 val isPermissionGranted by
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     rememberPermissionCheck(
-                        android.Manifest.permission.READ_MEDIA_IMAGES
+                        Manifest.permission.READ_MEDIA_IMAGES
                     )
                 } else {
                     remember { mutableStateOf(true) }
                 }
                 if (isPermissionGranted) {
-                    GalleryScreen()
+                    GalleryScreen(albumId = null)
                 }
             }
         }
@@ -50,27 +50,34 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun GalleryScreen() = SharedTransitionLayout {
-    var selectedItem by remember { mutableStateOf<GalleryItem.Media?>(null) }
+private fun GalleryScreen(
+    albumId: String?,
+) = SharedTransitionLayout {
     val gridState = rememberLazyGridState()
-    AnimatedContent(selectedItem) { openedItem ->
+    val viewModel = hiltViewModel<AlbumViewModel, AlbumViewModel.Factory>(
+        key = albumId,
+    ) {
+        it.create(albumId)
+    }
+    val state by viewModel.collectState()
+    AnimatedContent(state.openedItem) { openedItem ->
         when (openedItem) {
-            is Image -> ImageViewer(
-                item = openedItem,
-                animatedVisibilityScope = this@AnimatedContent,
+            is Media -> ViewerScreen(
+                albumId = albumId,
+                media = openedItem,
                 sharedTransitionScope = this@SharedTransitionLayout,
-                onClose = { selectedItem = null }
+                animatedVisibilityScope = this@AnimatedContent,
             )
 
             null -> Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                val viewModel = hiltViewModel<GalleryViewModel>()
-                Gallery(
-                    pagingData = viewModel.content,
-                    contentPadding = innerPadding,
-                    gridState = gridState,
-                    onImageClick = { selectedItem = it },
-                    animatedVisibilityScope = this@AnimatedContent,
-                    sharedTransitionScope = this@SharedTransitionLayout
+                AlbumContent(
+                    albumId = albumId,
+                    innerPadding = innerPadding,
+                    albumScope = AlbumScope(
+                        gridState = gridState,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@AnimatedContent
+                    )
                 )
             }
         }

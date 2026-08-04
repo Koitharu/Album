@@ -1,10 +1,9 @@
 package org.koitharu.album.model
 
-import androidx.compose.runtime.Immutable
 import coil3.Uri
 
-@Immutable
 data class MediaItem(
+    val index: Int,
     val id: Long,
     val name: String?,
     val uri: Uri,

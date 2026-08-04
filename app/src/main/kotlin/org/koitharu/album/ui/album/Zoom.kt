@@ -1,4 +1,4 @@
-package org.koitharu.album.ui.gallery
+package org.koitharu.album.ui.album
 
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.ui.Modifier

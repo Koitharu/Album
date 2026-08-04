@@ -1,4 +1,4 @@
-<!-- drawable/pan_vertical.xml -->
+<!-- drawable/star.xml -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -6,5 +6,5 @@
     android:viewportHeight="24">
     <path
         android:fillColor="#000000"
-        android:pathData="M12,2.5L8,7H16L12,2.5M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10M8,17L12,21.5L16,17H8Z" />
+        android:pathData="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" />
 </vector>

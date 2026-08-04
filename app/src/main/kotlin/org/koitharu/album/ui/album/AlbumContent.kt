@@ -1,63 +1,79 @@
-package org.koitharu.album.ui.gallery
+package org.koitharu.album.ui.album
 
 import android.text.format.DateUtils
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import kotlinx.coroutines.flow.Flow
+import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
+import org.koitharu.album.ui.common.MviIntentHandler
 
 @Composable
-fun Gallery(
-    pagingData: Flow<PagingData<GalleryItem>>,
+fun AlbumContent(
+    albumId: String?,
+    innerPadding: PaddingValues,
+    albumScope: AlbumScope,
+) {
+    val viewModel = hiltViewModel<AlbumViewModel, AlbumViewModel.Factory>(
+        key = albumId
+    ) {
+        it.create(albumId)
+    }
+    val state by viewModel.collectState()
+    Gallery(
+        pagingData = viewModel.gridContent,
+        state = state,
+        contentPadding = innerPadding,
+        albumScope = albumScope,
+        handleIntent = viewModel,
+    )
+}
+
+@Composable
+private fun Gallery(
+    pagingData: Flow<PagingData<AlbumItem>>,
+    state: AlbumState,
     contentPadding: PaddingValues,
-    gridState: LazyGridState,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    onImageClick: (GalleryItem.Media) -> Unit,
+    albumScope: AlbumScope,
+    handleIntent: MviIntentHandler<AlbumIntent>,
 ) {
     val size = 42.dp
-    var scale by remember { mutableFloatStateOf(2f) }
     val images = pagingData.collectAsLazyPagingItems()
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
         LazyVerticalGrid(
             modifier = Modifier.handleZoomGesture { zoom ->
-                scale = (scale * zoom).coerceIn(1f, 5f)
+                handleIntent(UpdateScale(zoom))
             },
-            state = gridState,
-            contentPadding = contentPadding,
-            columns = GridCells.Adaptive(size * scale),
+            state = albumScope.gridState,
+            contentPadding = contentPadding + PaddingValues(4.dp),
+            columns = GridCells.Adaptive(size * state.scale),
             verticalArrangement = Arrangement.spacedBy(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
@@ -66,60 +82,59 @@ fun Gallery(
                 span = { i ->
                     GridItemSpan(
                         when (images[i]) {
-                            is GalleryItem.DateHeader -> maxLineSpan
-                            is GalleryItem.Image,
+                            is AlbumItem.DateHeader -> maxLineSpan
+                            is AlbumItem.Image,
                             null -> 1
                         }
                     )
                 },
+                contentType = images.itemContentType { it::class.java.simpleName },
                 key = images.itemKey { it.id },
             ) { i ->
                 when (val item = images[i]) {
-                    is GalleryItem.DateHeader -> DateHeader(item.date)
-                    is GalleryItem.Image -> GalleryImageItem(
+                    is AlbumItem.DateHeader -> DateHeader(item.date)
+                    is AlbumItem.Image -> GalleryImageItem(
                         image = item,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        onClick = onImageClick,
+                        albumScope = albumScope,
+                        onClick = { handleIntent(AlbumIntent.OpenMedia(item)) },
                     )
 
                     null -> GalleryItemPlaceholder()
                 }
             }
         }
-        FastScroller(
-            modifier = Modifier
-                .padding(
-                    top = contentPadding.calculateTopPadding(),
-                    bottom = contentPadding.calculateBottomPadding(),
-                )
-                .align(Alignment.TopEnd)
-                .fillMaxHeight(),
-            gridState = gridState,
-            text = "Test",
-        )
+//        FastScroller(
+//            modifier = Modifier
+//                .padding(
+//                    top = contentPadding.calculateTopPadding(),
+//                    bottom = contentPadding.calculateBottomPadding(),
+//                )
+//                .align(Alignment.TopEnd)
+//                .fillMaxHeight(),
+//            gridState = gridState,
+//            text = "Test",
+//        )
     }
 }
 
 @Composable
 private fun GalleryImageItem(
-    image: GalleryItem.Image,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    onClick: (GalleryItem.Image) -> Unit
+    image: AlbumItem.Image,
+    albumScope: AlbumScope,
+    onClick: () -> Unit
 ) = Surface(
     modifier = Modifier
         .aspectRatio(1f)
         .fillMaxWidth(),
-    onClick = { onClick(image) },
+    onClick = onClick,
 ) {
-    with(sharedTransitionScope) {
+    with(albumScope.sharedTransitionScope) {
         AsyncImage(
             modifier = Modifier
                 .fillMaxSize()
                 .sharedElement(
                     rememberSharedContentState(key = "image_${image.id}"),
-                    animatedVisibilityScope = animatedVisibilityScope
+                    animatedVisibilityScope = albumScope.animatedVisibilityScope
                 ),
             model = ImageRequest.Builder(LocalContext.current)
                 .data(image.thumbnail)

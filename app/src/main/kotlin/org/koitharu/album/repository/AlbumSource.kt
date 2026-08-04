@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.CancellationSignal
 import android.provider.MediaStore
 import androidx.paging.PagingSource
+import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
 import androidx.paging.PagingState
 import coil3.toCoilUri
 import kotlinx.coroutines.Dispatchers
@@ -25,11 +26,22 @@ class AlbumSource(
         MediaStore.Images.Media.DATE_ADDED,
     )
 
-    override fun getRefreshKey(state: PagingState<Int, MediaItem>): Int? = null
+    override val jumpingSupported: Boolean
+        get() = true
+
+    override fun getRefreshKey(state: PagingState<Int, MediaItem>): Int {
+        return ((state.anchorPosition ?: 0) - state.config.initialLoadSize / 2).coerceAtLeast(0)
+    }
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, MediaItem> {
         val limit = params.loadSize
         val offset = params.key ?: 0
+
+        val count = withContext(Dispatchers.IO) {
+            runCancellable { signal ->
+                queryCount(signal)
+            }
+        }
 
         val query = withContext(Dispatchers.IO) {
             runCancellable { signal ->
@@ -38,6 +50,9 @@ class AlbumSource(
         } ?: return LoadResult.Invalid()
 
         query.use { cursor ->
+            if (!cursor.moveToFirst()) {
+                return LoadResult.Invalid()
+            }
             val result = ArrayList<MediaItem>(cursor.count)
             val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
             val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
@@ -47,11 +62,11 @@ class AlbumSource(
                 val id = cursor.getLong(idColumn)
                 val name = cursor.getString(nameColumn)
                 val dateAdded = cursor.getLong(dateAddedColumn)
-                // Resolve target content URI
                 val contentUri =
                     ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
                 result.add(
                     MediaItem(
+                        index = offset + result.size,
                         id = id,
                         name = name,
                         uri = contentUri.toCoilUri(),
@@ -63,9 +78,32 @@ class AlbumSource(
                 data = result,
                 prevKey = if (offset > limit) offset - limit else null,
                 nextKey = offset + result.size,
+                itemsBefore = if (count > 0) {
+                    offset
+                } else {
+                    COUNT_UNDEFINED
+                },
+                itemsAfter = if (count > 0) {
+                    (count - offset - limit).coerceAtLeast(0)
+                } else {
+                    COUNT_UNDEFINED
+                },
             )
         }
     }
+
+    private fun queryCount(
+        cancellationSignal: CancellationSignal,
+    ) = contentResolver.query(
+        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+        arrayOf(MediaStore.Images.Media._ID),
+        null,
+        null,
+        null,
+        cancellationSignal
+    )?.use {
+        it.count
+    } ?: 0
 
     private fun query(
         limit: Int,

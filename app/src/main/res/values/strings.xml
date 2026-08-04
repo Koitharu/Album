@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Album</string>
+    <string name="back">Back</string>
+    <string name="share">Share</string>
+    <string name="favorite">Favorite</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
 </resources>
