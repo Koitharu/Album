@@ -5,4 +5,5 @@
     <string name="favorite">Favorite</string>
     <string name="edit">Edit</string>
     <string name="delete">Delete</string>
+    <string name="error_message_generic">Something went wrong</string>
 </resources>

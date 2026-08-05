@@ -6,6 +6,9 @@
     <uses-permission
         android:name="android.permission.READ_MEDIA_IMAGES"
         tools:ignore="PhotoAndVideoPolicy,SelectedPhotoAccess" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_VIDEO"
+        tools:ignore="PhotoAndVideoPolicy,SelectedPhotoAccess" />
 
     <application
         android:name=".AlbumApp"

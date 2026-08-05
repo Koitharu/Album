@@ -1,6 +1,7 @@
 package org.koitharu.album.ui.album
 
 import android.text.format.DateUtils
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,9 +18,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.PagingData
@@ -30,8 +34,11 @@ import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import kotlinx.coroutines.flow.Flow
+import org.koitharu.album.R
+import org.koitharu.album.ui.album.AlbumIntent.OpenMedia
 import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
 import org.koitharu.album.ui.common.MviIntentHandler
+import org.koitharu.album.ui.util.formattedDateTime
 
 @Composable
 fun AlbumContent(
@@ -83,7 +90,7 @@ private fun Gallery(
                     GridItemSpan(
                         when (images[i]) {
                             is AlbumItem.DateHeader -> maxLineSpan
-                            is AlbumItem.Image,
+                            is AlbumItem.Media,
                             null -> 1
                         }
                     )
@@ -92,35 +99,40 @@ private fun Gallery(
                 key = images.itemKey { it.id },
             ) { i ->
                 when (val item = images[i]) {
-                    is AlbumItem.DateHeader -> DateHeader(item.date)
-                    is AlbumItem.Image -> GalleryImageItem(
-                        image = item,
-                        albumScope = albumScope,
-                        onClick = { handleIntent(AlbumIntent.OpenMedia(item)) },
+                    is AlbumItem.DateHeader -> DateHeader(
+                        formattedDateTime(
+                            item.date,
+                            DateUtils.FORMAT_SHOW_DATE
+                        )
                     )
+
+                    is AlbumItem.Image -> albumScope.GalleryImageItem(
+                        image = item,
+                    ) { handleIntent(OpenMedia(item)) }
+
+                    is AlbumItem.Video -> albumScope.GalleryVideoItem(
+                        image = item,
+                    ) { handleIntent(OpenMedia(item)) }
 
                     null -> GalleryItemPlaceholder()
                 }
             }
         }
-//        FastScroller(
-//            modifier = Modifier
-//                .padding(
-//                    top = contentPadding.calculateTopPadding(),
-//                    bottom = contentPadding.calculateBottomPadding(),
-//                )
-//                .align(Alignment.TopEnd)
-//                .fillMaxHeight(),
-//            gridState = gridState,
-//            text = "Test",
-//        )
+        FastScroller(
+            modifier = Modifier
+                .padding(
+                    top = contentPadding.calculateTopPadding(),
+                    bottom = contentPadding.calculateBottomPadding(),
+                )
+                .align(Alignment.TopEnd),
+            gridState = albumScope.gridState,
+        )
     }
 }
 
 @Composable
-private fun GalleryImageItem(
+private fun AlbumScope.GalleryImageItem(
     image: AlbumItem.Image,
-    albumScope: AlbumScope,
     onClick: () -> Unit
 ) = Surface(
     modifier = Modifier
@@ -128,13 +140,13 @@ private fun GalleryImageItem(
         .fillMaxWidth(),
     onClick = onClick,
 ) {
-    with(albumScope.sharedTransitionScope) {
+    with(sharedTransitionScope) {
         AsyncImage(
             modifier = Modifier
                 .fillMaxSize()
                 .sharedElement(
                     rememberSharedContentState(key = "image_${image.id}"),
-                    animatedVisibilityScope = albumScope.animatedVisibilityScope
+                    animatedVisibilityScope = animatedVisibilityScope
                 ),
             model = ImageRequest.Builder(LocalContext.current)
                 .data(image.thumbnail)
@@ -143,6 +155,52 @@ private fun GalleryImageItem(
                 .build(),
             contentDescription = image.name,
             contentScale = ContentScale.Crop,
+        )
+    }
+}
+
+@Composable
+private fun AlbumScope.GalleryVideoItem(
+    image: AlbumItem.Video,
+    onClick: () -> Unit
+) = Surface(
+    modifier = Modifier
+        .aspectRatio(1f)
+        .fillMaxWidth(),
+    onClick = onClick,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize(),
+    ) {
+        with(sharedTransitionScope) {
+            AsyncImage(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .sharedElement(
+                        rememberSharedContentState(key = "image_${image.id}"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    ),
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(image.thumbnail)
+                    .diskCachePolicy(CachePolicy.DISABLED)
+                    .memoryCacheKey(image.memoryCacheKey)
+                    .build(),
+                contentDescription = image.name,
+                contentScale = ContentScale.Crop,
+            )
+        }
+        Image(
+            modifier = Modifier
+                .fillMaxSize(0.6f)
+                .align(Alignment.Center),
+            painter = painterResource(R.drawable.ic_play_circle),
+            alpha = 0.6f,
+            contentScale = ContentScale.Fit,
+            colorFilter = ColorFilter.tint(
+                MaterialTheme.colorScheme.primaryFixedDim,
+            ),
+            contentDescription = null,
         )
     }
 }
@@ -157,13 +215,8 @@ private fun GalleryItemPlaceholder() = Surface(
 
 @Composable
 private fun DateHeader(
-    date: Long,
+    date: String,
 ) {
-    val text = DateUtils.formatDateTime(
-        LocalContext.current,
-        date,
-        0
-    )
     Text(
         modifier = Modifier
             .padding(
@@ -171,7 +224,7 @@ private fun DateHeader(
                 horizontal = 12.dp,
             )
             .fillMaxWidth(),
-        text = text,
+        text = date,
         style = MaterialTheme.typography.titleMedium,
     )
 }

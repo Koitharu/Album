@@ -10,7 +10,6 @@ import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
@@ -48,11 +47,8 @@ import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
-import coil3.request.CachePolicy
-import coil3.request.ImageRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.mapNotNull
-import me.saket.telephoto.zoomable.coil3.ZoomableAsyncImage
 import org.koitharu.album.R
 import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
 import org.koitharu.album.ui.album.AlbumItem
@@ -62,6 +58,7 @@ import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.util.SetLightBarsEffect
 import org.koitharu.album.ui.util.formattedDateTime
 import org.koitharu.album.ui.util.rememberWindowInsetsController
+import org.koitharu.album.ui.util.shareMedia
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
 import org.koitharu.toadlink.ui.composables.IconButtonWithTooltip
 
@@ -89,8 +86,7 @@ fun ViewerScreen(
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
             handleIntent = viewModel,
-            onClose = { albumViewModel.handleIntent(CloseMedia) }
-        )
+            onClose = { albumViewModel.handleIntent(CloseMedia) })
     }
 }
 
@@ -127,36 +123,45 @@ private fun MediaViewer(
         ) {
             val images = pagingData.collectAsLazyPagingItems()
             val pagerState = rememberPagerState(
-                initialPage = computeInitialIndex(media, images),
-                pageCount = { images.itemCount }
-            )
+                initialPage = computeInitialIndex(media, images), pageCount = { images.itemCount })
             LaunchedEffect(pagerState) {
-                snapshotFlow { pagerState.settledPage }
-                    .mapNotNull { images.peek(it) }
-                    .collect {
-                        handleIntent(OnMediaChanged(it))
-                    }
+                snapshotFlow { pagerState.settledPage }.mapNotNull { images.peek(it) }.collect {
+                    handleIntent(OnMediaChanged(it))
+                }
             }
             HorizontalPager(
                 state = pagerState,
                 snapPosition = SnapPosition.Center,
                 key = images.itemKey { it.id },
             ) { page ->
-                when (val item = images[page]) {
-                    is AlbumItem.Image -> with(sharedTransitionScope) {
-                        with(animatedVisibilityScope) {
-                            ImagePage(
-                                image = item,
-                                isCurrentPage = page == pagerState.currentPage,
-                                innerPadding = innerPadding,
-                                { isUiVisible = !isUiVisible },
-                            )
-                        }
-                    }
-
-                    null -> EmptyPage()
-                }
                 val item = images[page]
+                with(sharedTransitionScope) {
+                    val modifier = if (page == pagerState.currentPage && item is AlbumItem.Media) {
+                        Modifier.sharedElement(
+                            rememberSharedContentState(key = "image_${item.id}"),
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    } else {
+                        Modifier
+                    }
+                    when (item) {
+                        is AlbumItem.Image -> ImageViewer(
+                            modifier = modifier,
+                            image = item,
+                            innerPadding = innerPadding,
+                            onClick = { isUiVisible = !isUiVisible },
+                        )
+
+                        is AlbumItem.Video -> VideoViewer(
+                            modifier = modifier,
+                            video = item,
+                            innerPadding = innerPadding,
+                            isActive = page == pagerState.currentPage,
+                            onClick = { isUiVisible = !isUiVisible },
+                        )
+                        null -> EmptyPage()
+                    }
+                }
             }
             AnimatedVisibility(
                 modifier = Modifier
@@ -194,43 +199,12 @@ private fun MediaViewer(
             ) {
                 BottomBar(
                     modifier = Modifier.fillMaxWidth(),
-                    mediaDate = formattedDateTime(media.dateAdded),
+                    media = media,
                     handleIntent = handleIntent,
                 )
             }
         }
     }
-}
-
-context(sharedTransitionScope: SharedTransitionScope, animatedVisibilityScope: AnimatedVisibilityScope)
-@Composable
-private fun ImagePage(
-    image: AlbumItem.Image,
-    isCurrentPage: Boolean,
-    innerPadding: PaddingValues,
-    onToggleUiVisibility: () -> Unit,
-) = with(sharedTransitionScope) {
-    val modifier = if (isCurrentPage) {
-        Modifier.sharedElement(
-            rememberSharedContentState(key = "image_${image.id}"),
-            animatedVisibilityScope = animatedVisibilityScope
-        )
-    } else {
-        Modifier
-    }
-    ZoomableAsyncImage(
-        modifier = Modifier
-            .fillMaxSize()
-            .then(modifier),
-        model = ImageRequest.Builder(LocalContext.current)
-            .data(image.uri)
-            .memoryCachePolicy(CachePolicy.DISABLED)
-            .placeholderMemoryCacheKey(image.memoryCacheKey)
-            .build(),
-        contentPadding = innerPadding,
-        contentDescription = null,
-        onClick = { onToggleUiVisibility() },
-    )
 }
 
 @Composable
@@ -245,26 +219,29 @@ private fun EmptyPage() = Box(
 @Composable
 private fun BottomBar(
     modifier: Modifier,
-    mediaDate: String?,
+    media: AlbumItem.Media,
     handleIntent: MviIntentHandler<ViewerIntent>,
 ) = Column(
     modifier = modifier,
 ) {
     Text(
         modifier = Modifier.align(Alignment.CenterHorizontally),
-        text = mediaDate.orEmpty(),
+        text = formattedDateTime(media.dateAdded),
         style = MaterialTheme.typography.titleSmall,
     )
     Row(
-        modifier = Modifier.fillMaxWidth().padding(
-            vertical = 12.dp,
-        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                vertical = 12.dp,
+            ),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val context = LocalContext.current
         IconButtonWithTooltip(
             tooltip = stringResource(R.string.share),
-            onClick = { /* TODO */ },
+            onClick = { shareMedia(context, media) },
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_share),
@@ -302,8 +279,7 @@ private fun BottomBar(
 }
 
 private fun computeInitialIndex(
-    item: AlbumItem.Media,
-    pagingData: LazyPagingItems<AlbumItem.Media>
+    item: AlbumItem.Media, pagingData: LazyPagingItems<AlbumItem.Media>
 ): Int {
     val index = pagingData.itemSnapshotList.indexOfFirst { x ->
         x?.id == item.id

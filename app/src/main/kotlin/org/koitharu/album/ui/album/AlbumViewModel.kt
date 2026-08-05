@@ -17,16 +17,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.plus
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
-import org.koitharu.album.model.MediaItem
+import org.koitharu.album.model.isSameMonth
 import org.koitharu.album.repository.AlbumSource
 import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
 import org.koitharu.album.ui.album.AlbumIntent.OpenMedia
 import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
 import org.koitharu.album.ui.common.MviViewModel
-import kotlin.time.Instant
 
 @HiltViewModel(assistedFactory = AlbumViewModel.Factory::class)
 class AlbumViewModel @AssistedInject constructor(
@@ -36,24 +32,16 @@ class AlbumViewModel @AssistedInject constructor(
 
     val pagerContent = Pager(
         config = PagingConfig(
-            pageSize = 10,
+            pageSize = 20,
             enablePlaceholders = true,
-            jumpThreshold = 40,
+            jumpThreshold = 100,
         ),
         pagingSourceFactory = {
-            AlbumSource(contentResolver)
+            AlbumSource(albumId, contentResolver)
         }
     ).flow.map { pagingData ->
-        pagingData.map<MediaItem, AlbumItem.Media> { mediaItem ->
-            AlbumItem.Image(
-                index = mediaItem.index,
-                id = mediaItem.id,
-                uri = mediaItem.uri,
-                thumbnail = mediaItem.thumbnail,
-                name = mediaItem.name,
-                dateAdded = Instant.fromEpochSeconds(mediaItem.dateAdded)
-                    .toLocalDateTime(TimeZone.currentSystemDefault()),
-            )
+        pagingData.map { mediaItem ->
+            AlbumItem.Media(mediaItem)
         }
     }.cachedIn(viewModelScope + Dispatchers.Default)
 
@@ -61,10 +49,8 @@ class AlbumViewModel @AssistedInject constructor(
         pagingData.insertSeparators<AlbumItem.Media, AlbumItem> { before, after ->
             if (before == null || after == null) {
                 null
-            } else if (before.dateAdded.month != after.dateAdded.month) {
-                AlbumItem.DateHeader(
-                    after.dateAdded.toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
-                )
+            } else if (!isSameMonth(before.dateAdded, after.dateAdded)) {
+                AlbumItem.DateHeader(after.dateAdded)
             } else {
                 null
             }

@@ -23,7 +23,7 @@ import org.koitharu.album.ui.album.AlbumItem.Media
 import org.koitharu.album.ui.album.AlbumScope
 import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.theme.AlbumTheme
-import org.koitharu.album.ui.util.rememberPermissionCheck
+import org.koitharu.album.ui.util.rememberPermissionsCheck
 import org.koitharu.album.ui.viewer.ViewerScreen
 
 @AndroidEntryPoint
@@ -35,8 +35,9 @@ class MainActivity : ComponentActivity() {
             AlbumTheme {
                 val isPermissionGranted by
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    rememberPermissionCheck(
-                        Manifest.permission.READ_MEDIA_IMAGES
+                    rememberPermissionsCheck(
+                        Manifest.permission.READ_MEDIA_IMAGES,
+                        Manifest.permission.READ_MEDIA_VIDEO,
                     )
                 } else {
                     remember { mutableStateOf(true) }

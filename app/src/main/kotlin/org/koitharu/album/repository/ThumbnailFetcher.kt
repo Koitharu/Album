@@ -1,8 +1,8 @@
 package org.koitharu.album.repository
 
 import android.os.Build
+import android.provider.MediaStore.Images.Thumbnails
 import android.util.Size
-import androidx.annotation.RequiresApi
 import coil3.ImageLoader
 import coil3.Uri
 import coil3.asImage
@@ -15,7 +15,6 @@ import coil3.size.pxOrElse
 import coil3.toAndroidUri
 import org.koitharu.album.ui.util.runCancellable
 
-@RequiresApi(Build.VERSION_CODES.Q)
 class ThumbnailFetcher(
     private val data: Uri,
     private val options: Options,
@@ -26,14 +25,25 @@ class ThumbnailFetcher(
         val uri = data.newBuilder()
             .scheme(data.scheme?.removePrefix("thumb+"))
             .build()
-        val thumb = runCancellable { signal ->
-            contentResolver.loadThumbnail(
-                uri.toAndroidUri(),
-                Size(
-                    options.size.width.pxOrElse { 200 },
-                    options.size.height.pxOrElse { 200 },
-                ),
-                signal,
+            .toAndroidUri()
+        val thumb = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            runCancellable { signal ->
+                contentResolver.loadThumbnail(
+                    uri,
+                    Size(
+                        options.size.width.pxOrElse { 200 },
+                        options.size.height.pxOrElse { 200 },
+                    ),
+                    signal,
+                )
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            Thumbnails.getThumbnail(
+                contentResolver,
+                requireNotNull(uri.lastPathSegment?.toLong()),
+                Thumbnails.MINI_KIND,
+                null
             )
         }
         return ImageFetchResult(

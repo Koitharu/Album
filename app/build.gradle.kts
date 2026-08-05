@@ -59,7 +59,6 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.collections.immutable)
-    implementation(libs.kotlinx.datetime)
 
     implementation(libs.dagger.hilt)
     ksp(libs.dagger.hilt.compiler)
