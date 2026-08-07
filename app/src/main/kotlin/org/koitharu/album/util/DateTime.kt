@@ -1,4 +1,4 @@
-package org.koitharu.album.ui.util
+package org.koitharu.album.util
 
 import android.text.format.DateUtils
 import androidx.compose.runtime.Composable

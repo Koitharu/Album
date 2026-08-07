@@ -4,8 +4,11 @@ import android.text.format.DateUtils
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -23,9 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
@@ -37,97 +42,140 @@ import kotlinx.coroutines.flow.Flow
 import org.koitharu.album.R
 import org.koitharu.album.ui.album.AlbumIntent.OpenMedia
 import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
+import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviIntentHandler
-import org.koitharu.album.ui.util.formattedDateTime
+import org.koitharu.album.ui.folders.FolderItem
+import org.koitharu.album.util.SetSystemBarsColorsEffect
+import org.koitharu.album.util.formattedDateTime
 
 @Composable
 fun AlbumContent(
-    albumId: String?,
+    folder: FolderItem?,
     innerPadding: PaddingValues,
     albumScope: AlbumScope,
 ) {
     val viewModel = hiltViewModel<AlbumViewModel, AlbumViewModel.Factory>(
-        key = albumId
+        key = folder?.id
     ) {
-        it.create(albumId)
+        it.create(folder)
     }
     val state by viewModel.collectState()
-    Gallery(
-        pagingData = viewModel.gridContent,
-        state = state,
-        contentPadding = innerPadding,
-        albumScope = albumScope,
-        handleIntent = viewModel,
-    )
-}
-
-@Composable
-private fun Gallery(
-    pagingData: Flow<PagingData<AlbumItem>>,
-    state: AlbumState,
-    contentPadding: PaddingValues,
-    albumScope: AlbumScope,
-    handleIntent: MviIntentHandler<AlbumIntent>,
-) {
-    val size = 42.dp
-    val images = pagingData.collectAsLazyPagingItems()
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
-        LazyVerticalGrid(
-            modifier = Modifier.handleZoomGesture { zoom ->
-                handleIntent(UpdateScale(zoom))
-            },
-            state = albumScope.gridState,
-            contentPadding = contentPadding + PaddingValues(4.dp),
-            columns = GridCells.Adaptive(size * state.scale),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            items(
-                images.itemCount,
-                span = { i ->
-                    GridItemSpan(
-                        when (images[i]) {
-                            is AlbumItem.DateHeader -> maxLineSpan
-                            is AlbumItem.Media,
-                            null -> 1
-                        }
-                    )
-                },
-                contentType = images.itemContentType { it::class.java.simpleName },
-                key = images.itemKey { it.id },
-            ) { i ->
-                when (val item = images[i]) {
-                    is AlbumItem.DateHeader -> DateHeader(
-                        formattedDateTime(
-                            item.date,
-                            DateUtils.FORMAT_SHOW_DATE
-                        )
-                    )
-
-                    is AlbumItem.Image -> albumScope.GalleryImageItem(
-                        image = item,
-                    ) { handleIntent(OpenMedia(item)) }
-
-                    is AlbumItem.Video -> albumScope.GalleryVideoItem(
-                        image = item,
-                    ) { handleIntent(OpenMedia(item)) }
-
-                    null -> GalleryItemPlaceholder()
+        SetSystemBarsColorsEffect(
+            isLightStatusBar = false,
+        )
+        Gallery(
+            pagingData = viewModel.gridContent,
+            state = state,
+            contentPadding = PaddingValues(
+                top = 240.dp,
+                start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
+                end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
+                bottom = innerPadding.calculateBottomPadding(),
+            ),
+            scrollerPadding = PaddingValues(
+                top = innerPadding.calculateTopPadding(),
+                bottom = innerPadding.calculateBottomPadding(),
+            ),
+            albumScope = albumScope,
+            handleIntent = viewModel,
+            emptyContent = {  }
+        )
+        with(albumScope.sharedTransitionScope) {
+            ImageBanner(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .sharedElement(
+                        rememberSharedContentState(key = "image_${state.banner?.id}"),
+                        animatedVisibilityScope = albumScope.animatedVisibilityScope
+                    ),
+                image = state.banner,
+                gridState = albumScope.gridState,
+                height = 240.dp,
+                onClick = {
+                    state.banner?.let { banner ->
+                        viewModel.handleIntent(OpenMedia(banner))
+                    }
                 }
+            )
+        }
+
+    }
+}
+
+@Composable
+fun BoxScope.Gallery(
+    pagingData: Flow<PagingData<AlbumItem>>,
+    state: AlbumState,
+    contentPadding: PaddingValues,
+    scrollerPadding: PaddingValues,
+    albumScope: AlbumScope,
+    handleIntent: MviIntentHandler<AlbumIntent>,
+    emptyContent: @Composable BoxScope.() -> Unit,
+) {
+    val size = 42.dp
+    val images = pagingData.collectAsLazyPagingItems()
+
+    if (images.itemCount == 0 && images.loadState.refresh is LoadState.NotLoading) {
+        emptyContent()
+        return
+    }
+    LazyVerticalGrid(
+        modifier = Modifier.handleZoomGesture { zoom ->
+            handleIntent(UpdateScale(zoom))
+        },
+        state = albumScope.gridState,
+        contentPadding = contentPadding + PaddingValues(4.dp),
+        columns = GridCells.Adaptive(size * state.scale),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        items(
+            images.itemCount,
+            span = { i ->
+                GridItemSpan(
+                    when (images[i]) {
+                        is AlbumItem.DateHeader -> maxLineSpan
+                        is AlbumItem.Media,
+                        null -> 1
+                    }
+                )
+            },
+            contentType = images.itemContentType { it::class.java.simpleName },
+            key = images.itemKey { it.id },
+        ) { i ->
+            when (val item = images[i]) {
+                is AlbumItem.DateHeader -> DateHeader(
+                    formattedDateTime(
+                        item.date,
+                        DateUtils.FORMAT_SHOW_DATE
+                    )
+                )
+
+                is AlbumItem.Image -> albumScope.GalleryImageItem(
+                    image = item,
+                ) { handleIntent(OpenMedia(item)) }
+
+                is AlbumItem.Video -> albumScope.GalleryVideoItem(
+                    image = item,
+                ) { handleIntent(OpenMedia(item)) }
+
+                null -> GalleryItemPlaceholder()
             }
         }
-        FastScroller(
-            modifier = Modifier
-                .padding(
-                    top = contentPadding.calculateTopPadding(),
-                    bottom = contentPadding.calculateBottomPadding(),
-                )
-                .align(Alignment.TopEnd),
-            gridState = albumScope.gridState,
-        )
     }
+    val context = LocalContext.current
+    FastScroller(
+        modifier = Modifier
+            .padding(scrollerPadding)
+            .align(Alignment.TopEnd),
+        gridState = albumScope.gridState,
+        textProvider = { index ->
+            images.peek(index)?.label(context)
+        }
+    )
 }
 
 @Composable

@@ -1,0 +1,111 @@
+package org.koitharu.album.ui.folders
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.rememberViewModelStoreOwner
+import org.koitharu.album.R
+import org.koitharu.album.ui.album.AlbumScope
+import org.koitharu.album.ui.album.AlbumViewModel
+import org.koitharu.album.ui.album.Gallery
+import org.koitharu.album.ui.common.AlbumItem.Media
+import org.koitharu.album.ui.viewer.ViewerScreen
+import org.koitharu.toadlink.ui.composables.IconButtonWithTooltip
+
+@Composable
+fun FolderContentScreen(
+    folder: FolderItem,
+    onClose: () -> Unit,
+) {
+    val localStoreOwner = rememberViewModelStoreOwner()
+    CompositionLocalProvider(LocalViewModelStoreOwner provides localStoreOwner) {
+        val viewModel = hiltViewModel<AlbumViewModel, AlbumViewModel.Factory>(
+            key = folder.id,
+        ) {
+            it.create(folder)
+        }
+        val gridState = rememberLazyGridState()
+        val state by viewModel.collectState()
+        BackHandler(onBack = onClose)
+        SharedTransitionLayout {
+            AnimatedContent(state.openedItem) { openedItem ->
+                when (openedItem) {
+                    is Media -> ViewerScreen(
+                        folder = folder,
+                        media = openedItem,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@AnimatedContent,
+                    )
+
+                    null -> Scaffold(
+                        topBar = {
+                            TopAppBar(
+                                title = {
+                                    Text(text = folder.title())
+                                },
+                                navigationIcon = {
+                                    IconButtonWithTooltip(
+                                        tooltip = stringResource(R.string.back),
+                                        onClick = onClose,
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_arrow_back),
+                                            contentDescription = stringResource(R.string.back)
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    ) { innerPadding ->
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            Gallery(
+                                pagingData = viewModel.gridContent,
+                                state = state,
+                                contentPadding = innerPadding,
+                                scrollerPadding = innerPadding,
+                                albumScope = AlbumScope(
+                                    gridState = gridState,
+                                    sharedTransitionScope = this@SharedTransitionLayout,
+                                    animatedVisibilityScope = this@AnimatedContent,
+                                ),
+                                handleIntent = viewModel,
+                                emptyContent = {
+                                    Text(
+                                        modifier = Modifier
+                                            .padding(16.dp)
+                                            .align(Alignment.Center),
+                                        text = stringResource(R.string.folder_is_empty),
+                                        textAlign = TextAlign.Center,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

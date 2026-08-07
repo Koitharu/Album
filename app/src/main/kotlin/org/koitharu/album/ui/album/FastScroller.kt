@@ -1,9 +1,14 @@
 package org.koitharu.album.ui.album
 
+import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
@@ -11,8 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -24,34 +31,42 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koitharu.album.R
 import org.koitharu.album.ui.theme.AlbumTheme
-
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun FastScroller(
     modifier: Modifier,
     gridState: LazyGridState,
-) = BoxWithConstraints(
-    modifier = Modifier
-        .fillMaxHeight()
-        .then(modifier),
+    textProvider: (Int) -> String?,
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val maxHeightPx = constraints.maxHeight.toFloat()
+    var maxHeightPx by remember { mutableIntStateOf(0) }
     var thumbHeightPx by remember { mutableIntStateOf(0) }
+    var isVisible by remember { mutableStateOf(false) }
+    var isDragging by remember { mutableStateOf(false) }
+    var text by remember { mutableStateOf<String?>(null) }
 
-    val scrollProgress by remember {
+    LaunchedEffect(gridState.isScrollInProgress, isDragging) {
+        if (gridState.isScrollInProgress || isDragging) {
+            isVisible = true
+        } else {
+            delay(2.seconds)
+            isVisible = false
+        }
+    }
+
+    val scrollFraction by remember {
         derivedStateOf {
             val layoutInfo = gridState.layoutInfo
             val totalItems = layoutInfo.totalItemsCount
@@ -62,51 +77,67 @@ fun FastScroller(
     }
 
     val availableHeightPx = remember(maxHeightPx, thumbHeightPx) {
-        maxOf(
-            0f,
-            maxHeightPx - thumbHeightPx
-        )
+        (maxHeightPx - thumbHeightPx).coerceAtLeast(0)
     }
 
-    val thumbOffsetPx by remember {
+    val thumbOffsetPx by remember(availableHeightPx) {
         derivedStateOf {
-            (scrollProgress * availableHeightPx).coerceIn(0f, availableHeightPx)
+            (scrollFraction * availableHeightPx).toInt().coerceIn(0, availableHeightPx)
         }
     }
 
     var scrollJob by remember { mutableStateOf<Job?>(null) }
-
-    Box(
-        modifier = Modifier
-            .offset { IntOffset(0, thumbOffsetPx.toInt()) }
-            .pointerInput(availableHeightPx) {
-                detectVerticalDragGestures { change, dragAmount ->
-                    change.consume()
-                    val totalItems = gridState.layoutInfo.totalItemsCount
-                    if (totalItems > 0) {
-                        val newOffset = (thumbOffsetPx + dragAmount).coerceIn(0f, availableHeightPx)
-
-                        val newProgress =
-                            if (availableHeightPx > 0) newOffset / availableHeightPx else 0f
-
-                        val targetIndex =
-                            (newProgress * totalItems).toInt().coerceIn(0, totalItems - 1)
-
-                        val prevJob = scrollJob
-                        scrollJob = coroutineScope.launch {
-                            prevJob?.cancelAndJoin()
-                            gridState.scrollToItem(targetIndex)
-                        }
-                    }
-                }
+    val draggableState = rememberDraggableState { delta ->
+        val totalItems = gridState.layoutInfo.totalItemsCount
+        if (totalItems > 0) {
+            val targetOffset =
+                (thumbOffsetPx + delta).toInt().coerceIn(0, availableHeightPx)
+            val targetFraction = if (availableHeightPx > 0) {
+                targetOffset / availableHeightPx.toFloat()
+            } else {
+                0f
             }
-    ) {
-        Thumb(
-            modifier = Modifier.onSizeChanged {
-                thumbHeightPx = it.height
-            },
-            text = null,
+            val targetIndex = (totalItems * targetFraction).toInt()
+                .coerceIn(0, totalItems - 1)
+            text = textProvider(targetIndex)
+            val prevJob = scrollJob
+            scrollJob = coroutineScope.launch {
+                prevJob?.cancelAndJoin()
+                Log.i("FASTSCROLL", "Scroll to $targetIndex")
+                gridState.scrollToItem(targetIndex)
+            }
+        }
+    }
+
+    AnimatedVisibility(
+        modifier = Modifier.fillMaxHeight().then(modifier),
+        visible = isVisible,
+        enter = slideInHorizontally(
+            initialOffsetX = { fullWidth -> fullWidth }
+        ),
+        exit = slideOutHorizontally(
+            targetOffsetX = { fullWidth -> fullWidth }
         )
+    ) {
+        Box(
+            modifier = Modifier.fillMaxHeight().onGloballyPositioned{
+                maxHeightPx = it.size.height
+            }.draggable(
+                state = draggableState,
+                onDragStarted = { isDragging = true },
+                onDragStopped = { isDragging = false },
+                orientation = Orientation.Vertical
+            )
+        ) {
+            Thumb(
+                modifier = Modifier
+                    .onGloballyPositioned {
+                        thumbHeightPx = it.size.height
+                    }
+                    .offset { IntOffset(0, thumbOffsetPx) },
+                text = if (isDragging) text else null,
+            )
+        }
     }
 }
 
@@ -126,11 +157,15 @@ private fun Thumb(
         .background(Color.White),
     verticalAlignment = Alignment.CenterVertically,
 ) {
-    if (!text.isNullOrEmpty()) {
+    AnimatedVisibility(
+        visible = !text.isNullOrEmpty()
+    ) {
         Text(
-            text = text,
-            color = Color.White,
-            fontSize = 14.sp
+            modifier = Modifier.padding(
+                start = 8.dp,
+            ),
+            text = text.orEmpty(),
+            style = MaterialTheme.typography.bodyMedium,
         )
     }
 
@@ -150,5 +185,14 @@ private fun ThumbPreview() = AlbumTheme {
     Thumb(
         modifier = Modifier.padding(42.dp),
         text = null,
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ThumbPreviewWithText() = AlbumTheme {
+    Thumb(
+        modifier = Modifier.padding(42.dp),
+        text = "24 Jun",
     )
 }

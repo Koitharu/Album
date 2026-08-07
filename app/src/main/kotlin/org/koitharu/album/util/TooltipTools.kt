@@ -6,6 +6,7 @@ import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
@@ -19,6 +20,7 @@ fun IconButtonWithTooltip(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     tooltip: String,
+    tooltipAnchorPosition: TooltipAnchorPosition = TooltipAnchorPosition.Below,
     colors: IconButtonColors = IconButtonDefaults.iconButtonColors(),
     interactionSource: MutableInteractionSource? = null,
     shape: Shape = IconButtonDefaults.standardShape,
@@ -26,7 +28,7 @@ fun IconButtonWithTooltip(
 ) {
     val tooltipState = rememberTooltipState()
     TooltipBox(
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(tooltipAnchorPosition),
         tooltip = {
             PlainTooltip {
                 Text(tooltip)

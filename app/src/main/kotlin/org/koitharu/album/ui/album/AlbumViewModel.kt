@@ -15,29 +15,46 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import org.koitharu.album.model.isSameMonth
 import org.koitharu.album.repository.AlbumSource
+import org.koitharu.album.repository.FavoritesRepository
+import org.koitharu.album.repository.FavoritesSource
+import org.koitharu.album.repository.GalleryRepository
+import org.koitharu.album.repository.RecycleBinSource
 import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
 import org.koitharu.album.ui.album.AlbumIntent.OpenMedia
 import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
+import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
+import org.koitharu.album.ui.folders.FolderItem
+import org.koitharu.album.util.runCatchingCancellable
+import org.koitharu.album.util.tickerFlow
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel(assistedFactory = AlbumViewModel.Factory::class)
 class AlbumViewModel @AssistedInject constructor(
-    @Assisted val albumId: String?,
-    val contentResolver: ContentResolver,
+    @Assisted private  val folder: FolderItem?,
+    private val contentResolver: ContentResolver,
+    private val repository: GalleryRepository,
+    private val favoritesRepository: FavoritesRepository,
 ) : MviViewModel<AlbumState, AlbumIntent, Nothing>(AlbumState()) {
 
     val pagerContent = Pager(
         config = PagingConfig(
-            pageSize = 20,
+            pageSize = 30,
             enablePlaceholders = true,
-            jumpThreshold = 100,
         ),
         pagingSourceFactory = {
-            AlbumSource(albumId, contentResolver)
+            when (folder) {
+                is FolderItem.Favorites -> FavoritesSource(favoritesRepository, contentResolver)
+                is FolderItem.RecycleBin -> RecycleBinSource(contentResolver)
+                is FolderItem.Bucket,
+                null -> AlbumSource(folder?.id, contentResolver)
+            }
         }
     ).flow.map { pagingData ->
         pagingData.map { mediaItem ->
@@ -56,6 +73,21 @@ class AlbumViewModel @AssistedInject constructor(
             }
         }
     }.cachedIn(viewModelScope + Dispatchers.Default)
+
+    init {
+        viewModelScope.launch(Dispatchers.Default) {
+            tickerFlow(10.seconds)
+                .mapNotNull {
+                    runCatchingCancellable {
+                        repository.getRandomImage()
+                    }.getOrNull()
+                }.collect { image ->
+                    state.update {
+                        it.copy(banner = AlbumItem.Media(image) as AlbumItem.Image)
+                    }
+                }
+        }
+    }
 
     override fun handleIntent(intent: AlbumIntent) {
         when (intent) {
@@ -76,6 +108,6 @@ class AlbumViewModel @AssistedInject constructor(
     @AssistedFactory
     interface Factory {
 
-        fun create(albumId: String?): AlbumViewModel
+        fun create(folder: FolderItem?): AlbumViewModel
     }
 }

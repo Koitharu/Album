@@ -5,9 +5,7 @@ import android.widget.VideoView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,13 +19,12 @@ import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
 import coil3.compose.asPainter
 import coil3.memory.MemoryCache
-import org.koitharu.album.ui.album.AlbumItem
+import org.koitharu.album.ui.common.AlbumItem
 
 @Composable
 fun VideoViewer(
     modifier: Modifier,
     video: AlbumItem.Video,
-    innerPadding: PaddingValues,
     isActive: Boolean,
     onClick: () -> Unit,
 ) = Box(
@@ -36,8 +33,7 @@ fun VideoViewer(
     var isOverlayVisible by remember { mutableStateOf(true) }
     VideoPlayer(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding),
+            .fillMaxSize(),
         uri = video.uri.toString(),
         onReady = { isOverlayVisible = false }
     )

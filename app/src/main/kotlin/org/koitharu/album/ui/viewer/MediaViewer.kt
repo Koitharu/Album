@@ -1,8 +1,10 @@
 package org.koitharu.album.ui.viewer
 
+import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -11,18 +13,23 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsIgnoringVisibility
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -34,8 +41,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -47,32 +55,36 @@ import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.mapNotNull
 import org.koitharu.album.R
 import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
-import org.koitharu.album.ui.album.AlbumItem
 import org.koitharu.album.ui.album.AlbumViewModel
+import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviIntentHandler
+import org.koitharu.album.ui.common.deleteMedia
+import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.theme.AlbumTheme
-import org.koitharu.album.ui.util.SetLightBarsEffect
-import org.koitharu.album.ui.util.formattedDateTime
-import org.koitharu.album.ui.util.rememberWindowInsetsController
-import org.koitharu.album.ui.util.shareMedia
+import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
+import org.koitharu.album.util.SetSystemBarsColorsEffect
+import org.koitharu.album.util.formattedDateTime
+import org.koitharu.album.util.rememberWindowInsetsController
+import org.koitharu.album.util.shareMedia
 import org.koitharu.toadlink.ui.composables.IconButtonWithTooltip
 
 @Composable
 fun ViewerScreen(
-    albumId: String?,
+    folder: FolderItem?,
     media: AlbumItem.Media,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val albumViewModel = hiltViewModel<AlbumViewModel, AlbumViewModel.Factory>(
-        key = albumId
+        key = folder?.id
     ) {
-        it.create(albumId)
+        it.create(folder)
     }
     val localStoreOwner = rememberViewModelStoreOwner()
     CompositionLocalProvider(LocalViewModelStoreOwner provides localStoreOwner) {
@@ -80,9 +92,22 @@ fun ViewerScreen(
             it.create(media)
         }
         val state by viewModel.collectState()
-        MediaViewer(
+        val resources = LocalResources.current
+        val snackbarHostState = remember { SnackbarHostState() }
+        LaunchedEffect(Unit) {
+            viewModel.effect.collect { effect ->
+                when (effect) {
+                    is ViewerEffect.OnError -> snackbarHostState.showSnackbar(
+                        effect.error.message ?: resources.getString(R.string.error_message_generic)
+                    )
+                }
+            }
+        }
+        PagerMediaViewer(
             pagingData = albumViewModel.pagerContent,
             media = state.currentMedia,
+            isFavorite = state.isFavorite,
+            snackbarHostState = snackbarHostState,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
             handleIntent = viewModel,
@@ -91,108 +116,69 @@ fun ViewerScreen(
 }
 
 @Composable
-private fun MediaViewer(
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+private fun PagerMediaViewer(
     pagingData: Flow<PagingData<AlbumItem.Media>>,
     media: AlbumItem.Media,
+    isFavorite: Boolean,
+    snackbarHostState: SnackbarHostState,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     handleIntent: MviIntentHandler<ViewerIntent>,
     onClose: () -> Unit,
 ) = AlbumTheme(darkTheme = true) {
-    Scaffold { innerPadding ->
-        val insetsController = rememberWindowInsetsController()
-        var isUiVisible by remember { mutableStateOf(true) }
-        if (insetsController != null) {
-            SetLightBarsEffect(insetsController, isLight = false)
-            DisposableEffect(Unit) {
-                onDispose {
-                    insetsController.show(WindowInsetsCompat.Type.systemBars())
-                }
-            }
-            LaunchedEffect(isUiVisible) {
-                if (isUiVisible) {
-                    insetsController.show(WindowInsetsCompat.Type.systemBars())
-                } else {
-                    insetsController.hide(WindowInsetsCompat.Type.systemBars())
-                }
+    val insetsController = rememberWindowInsetsController()
+    var isUiVisible by remember { mutableStateOf(true) }
+    if (insetsController != null) {
+        SetSystemBarsColorsEffect(
+            insetsController = insetsController,
+            isLightStatusBar = false,
+            isLightNavigationBar = false,
+        )
+        DisposableEffect(Unit) {
+            onDispose {
+                insetsController.show(WindowInsetsCompat.Type.systemBars())
             }
         }
-        BackHandler(onBack = onClose)
-        Box(
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            val images = pagingData.collectAsLazyPagingItems()
-            val pagerState = rememberPagerState(
-                initialPage = computeInitialIndex(media, images), pageCount = { images.itemCount })
-            LaunchedEffect(pagerState) {
-                snapshotFlow { pagerState.settledPage }.mapNotNull { images.peek(it) }.collect {
-                    handleIntent(OnMediaChanged(it))
-                }
+        LaunchedEffect(isUiVisible) {
+            if (isUiVisible) {
+                insetsController.show(WindowInsetsCompat.Type.systemBars())
+            } else {
+                insetsController.hide(WindowInsetsCompat.Type.systemBars())
             }
-            HorizontalPager(
-                state = pagerState,
-                snapPosition = SnapPosition.Center,
-                key = images.itemKey { it.id },
-            ) { page ->
-                val item = images[page]
-                with(sharedTransitionScope) {
-                    val modifier = if (page == pagerState.currentPage && item is AlbumItem.Media) {
-                        Modifier.sharedElement(
-                            rememberSharedContentState(key = "image_${item.id}"),
-                            animatedVisibilityScope = animatedVisibilityScope
-                        )
-                    } else {
-                        Modifier
-                    }
-                    when (item) {
-                        is AlbumItem.Image -> ImageViewer(
-                            modifier = modifier,
-                            image = item,
-                            innerPadding = innerPadding,
-                            onClick = { isUiVisible = !isUiVisible },
-                        )
-
-                        is AlbumItem.Video -> VideoViewer(
-                            modifier = modifier,
-                            video = item,
-                            innerPadding = innerPadding,
-                            isActive = page == pagerState.currentPage,
-                            onClick = { isUiVisible = !isUiVisible },
-                        )
-                        null -> EmptyPage()
-                    }
-                }
-            }
+        }
+    }
+    Scaffold(
+        topBar = {
             AnimatedVisibility(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(
-                        top = innerPadding.calculateTopPadding(),
-                        start = innerPadding.calculateStartPadding(LocalLayoutDirection.current)
-                    ),
                 visible = isUiVisible,
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
-                IconButtonWithTooltip(
-                    tooltip = stringResource(R.string.back),
-                    onClick = onClose,
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_arrow_back),
-                        contentDescription = stringResource(R.string.back)
-                    )
-                }
+                TopAppBar(
+                    title = {},
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                    ),
+                    navigationIcon = {
+                        IconButtonWithTooltip(
+                            tooltip = stringResource(R.string.back),
+                            onClick = onClose,
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_arrow_back),
+                                contentDescription = stringResource(R.string.back)
+                            )
+                        }
+                    }
+                )
             }
+        },
+        bottomBar = {
             AnimatedVisibility(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(
-                        start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
-                        end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
-                        bottom = innerPadding.calculateBottomPadding(),
-                    )
-                    .align(Alignment.BottomStart),
+                    .navigationBarsPadding(),
                 visible = isUiVisible,
                 enter = fadeIn(),
                 exit = fadeOut(),
@@ -200,9 +186,111 @@ private fun MediaViewer(
                 BottomBar(
                     modifier = Modifier.fillMaxWidth(),
                     media = media,
+                    isFavorite = isFavorite,
                     handleIntent = handleIntent,
                 )
             }
+        },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState)
+        },
+        contentWindowInsets = WindowInsets.systemBarsIgnoringVisibility,
+    ) { _ ->
+        BackHandler(onBack = onClose)
+        val images = pagingData.collectAsLazyPagingItems(Dispatchers.Default)
+        val initialIndex = remember(media) {
+            computeInitialIndex(media, images)
+        }
+        if (initialIndex == -1) {
+            SingleViewer(
+                media = media,
+                sharedTransitionScope = sharedTransitionScope,
+                animatedVisibilityScope = animatedVisibilityScope,
+                handleIntent = handleIntent,
+                onClick = { isUiVisible = !isUiVisible },
+                isActive = true,
+            )
+        } else {
+            ViewerPager(
+                images = images,
+                initialIndex = initialIndex,
+                sharedTransitionScope = sharedTransitionScope,
+                animatedVisibilityScope = animatedVisibilityScope,
+                handleIntent = handleIntent,
+                onClick = { isUiVisible = !isUiVisible },
+            )
+        }
+    }
+}
+
+@Composable
+fun ViewerPager(
+    images: LazyPagingItems<AlbumItem.Media>,
+    initialIndex: Int,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    handleIntent: MviIntentHandler<ViewerIntent>,
+    onClick: () -> Unit,
+) {
+    val pagerState = rememberPagerState(
+        initialPage = initialIndex,
+        pageCount = { images.itemCount }
+    )
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }.mapNotNull { images.peek(it) }.collect {
+            handleIntent(OnMediaChanged(it))
+        }
+    }
+    HorizontalPager(
+        modifier = Modifier.fillMaxSize(),
+        state = pagerState,
+        snapPosition = SnapPosition.Center,
+        key = images.itemKey { it.id },
+    ) { page ->
+        SingleViewer(
+            media = images[page],
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = animatedVisibilityScope,
+            handleIntent = handleIntent,
+            isActive = page == pagerState.currentPage,
+            onClick = onClick,
+        )
+    }
+}
+
+@Composable
+fun SingleViewer(
+    media: AlbumItem.Media?,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    handleIntent: MviIntentHandler<ViewerIntent>,
+    isActive: Boolean,
+    onClick: () -> Unit,
+) {
+    with(sharedTransitionScope) {
+        val modifier = if (isActive && media is AlbumItem.Media) {
+            Modifier.sharedElement(
+                rememberSharedContentState(key = "image_${media.id}"),
+                animatedVisibilityScope = animatedVisibilityScope
+            )
+        } else {
+            Modifier
+        }
+        when (media) {
+            is AlbumItem.Image -> ImageViewer(
+                modifier = modifier,
+                image = media,
+                onClick = onClick,
+            )
+
+            is AlbumItem.Video -> VideoViewer(
+                modifier = modifier,
+                video = media,
+                isActive = isActive,
+                onClick = onClick,
+            )
+
+            null -> EmptyPage()
         }
     }
 }
@@ -220,6 +308,7 @@ private fun EmptyPage() = Box(
 private fun BottomBar(
     modifier: Modifier,
     media: AlbumItem.Media,
+    isFavorite: Boolean,
     handleIntent: MviIntentHandler<ViewerIntent>,
 ) = Column(
     modifier = modifier,
@@ -250,12 +339,16 @@ private fun BottomBar(
         }
         IconButtonWithTooltip(
             tooltip = stringResource(R.string.favorite),
-            onClick = { /* TODO */ },
+            onClick = { handleIntent(Favorite(media, !isFavorite)) },
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_star_outline),
-                contentDescription = stringResource(R.string.favorite)
-            )
+            Crossfade(
+                targetState = isFavorite,
+            ) { fav ->
+                Icon(
+                    painter = painterResource(if (fav) R.drawable.ic_star_filled else R.drawable.ic_star_outline),
+                    contentDescription = stringResource(R.string.favorite)
+                )
+            }
         }
         IconButtonWithTooltip(
             tooltip = stringResource(R.string.edit),
@@ -268,7 +361,7 @@ private fun BottomBar(
         }
         IconButtonWithTooltip(
             tooltip = stringResource(R.string.delete),
-            onClick = { /* TODO */ },
+            onClick = { deleteMedia(context, media) },
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_delete),
@@ -281,12 +374,18 @@ private fun BottomBar(
 private fun computeInitialIndex(
     item: AlbumItem.Media, pagingData: LazyPagingItems<AlbumItem.Media>
 ): Int {
+    val snapshot = pagingData.itemSnapshotList
+    // fast path
+    if (item.index in snapshot.indices && snapshot[item.index]?.id == item.id) {
+        return item.index
+    }
+    // slow path
     val index = pagingData.itemSnapshotList.indexOfFirst { x ->
         x?.id == item.id
     }
-    return if (index < 0) {
-        item.index
-    } else {
-        index
+    if (index >= 0) {
+        return index
     }
+    // fallback
+    return -1
 }

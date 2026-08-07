@@ -2,7 +2,6 @@ package org.koitharu.album.ui.viewer
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -22,13 +21,12 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import me.saket.telephoto.zoomable.coil3.ZoomableAsyncImage
 import org.koitharu.album.R
-import org.koitharu.album.ui.album.AlbumItem
+import org.koitharu.album.ui.common.AlbumItem
 
 @Composable
 fun ImageViewer(
     modifier: Modifier,
     image: AlbumItem.Image,
-    innerPadding: PaddingValues,
     onClick: () -> Unit,
 ) = Box(
     modifier = Modifier.fillMaxSize(),
@@ -46,7 +44,6 @@ fun ImageViewer(
                 onSuccess = { _, _ -> error = null }
             )
             .build(),
-        contentPadding = innerPadding,
         contentDescription = null,
         onClick = { onClick() },
     )

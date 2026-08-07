@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.dagger.hilt)
     alias(libs.plugins.kotlin.ksp)
+    alias(libs.plugins.kotlin.parcelize)
 }
 
 android {
@@ -22,7 +23,7 @@ android {
     buildTypes {
         release {
             optimization {
-                enable = false
+                enable = true
             }
         }
     }
@@ -38,8 +39,11 @@ kotlin {
     compilerOptions {
         optIn.add("kotlinx.coroutines.ExperimentalCoroutinesApi")
         optIn.add("coil3.annotation.InternalCoilApi")
+        optIn.add("coil3.annotation.ExperimentalCoilApi")
         optIn.add("androidx.compose.material3.ExperimentalMaterial3Api")
         optIn.add("androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
+        optIn.add("androidx.compose.foundation.layout.ExperimentalLayoutApi")
+        optIn.add("androidx.compose.animation.ExperimentalAnimationApi")
     }
 }
 hilt {

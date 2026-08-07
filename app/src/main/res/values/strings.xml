@@ -6,4 +6,13 @@
     <string name="edit">Edit</string>
     <string name="delete">Delete</string>
     <string name="error_message_generic">Something went wrong</string>
+    <string name="folders">Folders</string>
+    <string name="favorites">Favorites</string>
+    <string name="recycle_bin">Recycle Bin</string>
+    <string name="folder_is_empty">This folder is empty</string>
+    <plurals name="items">
+        <item quantity="one">%d item</item>
+        <item quantity="few">%d items</item>
+        <item quantity="many">%d items</item>
+    </plurals>
 </resources>

@@ -1,5 +1,7 @@
-package org.koitharu.album.ui.album
+package org.koitharu.album.ui.common
 
+import android.content.Context
+import android.text.format.DateUtils
 import androidx.compose.runtime.Immutable
 import coil3.Uri
 import org.koitharu.album.model.ImmutableDateTime
@@ -10,15 +12,22 @@ sealed interface AlbumItem {
 
     val id: Any
 
+    fun label(context: Context): String
+
     data class DateHeader(
         val date: ImmutableDateTime,
     ) : AlbumItem {
 
         override val id get() = date.millis
+
+        override fun label(context: Context): String {
+            return DateUtils.formatDateTime(context, date.millis, DateUtils.FORMAT_SHOW_DATE)
+        }
     }
 
     @Immutable
     sealed interface Media : AlbumItem {
+        override val id: Long
         val index: Int
         val uri: Uri
         val thumbnail: Uri
@@ -28,6 +37,10 @@ sealed interface AlbumItem {
 
         val memoryCacheKey: String
             get() = "thumb_$id"
+
+        override fun label(context: Context): String {
+            return DateUtils.formatDateTime(context, dateAdded.millis, DateUtils.FORMAT_SHOW_DATE)
+        }
 
         companion object {
 

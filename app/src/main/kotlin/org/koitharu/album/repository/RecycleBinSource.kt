@@ -3,8 +3,7 @@ package org.koitharu.album.repository
 import android.content.ContentResolver
 import android.provider.MediaStore.Files.FileColumns
 
-class AlbumSource(
-    albumId: String?,
+class RecycleBinSource(
     contentResolver: ContentResolver
 ) : GallerySource(contentResolver) {
 
@@ -14,18 +13,10 @@ class AlbumSource(
         append(") AND ")
         append(FileColumns.IS_TRASHED)
         append(" = ?")
-        if (albumId != null) {
-            append(" AND ")
-            append(FileColumns.BUCKET_ID)
-            append(" = ?")
-        }
     }
 
     override val selectionArgs = buildList {
         addAll(super.selectionArgs)
-        add("0")
-        if (albumId != null) {
-            add(albumId)
-        }
+        add("1")
     }.toTypedArray()
 }

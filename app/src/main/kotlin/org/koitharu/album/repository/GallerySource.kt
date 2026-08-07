@@ -3,10 +3,7 @@ package org.koitharu.album.repository
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.database.ContentObserver
-import android.database.Cursor
 import android.net.Uri
-import android.os.Build
-import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.Handler
 import android.os.Looper
@@ -20,7 +17,10 @@ import coil3.toCoilUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koitharu.album.model.MediaItem
-import org.koitharu.album.ui.util.runCancellable
+import org.koitharu.album.repository.OrderDirection.DESC
+import org.koitharu.album.util.getOrDefault
+import org.koitharu.album.util.runCancellable
+import org.koitharu.album.util.suspendLazy
 
 abstract class GallerySource(
     private val contentResolver: ContentResolver,
@@ -40,6 +40,12 @@ abstract class GallerySource(
     )
     open val queryUri: Uri = MediaStore.Files.getContentUri("external")
 
+    private val totalCount = suspendLazy {
+        runCancellable { signal ->
+            queryCount(signal)
+        }
+    }
+
     init {
         val contentObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean) {
@@ -58,9 +64,10 @@ abstract class GallerySource(
 
     override fun getRefreshKey(state: PagingState<Int, MediaItem>): Int? {
         val anchorPosition = state.anchorPosition ?: return null
-        val closestPage = state.closestPageToPosition(anchorPosition) ?: return null
-        return closestPage.prevKey?.plus(state.config.pageSize)
-            ?: closestPage.nextKey?.minus(state.config.pageSize)
+        val pageSize = state.config.pageSize
+        val result =  (anchorPosition / pageSize) * pageSize
+        Log.i("ALBUMSRC", "refresh(key = $result)")
+        return result
     }
 
     override suspend fun load(
@@ -68,14 +75,9 @@ abstract class GallerySource(
     ): LoadResult<Int, MediaItem> = withContext(Dispatchers.IO) {
         val limit = params.loadSize
         val offset = params.key ?: 0
+        val total = totalCount.getOrDefault(0)
 
-        val totalCount = runCancellable { signal ->
-            queryCount(signal)
-        }
-
-        val query = runCancellable { signal ->
-            query(limit, offset, signal)
-        } ?: return@withContext LoadResult.Invalid()
+        val query = query(limit, offset) ?: return@withContext LoadResult.Invalid()
 
         query.use { cursor ->
             if (!cursor.moveToFirst()) {
@@ -90,9 +92,6 @@ abstract class GallerySource(
 
             do {
                 val id = cursor.getLong(idColumn)
-                val name = cursor.getString(nameColumn)
-                val dateAdded = cursor.getLong(dateAddedColumn)
-                val mimeType = cursor.getString(mimeTypeColumn)
                 val isVideo = cursor.getInt(mediaTypeColumn) == FileColumns.MEDIA_TYPE_VIDEO
                 val contentUri = if (isVideo) {
                     ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
@@ -103,11 +102,11 @@ abstract class GallerySource(
                     MediaItem(
                         index = offset + result.size,
                         id = id,
-                        name = name,
-                        mimeType = mimeType,
+                        name = cursor.getString(nameColumn),
+                        mimeType = cursor.getString(mimeTypeColumn),
                         uri = contentUri.toCoilUri(),
                         isVideo = isVideo,
-                        dateAdded = dateAdded,
+                        dateAdded = cursor.getLong(dateAddedColumn),
                     )
                 )
             } while (cursor.moveToNext())
@@ -122,15 +121,15 @@ abstract class GallerySource(
                     null
                 },
                 nextKey = (offset + result.size).takeIf {
-                    it < totalCount
+                    it < total
                 },
-                itemsBefore = if (totalCount > 0) {
+                itemsBefore = if (total > 0) {
                     offset
                 } else {
                     COUNT_UNDEFINED
                 },
-                itemsAfter = if (totalCount > 0) {
-                    (totalCount - offset - result.size).coerceAtLeast(0)
+                itemsAfter = if (total > 0) {
+                    (total - offset - result.size).coerceAtLeast(0)
                 } else {
                     COUNT_UNDEFINED
                 },
@@ -153,46 +152,14 @@ abstract class GallerySource(
         it.count
     } ?: 0
 
-    private fun query(
-        limit: Int,
-        offset: Int,
-        cancellationSignal: CancellationSignal,
-    ): Cursor? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val queryArgs = Bundle(6).apply {
-            putInt(ContentResolver.QUERY_ARG_LIMIT, limit)
-            putInt(ContentResolver.QUERY_ARG_OFFSET, offset)
-            putStringArray(
-                ContentResolver.QUERY_ARG_SORT_COLUMNS,
-                arrayOf(FileColumns.DATE_ADDED)
-            )
-            putInt(
-                ContentResolver.QUERY_ARG_SORT_DIRECTION,
-                ContentResolver.QUERY_SORT_DIRECTION_DESCENDING
-            )
-            putString(
-                ContentResolver.QUERY_ARG_SQL_SELECTION,
-                selection
-            )
-            putStringArray(
-                ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
-                selectionArgs
-            )
-        }
-
-        contentResolver.query(
-            queryUri,
-            projection,
-            queryArgs,
-            cancellationSignal,
-        )
-    } else {
-        contentResolver.query(
-            queryUri,
-            projection,
-            selection,
-            selectionArgs,
-            "${FileColumns.DATE_ADDED} DESC LIMIT $limit OFFSET $offset", // Sort order
-            cancellationSignal
-        )
-    }
+    private suspend fun query(limit: Int, offset: Int) = contentResolver.queryCompat(
+        uri = queryUri,
+        projection = projection,
+        selection = selection,
+        selectionArgs = selectionArgs,
+        orderBy = FileColumns.DATE_ADDED,
+        orderDirection = DESC,
+        offset = offset,
+        limit = limit
+    )
 }

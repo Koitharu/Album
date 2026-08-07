@@ -13,7 +13,7 @@ import coil3.fetch.ImageFetchResult
 import coil3.request.Options
 import coil3.size.pxOrElse
 import coil3.toAndroidUri
-import org.koitharu.album.ui.util.runCancellable
+import org.koitharu.album.util.runCancellable
 
 class ThumbnailFetcher(
     private val data: Uri,

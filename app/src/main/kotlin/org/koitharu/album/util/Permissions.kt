@@ -1,4 +1,4 @@
-package org.koitharu.album.ui.util
+package org.koitharu.album.util
 
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
