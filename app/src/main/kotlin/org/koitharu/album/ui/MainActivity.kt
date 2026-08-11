@@ -153,6 +153,7 @@ private fun HomeContent(
                 innerPadding = innerPadding,
                 albumScope = albumScope
             )
+
             1 -> FoldersContent(
                 innerPadding = innerPadding,
                 listState = foldersListState,

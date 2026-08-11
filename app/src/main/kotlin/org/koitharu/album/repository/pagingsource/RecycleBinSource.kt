@@ -1,12 +1,14 @@
-package org.koitharu.album.repository
+package org.koitharu.album.repository.pagingsource
 
 import android.content.ContentResolver
 import android.provider.MediaStore.Files.FileColumns
+import org.koitharu.album.repository.LegacyFavoritesRepository
+import javax.inject.Inject
 
-class AlbumSource(
-    albumId: String?,
-    contentResolver: ContentResolver
-) : GallerySource(contentResolver) {
+class RecycleBinSource @Inject constructor(
+    contentResolver: ContentResolver,
+    legacyFavoritesRepository: LegacyFavoritesRepository
+) : GallerySource(contentResolver, legacyFavoritesRepository) {
 
     override val selection = buildString {
         append('(')
@@ -14,18 +16,10 @@ class AlbumSource(
         append(") AND ")
         append(FileColumns.IS_TRASHED)
         append(" = ?")
-        if (albumId != null) {
-            append(" AND ")
-            append(FileColumns.BUCKET_ID)
-            append(" = ?")
-        }
     }
 
     override val selectionArgs = buildList {
         addAll(super.selectionArgs)
-        add("0")
-        if (albumId != null) {
-            add(albumId)
-        }
+        add("1")
     }.toTypedArray()
 }

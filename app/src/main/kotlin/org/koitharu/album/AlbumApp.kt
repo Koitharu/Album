@@ -8,12 +8,18 @@ import coil3.request.crossfade
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.Dispatchers
 import org.koitharu.album.repository.ThumbnailFetcher
+import org.koitharu.album.util.ActivityContextProvider
+import javax.inject.Inject
 
 @HiltAndroidApp
 class AlbumApp : Application(), SingletonImageLoader.Factory {
 
+    @Inject
+    lateinit var activityContextProvider: ActivityContextProvider
+
     override fun onCreate() {
         super.onCreate()
+        registerActivityLifecycleCallbacks(activityContextProvider)
     }
 
 

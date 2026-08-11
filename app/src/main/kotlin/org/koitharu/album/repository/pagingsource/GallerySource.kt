@@ -1,4 +1,4 @@
-package org.koitharu.album.repository
+package org.koitharu.album.repository.pagingsource
 
 import android.content.ContentResolver
 import android.content.ContentUris
@@ -13,32 +13,45 @@ import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
 import androidx.paging.PagingState
-import coil3.toCoilUri
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
 import org.koitharu.album.model.MediaItem
+import org.koitharu.album.repository.Features
+import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.OrderDirection.DESC
+import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.getOrDefault
 import org.koitharu.album.util.runCancellable
 import org.koitharu.album.util.suspendLazy
 
 abstract class GallerySource(
     private val contentResolver: ContentResolver,
+    private val legacyFavoritesRepository: LegacyFavoritesRepository,
 ) : PagingSource<Int, MediaItem>() {
 
-    val projection = arrayOf(
-        FileColumns._ID,
-        FileColumns.DISPLAY_NAME,
-        FileColumns.MIME_TYPE,
-        FileColumns.MEDIA_TYPE,
-        FileColumns.DATE_ADDED,
-    )
+    val projection = buildList(7) {
+        add(FileColumns._ID)
+        add(FileColumns.DISPLAY_NAME)
+        add(FileColumns.MIME_TYPE)
+        add(FileColumns.MEDIA_TYPE)
+        add(FileColumns.DATE_ADDED)
+        if (Features.isNativeFavoritesSupported) {
+            add(FileColumns.IS_FAVORITE)
+        }
+        if (Features.isRecycleBinSupported) {
+            add(FileColumns.IS_TRASHED)
+        }
+    }.toTypedArray()
     open val selection = "${FileColumns.MEDIA_TYPE} = ? OR ${FileColumns.MEDIA_TYPE} = ?"
     open val selectionArgs = arrayOf(
         FileColumns.MEDIA_TYPE_IMAGE.toString(),
         FileColumns.MEDIA_TYPE_VIDEO.toString(),
     )
     open val queryUri: Uri = MediaStore.Files.getContentUri("external")
+    val sourceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val totalCount = suspendLazy {
         runCancellable { signal ->
@@ -54,8 +67,11 @@ abstract class GallerySource(
             }
         }
         contentResolver.registerContentObserver(queryUri, true, contentObserver)
-        super.registerInvalidatedCallback {
+        registerInvalidatedCallback {
             contentResolver.unregisterContentObserver(contentObserver)
+        }
+        registerInvalidatedCallback {
+            sourceScope.cancel()
         }
     }
 
@@ -65,7 +81,7 @@ abstract class GallerySource(
     override fun getRefreshKey(state: PagingState<Int, MediaItem>): Int? {
         val anchorPosition = state.anchorPosition ?: return null
         val pageSize = state.config.pageSize
-        val result =  (anchorPosition / pageSize) * pageSize
+        val result = (anchorPosition / pageSize) * pageSize
         Log.i("ALBUMSRC", "refresh(key = $result)")
         return result
     }
@@ -89,6 +105,16 @@ abstract class GallerySource(
             val mimeTypeColumn = cursor.getColumnIndexOrThrow(FileColumns.MIME_TYPE)
             val mediaTypeColumn = cursor.getColumnIndexOrThrow(FileColumns.MEDIA_TYPE)
             val dateAddedColumn = cursor.getColumnIndexOrThrow(FileColumns.DATE_ADDED)
+            val favoriteColumn = if (Features.isNativeFavoritesSupported) {
+                cursor.getColumnIndex(FileColumns.IS_FAVORITE)
+            } else {
+                -1
+            }
+            val trashedColumn = if (Features.isRecycleBinSupported) {
+                cursor.getColumnIndex(FileColumns.IS_TRASHED)
+            } else {
+                -1
+            }
 
             do {
                 val id = cursor.getLong(idColumn)
@@ -98,14 +124,26 @@ abstract class GallerySource(
                 } else {
                     ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
                 }
+                val isFavorite = if (favoriteColumn >= 0) {
+                    cursor.getInt(favoriteColumn) > 0
+                } else {
+                    legacyFavoritesRepository.isFavorite(id)
+                }
+                val isTrashed = if (trashedColumn >= 0) {
+                    cursor.getInt(trashedColumn) > 0
+                } else {
+                    false
+                }
                 result.add(
                     MediaItem(
                         index = offset + result.size,
                         id = id,
                         name = cursor.getString(nameColumn),
                         mimeType = cursor.getString(mimeTypeColumn),
-                        uri = contentUri.toCoilUri(),
+                        uri = contentUri,
                         isVideo = isVideo,
+                        isFavorite = isFavorite,
+                        isTrashed = isTrashed,
                         dateAdded = cursor.getLong(dateAddedColumn),
                     )
                 )

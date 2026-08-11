@@ -1,11 +1,17 @@
 package org.koitharu.album.repository
 
 import android.content.ContentResolver
+import android.database.ContentObserver
 import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.channels.trySendBlocking
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
 import org.koitharu.album.repository.OrderDirection.ASC
 import org.koitharu.album.repository.OrderDirection.DESC
@@ -22,7 +28,10 @@ suspend fun ContentResolver.queryCompat(
     limit: Int = -1,
 ): Cursor? = withContext(Dispatchers.IO) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val queryArgs = Bundle(6).apply {
+        val queryArgs = Bundle(7).apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Features.isRecycleBinSupported) {
+                putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE)
+            }
             if (limit > 0) {
                 putInt(ContentResolver.QUERY_ARG_LIMIT, limit)
             }
@@ -105,4 +114,21 @@ suspend fun ContentResolver.queryCompat(
 
 enum class OrderDirection {
     ASC, DESC;
+}
+
+fun ContentResolver.observeChanges(
+    uri: Uri,
+    kickstart: Boolean,
+): Flow<Unit> = callbackFlow {
+    val contentObserver = object : ContentObserver(null) {
+        override fun onChange(selfChange: Boolean) {
+            super.onChange(selfChange)
+            trySendBlocking(Unit)
+        }
+    }
+    registerContentObserver(uri, true, contentObserver)
+    if (kickstart) {
+        send(Unit)
+    }
+    awaitClose { unregisterContentObserver(contentObserver) }
 }

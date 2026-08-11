@@ -9,15 +9,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koitharu.album.model.MediaFolder
-import org.koitharu.album.repository.FavoritesRepository
-import org.koitharu.album.repository.FoldersRepository
+import org.koitharu.album.repository.Features
+import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.ui.common.MviViewModel
 import javax.inject.Inject
 
 @HiltViewModel
 class FoldersViewModel @Inject constructor(
-    private val repository: FoldersRepository,
-    private val favoritesRepository: FavoritesRepository,
+    private val repository: MediaStoreRepository,
 ) : MviViewModel<FoldersState, FoldersIntent, Nothing>(FoldersState()) {
 
     init {
@@ -41,16 +40,18 @@ class FoldersViewModel @Inject constructor(
         buildList(list.size + 2) {
             add(
                 FolderItem.Favorites(
-                    favoritesRepository.getFavoritesCount(),
+                    repository.getFavoritesSize(),
                     null,
                 )
             )
-            add(
-                FolderItem.RecycleBin(
-                    0,
-                    null,
+            if (Features.isRecycleBinSupported) {
+                add(
+                    FolderItem.RecycleBin(
+                        repository.getRecycleBinSize(),
+                        null,
+                    )
                 )
-            )
+            }
             list.mapTo(this) {
                 FolderItem.Bucket(
                     id = it.id,

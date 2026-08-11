@@ -1,9 +1,9 @@
 package org.koitharu.album.ui.common
 
 import android.content.Context
+import android.net.Uri
 import android.text.format.DateUtils
 import androidx.compose.runtime.Immutable
-import coil3.Uri
 import org.koitharu.album.model.ImmutableDateTime
 import org.koitharu.album.model.MediaItem
 
@@ -34,9 +34,13 @@ sealed interface AlbumItem {
         val name: String?
         val dateAdded: ImmutableDateTime
         val mimeType: String
+        val isFavorite: Boolean
+        val isTrashed: Boolean
 
         val memoryCacheKey: String
             get() = "thumb_$id"
+
+        fun copyWithFavoriteState(isFavorite: Boolean): Media
 
         override fun label(context: Context): String {
             return DateUtils.formatDateTime(context, dateAdded.millis, DateUtils.FORMAT_SHOW_DATE)
@@ -53,6 +57,8 @@ sealed interface AlbumItem {
                     name = mediaItem.name,
                     mimeType = mediaItem.mimeType,
                     dateAdded = ImmutableDateTime.ofSeconds(mediaItem.dateAdded),
+                    isFavorite = mediaItem.isFavorite,
+                    isTrashed = mediaItem.isTrashed,
                 )
             } else {
                 Image(
@@ -63,6 +69,8 @@ sealed interface AlbumItem {
                     name = mediaItem.name,
                     mimeType = mediaItem.mimeType,
                     dateAdded = ImmutableDateTime.ofSeconds(mediaItem.dateAdded),
+                    isFavorite = mediaItem.isFavorite,
+                    isTrashed = mediaItem.isTrashed,
                 )
             }
         }
@@ -76,7 +84,14 @@ sealed interface AlbumItem {
         override val name: String?,
         override val dateAdded: ImmutableDateTime,
         override val mimeType: String,
-    ) : Media
+        override val isFavorite: Boolean,
+        override val isTrashed: Boolean,
+    ) : Media {
+
+        override fun copyWithFavoriteState(isFavorite: Boolean) = copy(
+            isFavorite = isFavorite
+        )
+    }
 
     data class Video(
         override val index: Int,
@@ -86,5 +101,12 @@ sealed interface AlbumItem {
         override val name: String?,
         override val dateAdded: ImmutableDateTime,
         override val mimeType: String,
-    ) : Media
+        override val isFavorite: Boolean,
+        override val isTrashed: Boolean,
+    ) : Media {
+
+        override fun copyWithFavoriteState(isFavorite: Boolean) = copy(
+            isFavorite = isFavorite
+        )
+    }
 }

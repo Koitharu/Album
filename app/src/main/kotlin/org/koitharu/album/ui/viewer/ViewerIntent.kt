@@ -12,4 +12,12 @@ sealed interface ViewerIntent {
         val media: AlbumItem.Media,
         val isFavorite: Boolean,
     ): ViewerIntent
+
+    data class Delete(
+        val media: AlbumItem.Media,
+    ): ViewerIntent
+
+    data class Recover(
+        val media: AlbumItem.Media,
+    ): ViewerIntent
 }

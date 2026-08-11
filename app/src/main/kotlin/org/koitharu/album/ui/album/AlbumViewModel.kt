@@ -1,6 +1,5 @@
 package org.koitharu.album.ui.album
 
-import android.content.ContentResolver
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -20,11 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import org.koitharu.album.model.isSameMonth
-import org.koitharu.album.repository.AlbumSource
-import org.koitharu.album.repository.FavoritesRepository
-import org.koitharu.album.repository.FavoritesSource
-import org.koitharu.album.repository.GalleryRepository
-import org.koitharu.album.repository.RecycleBinSource
+import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
 import org.koitharu.album.ui.album.AlbumIntent.OpenMedia
 import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
@@ -37,10 +32,9 @@ import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel(assistedFactory = AlbumViewModel.Factory::class)
 class AlbumViewModel @AssistedInject constructor(
-    @Assisted private  val folder: FolderItem?,
-    private val contentResolver: ContentResolver,
-    private val repository: GalleryRepository,
-    private val favoritesRepository: FavoritesRepository,
+    @Assisted private val folder: FolderItem?,
+    private val gallerySourceFactory: GallerySourceFactory,
+    private val repository: MediaStoreRepository,
 ) : MviViewModel<AlbumState, AlbumIntent, Nothing>(AlbumState()) {
 
     val pagerContent = Pager(
@@ -49,12 +43,7 @@ class AlbumViewModel @AssistedInject constructor(
             enablePlaceholders = true,
         ),
         pagingSourceFactory = {
-            when (folder) {
-                is FolderItem.Favorites -> FavoritesSource(favoritesRepository, contentResolver)
-                is FolderItem.RecycleBin -> RecycleBinSource(contentResolver)
-                is FolderItem.Bucket,
-                null -> AlbumSource(folder?.id, contentResolver)
-            }
+            gallerySourceFactory.create(folder)
         }
     ).flow.map { pagingData ->
         pagingData.map { mediaItem ->
@@ -79,7 +68,9 @@ class AlbumViewModel @AssistedInject constructor(
             tickerFlow(10.seconds)
                 .mapNotNull {
                     runCatchingCancellable {
-                        repository.getRandomImage()
+                        repository.getRandomMedia(isImageOnly = true, isFavoriteOnly = false)
+                    }.onFailure {
+                        it.printStackTrace()
                     }.getOrNull()
                 }.collect { image ->
                     state.update {

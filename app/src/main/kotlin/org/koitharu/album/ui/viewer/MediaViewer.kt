@@ -63,11 +63,12 @@ import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
 import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviIntentHandler
-import org.koitharu.album.ui.common.deleteMedia
 import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.theme.AlbumTheme
+import org.koitharu.album.ui.viewer.ViewerIntent.Delete
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
+import org.koitharu.album.ui.viewer.ViewerIntent.Recover
 import org.koitharu.album.util.SetSystemBarsColorsEffect
 import org.koitharu.album.util.formattedDateTime
 import org.koitharu.album.util.rememberWindowInsetsController
@@ -106,7 +107,6 @@ fun ViewerScreen(
         PagerMediaViewer(
             pagingData = albumViewModel.pagerContent,
             media = state.currentMedia,
-            isFavorite = state.isFavorite,
             snackbarHostState = snackbarHostState,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
@@ -120,7 +120,6 @@ fun ViewerScreen(
 private fun PagerMediaViewer(
     pagingData: Flow<PagingData<AlbumItem.Media>>,
     media: AlbumItem.Media,
-    isFavorite: Boolean,
     snackbarHostState: SnackbarHostState,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
@@ -186,7 +185,6 @@ private fun PagerMediaViewer(
                 BottomBar(
                     modifier = Modifier.fillMaxWidth(),
                     media = media,
-                    isFavorite = isFavorite,
                     handleIntent = handleIntent,
                 )
             }
@@ -308,7 +306,6 @@ private fun EmptyPage() = Box(
 private fun BottomBar(
     modifier: Modifier,
     media: AlbumItem.Media,
-    isFavorite: Boolean,
     handleIntent: MviIntentHandler<ViewerIntent>,
 ) = Column(
     modifier = modifier,
@@ -339,10 +336,10 @@ private fun BottomBar(
         }
         IconButtonWithTooltip(
             tooltip = stringResource(R.string.favorite),
-            onClick = { handleIntent(Favorite(media, !isFavorite)) },
+            onClick = { handleIntent(Favorite(media, !media.isFavorite)) },
         ) {
             Crossfade(
-                targetState = isFavorite,
+                targetState = media.isFavorite,
             ) { fav ->
                 Icon(
                     painter = painterResource(if (fav) R.drawable.ic_star_filled else R.drawable.ic_star_outline),
@@ -359,14 +356,26 @@ private fun BottomBar(
                 contentDescription = stringResource(R.string.edit)
             )
         }
-        IconButtonWithTooltip(
-            tooltip = stringResource(R.string.delete),
-            onClick = { deleteMedia(context, media) },
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_delete),
-                contentDescription = stringResource(R.string.delete)
-            )
+        if (media.isTrashed) {
+            IconButtonWithTooltip(
+                tooltip = stringResource(R.string.restore),
+                onClick = { handleIntent(Recover(media)) },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_recover),
+                    contentDescription = stringResource(R.string.restore)
+                )
+            }
+        } else {
+            IconButtonWithTooltip(
+                tooltip = stringResource(R.string.delete),
+                onClick = { handleIntent(Delete(media)) },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_delete),
+                    contentDescription = stringResource(R.string.delete)
+                )
+            }
         }
     }
 }

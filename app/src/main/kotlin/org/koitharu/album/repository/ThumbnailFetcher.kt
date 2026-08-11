@@ -14,6 +14,7 @@ import coil3.request.Options
 import coil3.size.pxOrElse
 import coil3.toAndroidUri
 import org.koitharu.album.util.runCancellable
+import android.net.Uri as AndroidUri
 
 class ThumbnailFetcher(
     private val data: Uri,
@@ -23,7 +24,7 @@ class ThumbnailFetcher(
     override suspend fun fetch(): FetchResult {
         val contentResolver = options.context.contentResolver
         val uri = data.newBuilder()
-            .scheme(data.scheme?.removePrefix("thumb+"))
+            .scheme(data.scheme?.removePrefix(SCHEME_PREFIX))
             .build()
             .toAndroidUri()
         val thumb = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -61,7 +62,16 @@ class ThumbnailFetcher(
         }
 
         private fun isApplicable(data: Uri): Boolean {
-            return data.scheme?.startsWith("thumb+") == true
+            return data.scheme?.startsWith(SCHEME_PREFIX) == true
         }
+    }
+
+    companion object {
+
+        private const val SCHEME_PREFIX = "thumb+"
+
+        fun AndroidUri.thumbnailUri(): AndroidUri = buildUpon()
+            .scheme(scheme?.let { SCHEME_PREFIX + it })
+            .build()
     }
 }
