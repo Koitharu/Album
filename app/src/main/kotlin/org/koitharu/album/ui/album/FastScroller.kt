@@ -8,7 +8,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
@@ -41,21 +43,24 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koitharu.album.R
+import org.koitharu.album.model.ImmutableDateTime
+import org.koitharu.album.model.format
 import org.koitharu.album.ui.theme.AlbumTheme
+import org.koitharu.album.util.toTitleCase
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun FastScroller(
     modifier: Modifier,
     gridState: LazyGridState,
-    textProvider: (Int) -> String?,
+    dateProvider: (Int) -> ImmutableDateTime?,
 ) {
     val coroutineScope = rememberCoroutineScope()
     var maxHeightPx by remember { mutableIntStateOf(0) }
     var thumbHeightPx by remember { mutableIntStateOf(0) }
     var isVisible by remember { mutableStateOf(false) }
     var isDragging by remember { mutableStateOf(false) }
-    var text by remember { mutableStateOf<String?>(null) }
+    var dateTime by remember { mutableStateOf<ImmutableDateTime?>(null) }
 
     LaunchedEffect(gridState.isScrollInProgress, isDragging) {
         if (gridState.isScrollInProgress || isDragging) {
@@ -99,7 +104,7 @@ fun FastScroller(
             }
             val targetIndex = (totalItems * targetFraction).toInt()
                 .coerceIn(0, totalItems - 1)
-            text = textProvider(targetIndex)
+            dateTime = dateProvider(targetIndex)
             val prevJob = scrollJob
             scrollJob = coroutineScope.launch {
                 prevJob?.cancelAndJoin()
@@ -110,7 +115,9 @@ fun FastScroller(
     }
 
     AnimatedVisibility(
-        modifier = Modifier.fillMaxHeight().then(modifier),
+        modifier = Modifier
+            .fillMaxHeight()
+            .then(modifier),
         visible = isVisible,
         enter = slideInHorizontally(
             initialOffsetX = { fullWidth -> fullWidth }
@@ -120,14 +127,17 @@ fun FastScroller(
         )
     ) {
         Box(
-            modifier = Modifier.fillMaxHeight().onGloballyPositioned{
-                maxHeightPx = it.size.height
-            }.draggable(
-                state = draggableState,
-                onDragStarted = { isDragging = true },
-                onDragStopped = { isDragging = false },
-                orientation = Orientation.Vertical
-            )
+            modifier = Modifier
+                .fillMaxHeight()
+                .onGloballyPositioned {
+                    maxHeightPx = it.size.height
+                }
+                .draggable(
+                    state = draggableState,
+                    onDragStarted = { isDragging = true },
+                    onDragStopped = { isDragging = false },
+                    orientation = Orientation.Vertical
+                )
         ) {
             Thumb(
                 modifier = Modifier
@@ -135,7 +145,8 @@ fun FastScroller(
                         thumbHeightPx = it.size.height
                     }
                     .offset { IntOffset(0, thumbOffsetPx) },
-                text = if (isDragging) text else null,
+                title = if (isDragging) dateTime?.format("LLLL")?.toTitleCase() else null,
+                subtitle = if (isDragging) dateTime?.format("yyyy") else null,
             )
         }
     }
@@ -144,7 +155,8 @@ fun FastScroller(
 @Composable
 private fun Thumb(
     modifier: Modifier,
-    text: String?,
+    title: String?,
+    subtitle: String?,
 ) = Row(
     modifier = modifier
         .shadow(
@@ -158,15 +170,25 @@ private fun Thumb(
     verticalAlignment = Alignment.CenterVertically,
 ) {
     AnimatedVisibility(
-        visible = !text.isNullOrEmpty()
+        visible = !title.isNullOrEmpty()
     ) {
-        Text(
+        Column(
             modifier = Modifier.padding(
                 start = 8.dp,
             ),
-            text = text.orEmpty(),
-            style = MaterialTheme.typography.bodyMedium,
-        )
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = title.orEmpty(),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            if (!subtitle.isNullOrEmpty()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
     }
 
     Icon(
@@ -184,7 +206,8 @@ private fun Thumb(
 private fun ThumbPreview() = AlbumTheme {
     Thumb(
         modifier = Modifier.padding(42.dp),
-        text = null,
+        title = null,
+        subtitle = null,
     )
 }
 
@@ -193,6 +216,7 @@ private fun ThumbPreview() = AlbumTheme {
 private fun ThumbPreviewWithText() = AlbumTheme {
     Thumb(
         modifier = Modifier.padding(42.dp),
-        text = "24 Jun",
+        title = "March",
+        subtitle = "2007",
     )
 }

@@ -40,18 +40,24 @@ class FoldersViewModel @Inject constructor(
         buildList(list.size + 2) {
             add(
                 FolderItem.Favorites(
-                    repository.getFavoritesSize(),
-                    null,
+                    size = repository.getFavoritesSize(),
+                    thumbnail = null,
                 )
             )
             if (Features.isRecycleBinSupported) {
                 add(
                     FolderItem.RecycleBin(
-                        repository.getRecycleBinSize(),
-                        null,
+                        size = repository.getRecycleBinSize(),
+                        thumbnail = null,
                     )
                 )
             }
+            add(
+                FolderItem.Photos(
+                    size = repository.getPhotosCount(),
+                    thumbnail = null,
+                )
+            )
             list.mapTo(this) {
                 FolderItem.Bucket(
                     id = it.id,

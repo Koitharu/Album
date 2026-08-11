@@ -25,6 +25,8 @@ interface MediaStoreRepository {
 
     fun observeIsFavorite(id: Long): Flow<Boolean>
 
+    suspend fun getPhotosCount(): Int
+
     suspend fun getMedia(id: Long): MediaItem
 
     fun observeMedia(id: Long, withStartValue: Boolean): Flow<MediaItem>

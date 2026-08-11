@@ -7,7 +7,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -24,8 +27,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.album.R
@@ -38,6 +43,7 @@ import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.folders.FoldersContent
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.viewer.ViewerScreen
+import org.koitharu.album.util.rememberNestedScrollDirectionConnection
 import org.koitharu.album.util.rememberPermissionCheck
 import org.koitharu.album.util.rememberPermissionsCheck
 
@@ -118,32 +124,42 @@ private fun HomeContent(
     onNavigationClick: (Int) -> Unit,
     onFolderClick: (FolderItem) -> Unit,
 ) {
+    val scrollConnection = rememberNestedScrollDirectionConnection(4.dp)
+    val scrollDirection by scrollConnection.direction
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .nestedScroll(scrollConnection)
+            .fillMaxSize(),
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { onNavigationClick(0) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_album),
-                            contentDescription = stringResource(R.string.app_name)
-                        )
-                    },
-                    label = { Text(stringResource(R.string.app_name)) }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { onNavigationClick(1) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_folders),
-                            contentDescription = stringResource(R.string.folders)
-                        )
-                    },
-                    label = { Text(stringResource(R.string.folders)) }
-                )
+            AnimatedVisibility(
+                visible = scrollDirection >= 0,
+                enter = slideInVertically(initialOffsetY = { it }),
+                exit = slideOutVertically(targetOffsetY = { it })
+            ) {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = selectedTab == 0,
+                        onClick = { onNavigationClick(0) },
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_album),
+                                contentDescription = stringResource(R.string.app_name)
+                            )
+                        },
+                        label = { Text(stringResource(R.string.app_name)) }
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 1,
+                        onClick = { onNavigationClick(1) },
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_folders),
+                                contentDescription = stringResource(R.string.folders)
+                            )
+                        },
+                        label = { Text(stringResource(R.string.folders)) }
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -151,7 +167,7 @@ private fun HomeContent(
             0 -> AlbumContent(
                 folder = null,
                 innerPadding = innerPadding,
-                albumScope = albumScope
+                albumScope = albumScope,
             )
 
             1 -> FoldersContent(

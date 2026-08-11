@@ -13,6 +13,7 @@ data class MediaItem(
     val isFavorite: Boolean,
     val isTrashed: Boolean,
     val isVideo: Boolean,
+    private val path: String?,
 ) {
 
     val thumbnail: Uri = uri.thumbnailUri()

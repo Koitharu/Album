@@ -12,11 +12,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -47,6 +49,7 @@ fun FolderContentScreen(
         val gridState = rememberLazyGridState()
         val state by viewModel.collectState()
         BackHandler(onBack = onClose)
+        val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
         SharedTransitionLayout {
             AnimatedContent(state.openedItem) { openedItem ->
                 when (openedItem) {
@@ -58,6 +61,8 @@ fun FolderContentScreen(
                     )
 
                     null -> Scaffold(
+                        modifier = Modifier
+                            .nestedScroll(scrollBehavior.nestedScrollConnection),
                         topBar = {
                             TopAppBar(
                                 title = {
@@ -73,7 +78,8 @@ fun FolderContentScreen(
                                             contentDescription = stringResource(R.string.back)
                                         )
                                     }
-                                }
+                                },
+                                scrollBehavior = scrollBehavior,
                             )
                         }
                     ) { innerPadding ->

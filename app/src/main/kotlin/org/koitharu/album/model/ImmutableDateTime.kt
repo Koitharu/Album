@@ -1,5 +1,6 @@
 package org.koitharu.album.model
 
+import android.text.format.DateFormat
 import androidx.compose.runtime.Immutable
 import java.util.concurrent.TimeUnit
 
@@ -13,6 +14,10 @@ value class ImmutableDateTime(
 
         fun ofSeconds(seconds: Long) = ImmutableDateTime(TimeUnit.SECONDS.toMillis(seconds))
     }
+}
+
+fun ImmutableDateTime.format(pattern: String): String {
+    return DateFormat.format(pattern, millis).toString()
 }
 
 fun isSameMonth(date1: ImmutableDateTime, date2: ImmutableDateTime): Boolean {

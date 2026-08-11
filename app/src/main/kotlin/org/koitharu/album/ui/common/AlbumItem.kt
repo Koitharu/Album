@@ -1,8 +1,6 @@
 package org.koitharu.album.ui.common
 
-import android.content.Context
 import android.net.Uri
-import android.text.format.DateUtils
 import androidx.compose.runtime.Immutable
 import org.koitharu.album.model.ImmutableDateTime
 import org.koitharu.album.model.MediaItem
@@ -12,7 +10,7 @@ sealed interface AlbumItem {
 
     val id: Any
 
-    fun label(context: Context): String
+    fun dateTime(): ImmutableDateTime?
 
     data class DateHeader(
         val date: ImmutableDateTime,
@@ -20,9 +18,7 @@ sealed interface AlbumItem {
 
         override val id get() = date.millis
 
-        override fun label(context: Context): String {
-            return DateUtils.formatDateTime(context, date.millis, DateUtils.FORMAT_SHOW_DATE)
-        }
+        override fun dateTime(): ImmutableDateTime = date
     }
 
     @Immutable
@@ -42,9 +38,7 @@ sealed interface AlbumItem {
 
         fun copyWithFavoriteState(isFavorite: Boolean): Media
 
-        override fun label(context: Context): String {
-            return DateUtils.formatDateTime(context, dateAdded.millis, DateUtils.FORMAT_SHOW_DATE)
-        }
+        override fun dateTime(): ImmutableDateTime? = dateAdded
 
         companion object {
 

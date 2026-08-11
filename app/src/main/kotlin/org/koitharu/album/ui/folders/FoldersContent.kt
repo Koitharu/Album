@@ -40,7 +40,8 @@ fun FoldersContent(
     val state by viewModel.collectState()
     val folders = state.items
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize(),
         state = listState,
         contentPadding = innerPadding,
     ) {

@@ -8,6 +8,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
@@ -155,6 +157,14 @@ private fun PagerMediaViewer(
                 exit = fadeOut(),
             ) {
                 TopAppBar(
+                    modifier = Modifier.background(
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
+                                Color.Transparent,
+                            )
+                        )
+                    ),
                     title = {},
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
@@ -176,8 +186,7 @@ private fun PagerMediaViewer(
         bottomBar = {
             AnimatedVisibility(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding(),
+                    .fillMaxWidth(),
                 visible = isUiVisible,
                 enter = fadeIn(),
                 exit = fadeOut(),
@@ -308,7 +317,16 @@ private fun BottomBar(
     media: AlbumItem.Media,
     handleIntent: MviIntentHandler<ViewerIntent>,
 ) = Column(
-    modifier = modifier,
+    modifier = Modifier
+        .background(
+            brush = Brush.verticalGradient(
+                listOf(
+                    Color.Transparent,
+                    MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
+                )
+            )
+        )
+        .then(modifier),
 ) {
     Text(
         modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -318,6 +336,7 @@ private fun BottomBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .navigationBarsPadding()
             .padding(
                 vertical = 12.dp,
             ),

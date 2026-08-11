@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.provider.MediaStore.Files.FileColumns
+import androidx.core.database.getStringOrNull
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -137,9 +138,28 @@ open class MediaStoreRepositoryLegacyImpl(
         return legacyFavoritesRepository.observeIsFavorite(id)
     }
 
+    override suspend fun getPhotosCount(): Int = withContext(Dispatchers.IO) {
+        val pathColumn = if (Features.isPathColumnSupported) {
+            FileColumns.RELATIVE_PATH
+        } else {
+            FileColumns.DATA
+        }
+        contentResolver.queryCompat(
+            uri = baseUri,
+            projection = arrayOf(FileColumns._ID),
+            selection = "${FileColumns.MEDIA_TYPE} = ? AND $pathColumn LIKE ?",
+            selectionArgs = arrayOf(
+                FileColumns.MEDIA_TYPE_IMAGE.toString(),
+                "%DCIM%"
+            )
+        )?.use {
+            it.count
+        } ?: 0
+    }
+
     override suspend fun getMedia(id: Long): MediaItem = contentResolver.queryCompat(
         uri = baseUri,
-        projection = buildList(7) {
+        projection = buildList(8) {
             add(FileColumns._ID)
             add(FileColumns.DISPLAY_NAME)
             add(FileColumns.MIME_TYPE)
@@ -150,6 +170,11 @@ open class MediaStoreRepositoryLegacyImpl(
             }
             if (Features.isRecycleBinSupported) {
                 add(FileColumns.IS_TRASHED)
+            }
+            if (Features.isPathColumnSupported) {
+                add(FileColumns.RELATIVE_PATH)
+            } else {
+                add(FileColumns.DATA)
             }
         }.toTypedArray(),
         selection = "${FileColumns._ID} = ?",
@@ -174,7 +199,7 @@ open class MediaStoreRepositoryLegacyImpl(
         isFavoriteOnly: Boolean
     ): MediaItem? = contentResolver.queryCompat(
         uri = baseUri,
-        projection = buildList(7) {
+        projection = buildList(8) {
             add(FileColumns._ID)
             add(FileColumns.DISPLAY_NAME)
             add(FileColumns.MIME_TYPE)
@@ -182,6 +207,11 @@ open class MediaStoreRepositoryLegacyImpl(
             add(FileColumns.MEDIA_TYPE)
             if (Features.isNativeFavoritesSupported) {
                 add(FileColumns.IS_FAVORITE)
+            }
+            if (Features.isPathColumnSupported) {
+                add(FileColumns.RELATIVE_PATH)
+            } else {
+                add(FileColumns.DATA)
             }
         }.toTypedArray(),
         selection = buildString {
@@ -257,6 +287,11 @@ open class MediaStoreRepositoryLegacyImpl(
         } else {
             -1
         }
+        val pathColumn = if (Features.isPathColumnSupported) {
+            getColumnIndex(FileColumns.RELATIVE_PATH)
+        } else {
+            getColumnIndex(FileColumns.DATA)
+        }
         val result = ArrayList<MediaItem>(count)
         do {
             val id = getLong(idColumn)
@@ -283,7 +318,12 @@ open class MediaStoreRepositoryLegacyImpl(
                     getInt(trashedColumn) > 0
                 } else {
                     false
-                }
+                },
+                path = if (pathColumn >= 0) {
+                    getStringOrNull(pathColumn)
+                } else {
+                    null
+                },
             )
         } while (moveToNext())
         return result

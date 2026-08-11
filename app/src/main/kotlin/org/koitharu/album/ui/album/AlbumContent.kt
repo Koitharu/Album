@@ -172,8 +172,8 @@ fun BoxScope.Gallery(
             .padding(scrollerPadding)
             .align(Alignment.TopEnd),
         gridState = albumScope.gridState,
-        textProvider = { index ->
-            images.peek(index)?.label(context)
+        dateProvider = { index ->
+            images.peek(index)?.dateTime()
         }
     )
 }

@@ -1,10 +1,11 @@
 [versions]
 activityCompose = "1.13.0"
-agp = "9.4.0-alpha07"
+agp = "9.3.1"
 coil = "3.5.0"
 collections = "0.5.1"
 composeBom = "2026.06.01"
 compose-animation = "1.11.4"
+compose-m3 = "1.5.0-alpha25"
 coreKtx = "1.19.0"
 coroutines = "1.11.0"
 dagger = "2.60.1"
@@ -14,12 +15,11 @@ ksp = "2.3.6"
 lifecycleRuntimeKtx = "2.11.0"
 paging = "3.5.0"
 telephoto = "0.19.0"
-datetime = "0.8.0"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
-androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "compose-m3" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
@@ -36,8 +36,6 @@ dagger-hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", ve
 kotlinx-collections-immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version.ref = "collections" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 telephoto-zoomable = { group = "me.saket.telephoto", name = "zoomable-image-coil3", version.ref = "telephoto" }
-telephoto-subsampling = { group = "me.saket.telephoto", name = "sub-sampling-image", version.ref = "telephoto" }
-kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

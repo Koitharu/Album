@@ -10,6 +10,7 @@ import android.os.Looper
 import android.provider.MediaStore
 import android.provider.MediaStore.Files.FileColumns
 import android.util.Log
+import androidx.core.database.getStringOrNull
 import androidx.paging.PagingSource
 import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
 import androidx.paging.PagingState
@@ -32,7 +33,7 @@ abstract class GallerySource(
     private val legacyFavoritesRepository: LegacyFavoritesRepository,
 ) : PagingSource<Int, MediaItem>() {
 
-    val projection = buildList(7) {
+    val projection = buildList(9) {
         add(FileColumns._ID)
         add(FileColumns.DISPLAY_NAME)
         add(FileColumns.MIME_TYPE)
@@ -43,6 +44,11 @@ abstract class GallerySource(
         }
         if (Features.isRecycleBinSupported) {
             add(FileColumns.IS_TRASHED)
+        }
+        if (Features.isPathColumnSupported) {
+            add(FileColumns.RELATIVE_PATH)
+        } else {
+            add(FileColumns.DATA)
         }
     }.toTypedArray()
     open val selection = "${FileColumns.MEDIA_TYPE} = ? OR ${FileColumns.MEDIA_TYPE} = ?"
@@ -115,6 +121,11 @@ abstract class GallerySource(
             } else {
                 -1
             }
+            val pathColumn = if (Features.isPathColumnSupported) {
+                cursor.getColumnIndex(FileColumns.RELATIVE_PATH)
+            } else {
+                cursor.getColumnIndex(FileColumns.DATA)
+            }
 
             do {
                 val id = cursor.getLong(idColumn)
@@ -145,6 +156,11 @@ abstract class GallerySource(
                         isFavorite = isFavorite,
                         isTrashed = isTrashed,
                         dateAdded = cursor.getLong(dateAddedColumn),
+                        path = if (pathColumn >= 0) {
+                            cursor.getStringOrNull(pathColumn)
+                        } else {
+                            null
+                        },
                     )
                 )
             } while (cursor.moveToNext())
