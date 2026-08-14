@@ -58,8 +58,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.paging.compose)
     implementation(libs.androidx.compose.animation)
+    implementation(libs.androidx.datastore.preferences)
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.collections.immutable)
@@ -70,6 +72,7 @@ dependencies {
 
     implementation(libs.coil.compose)
     implementation(libs.telephoto.zoomable)
+    implementation(libs.androidx.exifinterface)
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)

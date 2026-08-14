@@ -33,7 +33,7 @@ open class MediaStoreRepositoryLegacyImpl(
 
     protected val baseUri: Uri = MediaStore.Files.getContentUri("external")
 
-    override suspend fun deleteMedia(media: Collection<Uri>) {
+    override suspend fun deleteMedia(media: Collection<Uri>, useRecycleBin: Boolean) {
         for (uri in media) {
             try {
                 contentResolver.delete(uri, null, null)

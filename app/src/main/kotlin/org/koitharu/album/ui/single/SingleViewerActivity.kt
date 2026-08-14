@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.album.ui.theme.AlbumTheme
+import org.koitharu.album.ui.theme.resolveThemeVariant
 
 @AndroidEntryPoint
 class SingleViewerActivity : ComponentActivity() {
@@ -24,7 +25,7 @@ class SingleViewerActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         setContent {
-            AlbumTheme(darkTheme = true) {
+            AlbumTheme(variant = resolveThemeVariant(isForViewer = true)) {
                 SingleViewerScreen(
                     uri = uri,
                     onClose = { finishAfterTransition() },

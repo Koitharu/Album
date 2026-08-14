@@ -32,7 +32,7 @@ import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.album.Gallery
 import org.koitharu.album.ui.common.AlbumItem.Media
 import org.koitharu.album.ui.viewer.ViewerScreen
-import org.koitharu.toadlink.ui.composables.IconButtonWithTooltip
+import org.koitharu.album.util.IconButtonWithTooltip
 
 @Composable
 fun FolderContentScreen(

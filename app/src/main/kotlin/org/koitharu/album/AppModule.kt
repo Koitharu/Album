@@ -3,6 +3,9 @@ package org.koitharu.album
 import android.content.ContentResolver
 import android.content.Context
 import android.os.Build
+import androidx.lifecycle.LifecycleCoroutineScope
+import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import dagger.Module
 import dagger.Provides
 import dagger.Reusable
@@ -23,6 +26,10 @@ class AppModule {
     fun provideContentResolver(
         @ApplicationContext context: Context,
     ): ContentResolver = context.contentResolver
+
+    @Provides
+    fun provideProcessLifecycleScope(): LifecycleCoroutineScope =
+        ProcessLifecycleOwner.get().lifecycleScope
 
     @Provides
     @Reusable

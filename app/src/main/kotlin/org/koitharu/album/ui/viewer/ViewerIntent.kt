@@ -20,4 +20,9 @@ sealed interface ViewerIntent {
     data class Recover(
         val media: AlbumItem.Media,
     ): ViewerIntent
+
+    data class Rotate(
+        val media: AlbumItem.Media,
+        val angle: Int,
+    ): ViewerIntent
 }

@@ -1,6 +1,7 @@
 package org.koitharu.album.ui.album
 
 import androidx.compose.runtime.Immutable
+import org.koitharu.album.repository.SettingsRepository.Companion.GRID_SCALE_DEFAULT
 import org.koitharu.album.ui.common.AlbumItem
 
 @Immutable
@@ -11,7 +12,7 @@ data class AlbumState(
 ) {
 
     constructor() : this(
-        scale = 2f,
+        scale = GRID_SCALE_DEFAULT,
         openedItem = null,
         banner = null,
     )

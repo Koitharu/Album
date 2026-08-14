@@ -1,4 +1,4 @@
-package org.koitharu.toadlink.ui.composables
+package org.koitharu.album.util
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.IconButton

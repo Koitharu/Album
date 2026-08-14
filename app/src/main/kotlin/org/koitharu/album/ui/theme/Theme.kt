@@ -1,15 +1,18 @@
 package org.koitharu.album.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import org.koitharu.album.model.ThemeVariant
+import org.koitharu.album.model.ThemeVariant.DARK
+import org.koitharu.album.model.ThemeVariant.LIGHT
+import org.koitharu.album.model.ThemeVariant.SYSTEM
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -35,11 +38,16 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun AlbumTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    variant: ThemeVariant = resolveThemeVariant(isForViewer = false),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when (variant) {
+        SYSTEM -> isSystemInDarkTheme()
+        LIGHT -> false
+        DARK -> true
+    }
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
@@ -50,7 +58,7 @@ fun AlbumTheme(
         else -> LightColorScheme
     }
 
-    MaterialTheme(
+    MaterialExpressiveTheme(
         colorScheme = colorScheme,
         typography = Typography,
         content = content

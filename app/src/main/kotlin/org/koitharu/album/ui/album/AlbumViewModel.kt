@@ -16,9 +16,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import org.koitharu.album.model.isSameMonth
+import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
 import org.koitharu.album.ui.album.AlbumIntent.OpenMedia
@@ -35,6 +37,7 @@ class AlbumViewModel @AssistedInject constructor(
     @Assisted private val folder: FolderItem?,
     private val gallerySourceFactory: GallerySourceFactory,
     private val repository: MediaStoreRepository,
+    private val settingsRepository: SettingsRepository,
 ) : MviViewModel<AlbumState, AlbumIntent, Nothing>(AlbumState()) {
 
     val pagerContent = Pager(
@@ -78,6 +81,11 @@ class AlbumViewModel @AssistedInject constructor(
                     }
                 }
         }
+        viewModelScope.launch(Dispatchers.Default) {
+            settingsRepository.gridScale.collect { gridScale ->
+                state.update { it.copy(scale = gridScale) }
+            }
+        }
     }
 
     override fun handleIntent(intent: AlbumIntent) {
@@ -90,8 +98,11 @@ class AlbumViewModel @AssistedInject constructor(
                 it.copy(openedItem = null)
             }
 
-            is UpdateScale -> state.update {
-                it.copy(scale = (it.scale * intent.factor).coerceIn(1f, 5f))
+            is UpdateScale -> viewModelScope.launch(Dispatchers.Default) {
+                val newScale = state.updateAndGet {
+                    it.copy(scale = (it.scale * intent.factor).coerceIn(1f, 5f))
+                }.scale
+                settingsRepository.setGridScale(newScale)
             }
         }
     }

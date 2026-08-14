@@ -9,22 +9,28 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.viewer.ViewerEffect.OnError
+import org.koitharu.album.ui.viewer.ViewerIntent.Delete
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
+import org.koitharu.album.ui.viewer.ViewerIntent.Recover
+import org.koitharu.album.ui.viewer.ViewerIntent.Rotate
 import org.koitharu.album.util.runCatchingCancellable
 
 @HiltViewModel(assistedFactory = ViewerViewModel.Factory::class)
 class ViewerViewModel @AssistedInject constructor(
     @Assisted media: AlbumItem.Media,
     private val repository: MediaStoreRepository,
+    private val settingsRepository: SettingsRepository,
 ) : MviViewModel<ViewerState, ViewerIntent, ViewerEffect>(ViewerState(media)) {
 
     init {
@@ -48,6 +54,11 @@ class ViewerViewModel @AssistedInject constructor(
                     }
                 }
         }
+        viewModelScope.launch(Dispatchers.Default) {
+            settingsRepository.isRotationGestureEnabled.collect { allowRotation ->
+                state.update { it.copy(isRotationGestureEnabled = allowRotation) }
+            }
+        }
     }
 
     override fun handleIntent(intent: ViewerIntent) {
@@ -63,8 +74,9 @@ class ViewerViewModel @AssistedInject constructor(
                 intent.isFavorite,
             )
 
-            is ViewerIntent.Delete -> delete(intent.media)
-            is ViewerIntent.Recover -> recover(intent.media)
+            is Delete -> delete(intent.media)
+            is Recover -> recover(intent.media)
+            is Rotate -> Unit // TODO
         }
     }
 
@@ -86,7 +98,8 @@ class ViewerViewModel @AssistedInject constructor(
     ) {
         viewModelScope.launch(Dispatchers.Default) {
             runCatchingCancellable {
-                repository.deleteMedia(listOf(media.uri))
+                val useRecycleBin = settingsRepository.useRecycleBin.first()
+                repository.deleteMedia(listOf(media.uri), useRecycleBin)
             }.onFailure {
                 sendEffect(OnError(it))
             }

@@ -43,7 +43,7 @@ import me.saket.telephoto.zoomable.coil3.ZoomableAsyncImage
 import org.koitharu.album.R
 import org.koitharu.album.util.rememberWindowInsetsController
 import org.koitharu.album.util.shareImage
-import org.koitharu.toadlink.ui.composables.IconButtonWithTooltip
+import org.koitharu.album.util.IconButtonWithTooltip
 
 @Composable
 fun SingleViewerScreen(

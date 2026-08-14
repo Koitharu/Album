@@ -28,8 +28,12 @@ class MediaStoreRepository30Impl(
     legacyFavoritesRepository = legacyFavoritesRepository,
 ) {
 
-    override suspend fun deleteMedia(media: Collection<Uri>) {
-        val intent = MediaStore.createTrashRequest(contentResolver, media, true)
+    override suspend fun deleteMedia(media: Collection<Uri>, useRecycleBin: Boolean) {
+        val intent = if (useRecycleBin) {
+            MediaStore.createTrashRequest(contentResolver, media, true)
+        } else {
+            MediaStore.createDeleteRequest(contentResolver, media)
+        }
         activityContextProvider.get().startIntentSender(
             intent.intentSender,
             null,

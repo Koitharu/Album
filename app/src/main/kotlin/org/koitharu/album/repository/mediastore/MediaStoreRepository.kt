@@ -7,7 +7,7 @@ import org.koitharu.album.model.MediaItem
 
 interface MediaStoreRepository {
 
-    suspend fun deleteMedia(media: Collection<Uri>)
+    suspend fun deleteMedia(media: Collection<Uri>, useRecycleBin: Boolean)
 
     suspend fun recoverMedia(media: Collection<Uri>)
 

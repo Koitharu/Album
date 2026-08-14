@@ -20,22 +20,39 @@ import androidx.compose.ui.unit.dp
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import me.saket.telephoto.zoomable.coil3.ZoomableAsyncImage
+import me.saket.telephoto.zoomable.rememberZoomableImageState
+import me.saket.telephoto.zoomable.rememberZoomableState
 import org.koitharu.album.R
 import org.koitharu.album.ui.common.AlbumItem
+import org.koitharu.album.util.snappedRotationGesture
 
 @Composable
 fun ImageViewer(
     modifier: Modifier,
     image: AlbumItem.Image,
+    isRotationGestureEnabled: Boolean,
+    onRotate: (Int) -> Unit,
     onClick: () -> Unit,
 ) = Box(
     modifier = Modifier.fillMaxSize(),
 ) {
     var error by remember { mutableStateOf<Throwable?>(null) }
+    val zoomableState = rememberZoomableState()
     ZoomableAsyncImage(
         modifier = Modifier
             .fillMaxSize()
+            .run {
+                if (isRotationGestureEnabled) {
+                    snappedRotationGesture(
+                        isRotationEnabled = zoomableState.zoomFraction == 0f,
+                        onRotationSaved = onRotate,
+                    )
+                } else {
+                    this
+                }
+            }
             .then(modifier),
+        state = rememberZoomableImageState(zoomableState),
         model = ImageRequest.Builder(LocalContext.current).data(image.uri)
             .memoryCachePolicy(CachePolicy.DISABLED)
             .placeholderMemoryCacheKey(image.memoryCacheKey)

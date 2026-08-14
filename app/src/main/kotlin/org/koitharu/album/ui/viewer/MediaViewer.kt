@@ -67,15 +67,16 @@ import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.theme.AlbumTheme
+import org.koitharu.album.ui.theme.resolveThemeVariant
 import org.koitharu.album.ui.viewer.ViewerIntent.Delete
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
 import org.koitharu.album.ui.viewer.ViewerIntent.Recover
+import org.koitharu.album.util.IconButtonWithTooltip
 import org.koitharu.album.util.SetSystemBarsColorsEffect
 import org.koitharu.album.util.formattedDateTime
 import org.koitharu.album.util.rememberWindowInsetsController
 import org.koitharu.album.util.shareMedia
-import org.koitharu.toadlink.ui.composables.IconButtonWithTooltip
 
 @Composable
 fun ViewerScreen(
@@ -112,6 +113,7 @@ fun ViewerScreen(
             snackbarHostState = snackbarHostState,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
+            isRotationGestureEnabled = state.isRotationGestureEnabled,
             handleIntent = viewModel,
             onClose = { albumViewModel.handleIntent(CloseMedia) })
     }
@@ -122,12 +124,13 @@ fun ViewerScreen(
 private fun PagerMediaViewer(
     pagingData: Flow<PagingData<AlbumItem.Media>>,
     media: AlbumItem.Media,
+    isRotationGestureEnabled: Boolean,
     snackbarHostState: SnackbarHostState,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     handleIntent: MviIntentHandler<ViewerIntent>,
     onClose: () -> Unit,
-) = AlbumTheme(darkTheme = true) {
+) = AlbumTheme(variant = resolveThemeVariant(isForViewer = true)) {
     val insetsController = rememberWindowInsetsController()
     var isUiVisible by remember { mutableStateOf(true) }
     if (insetsController != null) {
@@ -214,6 +217,7 @@ private fun PagerMediaViewer(
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
                 handleIntent = handleIntent,
+                isRotationGestureEnabled = isRotationGestureEnabled,
                 onClick = { isUiVisible = !isUiVisible },
                 isActive = true,
             )
@@ -224,6 +228,7 @@ private fun PagerMediaViewer(
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
                 handleIntent = handleIntent,
+                isRotationGestureEnabled = isRotationGestureEnabled,
                 onClick = { isUiVisible = !isUiVisible },
             )
         }
@@ -234,6 +239,7 @@ private fun PagerMediaViewer(
 fun ViewerPager(
     images: LazyPagingItems<AlbumItem.Media>,
     initialIndex: Int,
+    isRotationGestureEnabled: Boolean,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     handleIntent: MviIntentHandler<ViewerIntent>,
@@ -260,6 +266,7 @@ fun ViewerPager(
             animatedVisibilityScope = animatedVisibilityScope,
             handleIntent = handleIntent,
             isActive = page == pagerState.currentPage,
+            isRotationGestureEnabled = isRotationGestureEnabled,
             onClick = onClick,
         )
     }
@@ -268,6 +275,7 @@ fun ViewerPager(
 @Composable
 fun SingleViewer(
     media: AlbumItem.Media?,
+    isRotationGestureEnabled: Boolean,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     handleIntent: MviIntentHandler<ViewerIntent>,
@@ -287,6 +295,8 @@ fun SingleViewer(
             is AlbumItem.Image -> ImageViewer(
                 modifier = modifier,
                 image = media,
+                onRotate = { angle -> handleIntent(ViewerIntent.Rotate(media, angle)) },
+                isRotationGestureEnabled = isRotationGestureEnabled,
                 onClick = onClick,
             )
 
