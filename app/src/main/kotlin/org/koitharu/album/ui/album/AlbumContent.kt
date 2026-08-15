@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -45,7 +42,6 @@ import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.folders.FolderItem
-import org.koitharu.album.util.SetSystemBarsColorsEffect
 import org.koitharu.album.util.formattedDateTime
 
 @Composable
@@ -63,45 +59,18 @@ fun AlbumContent(
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
-        SetSystemBarsColorsEffect(
-            isLightStatusBar = false,
-        )
         Gallery(
             pagingData = viewModel.gridContent,
             state = state,
-            contentPadding = PaddingValues(
-                top = 240.dp,
-                start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
-                end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
-                bottom = innerPadding.calculateBottomPadding(),
-            ),
+            contentPadding = innerPadding,
             scrollerPadding = PaddingValues(
                 top = innerPadding.calculateTopPadding(),
                 bottom = innerPadding.calculateBottomPadding(),
             ),
             albumScope = albumScope,
             handleIntent = viewModel,
-            emptyContent = {  }
+            emptyContent = { }
         )
-        with(albumScope.sharedTransitionScope) {
-            ImageBanner(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .sharedElement(
-                        rememberSharedContentState(key = "image_${state.banner?.id}"),
-                        animatedVisibilityScope = albumScope.animatedVisibilityScope
-                    ),
-                image = state.banner,
-                gridState = albumScope.gridState,
-                height = 240.dp,
-                onClick = {
-                    state.banner?.let { banner ->
-                        viewModel.handleIntent(OpenMedia(banner))
-                    }
-                }
-            )
-        }
-
     }
 }
 

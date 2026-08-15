@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.settings.SettingsIntent.SetAppTheme
+import org.koitharu.album.ui.settings.SettingsIntent.SetHomeBanner
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRecycleBinEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRotationGestureEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetViewerTheme
@@ -25,12 +26,14 @@ class SettingsViewModel @Inject constructor(
                 repository.isRotationGestureEnabled,
                 repository.appTheme,
                 repository.viewerTheme,
-            ) { useRecycleBin, isRotationGestureEnabled, appTheme, viewerTheme ->
+                repository.homeBannerSource,
+            ) { useRecycleBin, isRotationGestureEnabled, appTheme, viewerTheme, homeBanner ->
                 SettingsState(
                     isRecycleBinEnabled = useRecycleBin,
                     isRotationGestureEnabled = isRotationGestureEnabled,
                     appTheme = appTheme,
                     viewerTheme = viewerTheme,
+                    homeBanner = homeBanner,
                 )
             }.collect {
                 state.value = it
@@ -45,6 +48,7 @@ class SettingsViewModel @Inject constructor(
                 is SetIsRecycleBinEnabled -> repository.setUseRecycleBin(intent.value)
                 is SetIsRotationGestureEnabled -> repository.setRotationGestureEnabled(intent.value)
                 is SetViewerTheme -> repository.setViewerTheme(intent.value)
+                is SetHomeBanner -> repository.setHomeBannerSource(intent.value)
             }
         }
     }

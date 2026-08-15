@@ -12,17 +12,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -33,7 +30,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -46,6 +42,7 @@ import org.koitharu.album.R
 import org.koitharu.album.ui.album.AlbumContent
 import org.koitharu.album.ui.album.AlbumScope
 import org.koitharu.album.ui.album.AlbumViewModel
+import org.koitharu.album.ui.album.HomeScreenBanner
 import org.koitharu.album.ui.common.AlbumItem.Media
 import org.koitharu.album.ui.common.OptionsMenu
 import org.koitharu.album.ui.folders.FolderContentScreen
@@ -54,6 +51,7 @@ import org.koitharu.album.ui.folders.FoldersContent
 import org.koitharu.album.ui.settings.SettingsActivity
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.viewer.ViewerScreen
+import org.koitharu.album.util.SetSystemBarsColorsEffect
 import org.koitharu.album.util.rememberNestedScrollDirectionConnection
 import org.koitharu.album.util.rememberPermissionCheck
 import org.koitharu.album.util.rememberPermissionsCheck
@@ -114,6 +112,7 @@ fun HomeScreen() {
                     null -> HomeContent(
                         selectedTab = selectedTab,
                         foldersListState = foldersListState,
+                        hasBanner = state.banner != null,
                         albumScope = AlbumScope(
                             gridState = gridState,
                             sharedTransitionScope = this@SharedTransitionLayout,
@@ -132,6 +131,7 @@ fun HomeScreen() {
 private fun HomeContent(
     selectedTab: Int,
     foldersListState: LazyListState,
+    hasBanner: Boolean,
     albumScope: AlbumScope,
     onNavigationClick: (Int) -> Unit,
     onFolderClick: (FolderItem) -> Unit,
@@ -143,17 +143,17 @@ private fun HomeContent(
             .nestedScroll(scrollConnection)
             .fillMaxSize(),
         topBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding(),
-            ) {
-                OptionsMenu(
-                    modifier = Modifier.align(Alignment.TopEnd),
-                    iconColor = MaterialTheme.colorScheme.primaryContainer,
-                    content = ColumnScope::OptionsMenuContent,
-                )
-            }
+            HomeScreenBanner(
+                isExpanded = selectedTab == 0,
+                albumScope = albumScope,
+                overlayContent = { modifier, color ->
+                    OptionsMenu(
+                        modifier = modifier.statusBarsPadding(),
+                        iconColor = color,
+                        content = ColumnScope::OptionsMenuContent,
+                    )
+                }
+            )
         },
         bottomBar = {
             AnimatedVisibility(
@@ -202,6 +202,9 @@ private fun HomeContent(
             )
         }
     }
+    SetSystemBarsColorsEffect(
+        isLightStatusBar = !(selectedTab == 0 && hasBanner),
+    )
 }
 
 @Composable

@@ -1,6 +1,7 @@
 package org.koitharu.album.ui.settings
 
 import androidx.compose.runtime.Immutable
+import org.koitharu.album.model.HomeBannerSource
 import org.koitharu.album.model.ThemeVariant
 import org.koitharu.album.repository.Features
 
@@ -10,6 +11,7 @@ data class SettingsState(
     val isRotationGestureEnabled: Boolean,
     val appTheme: ThemeVariant,
     val viewerTheme: ThemeVariant,
+    val homeBanner: HomeBannerSource,
 ) {
 
     constructor() : this(
@@ -17,5 +19,6 @@ data class SettingsState(
         isRotationGestureEnabled = false,
         appTheme = ThemeVariant.SYSTEM,
         viewerTheme = ThemeVariant.DARK,
+        homeBanner = HomeBannerSource.RANDOM,
     )
 }

@@ -13,12 +13,16 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import org.koitharu.album.model.HomeBannerSource.NONE
+import org.koitharu.album.model.HomeBannerSource.RANDOM
 import org.koitharu.album.model.isSameMonth
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
@@ -68,18 +72,30 @@ class AlbumViewModel @AssistedInject constructor(
 
     init {
         viewModelScope.launch(Dispatchers.Default) {
-            tickerFlow(10.seconds)
-                .mapNotNull {
-                    runCatchingCancellable {
-                        repository.getRandomMedia(isImageOnly = true, isFavoriteOnly = false)
-                    }.onFailure {
-                        it.printStackTrace()
-                    }.getOrNull()
-                }.collect { image ->
-                    state.update {
-                        it.copy(banner = AlbumItem.Media(image) as AlbumItem.Image)
+            settingsRepository.homeBannerSource.flatMapLatest { bannerSource ->
+                if (bannerSource == NONE) {
+                    flowOf(null)
+                } else {
+                    tickerFlow(10.seconds).mapNotNull {
+                        runCatchingCancellable {
+                            when (bannerSource) {
+                                RANDOM -> repository.getRandomMedia(
+                                    isImageOnly = true,
+                                    isFavoriteOnly = false
+                                )
+
+                                NONE -> null
+                            }
+                        }.onFailure {
+                            it.printStackTrace()
+                        }.getOrNull()
                     }
                 }
+            }.collect { image ->
+                state.update {
+                    it.copy(banner = image?.let { x -> AlbumItem.Media(x) as? AlbumItem.Image })
+                }
+            }
         }
         viewModelScope.launch(Dispatchers.Default) {
             settingsRepository.gridScale.collect { gridScale ->

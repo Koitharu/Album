@@ -1,5 +1,6 @@
 package org.koitharu.album.ui.settings
 
+import org.koitharu.album.model.HomeBannerSource
 import org.koitharu.album.model.ThemeVariant
 
 sealed interface SettingsIntent {
@@ -11,4 +12,6 @@ sealed interface SettingsIntent {
     data class SetAppTheme(val value: ThemeVariant) : SettingsIntent
 
     data class SetViewerTheme(val value: ThemeVariant) : SettingsIntent
+
+    data class SetHomeBanner(val value: HomeBannerSource) : SettingsIntent
 }

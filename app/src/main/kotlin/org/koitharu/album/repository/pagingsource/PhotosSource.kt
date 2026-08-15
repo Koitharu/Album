@@ -16,9 +16,11 @@ class PhotosSource @Inject constructor(
 
     override val selection = buildString {
         append(FileColumns.MEDIA_TYPE)
-        append(" = ? AND")
-        append(FileColumns.IS_TRASHED)
         append(" = ? AND ")
+        if (Features.isRecycleBinSupported) {
+            append(FileColumns.IS_TRASHED)
+            append(" = ? AND ")
+        }
         if (Features.isPathColumnSupported) {
             append(FileColumns.RELATIVE_PATH)
         } else {
@@ -29,7 +31,9 @@ class PhotosSource @Inject constructor(
 
     override val selectionArgs = buildList {
         add(FileColumns.MEDIA_TYPE_IMAGE.toString())
-        add("0")
+        if (Features.isRecycleBinSupported) {
+            add("0")
+        }
         add("%DCIM%")
     }.toTypedArray()
 }

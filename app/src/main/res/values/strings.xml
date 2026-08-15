@@ -25,6 +25,9 @@
     <string name="viewer_theme">Viewer theme</string>
     <string name="appearance">Appearance</string>
     <string name="behavior">Behavior</string>
+    <string name="random_image">Random image</string>
+    <string name="none">None</string>
+    <string name="home_slideshow">Slideshow on the main screen</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

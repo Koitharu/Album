@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.plus
+import org.koitharu.album.model.HomeBannerSource
 import org.koitharu.album.model.ThemeVariant
 import javax.inject.Inject
 
@@ -50,6 +51,10 @@ class SettingsRepository @Inject constructor(
         prefs[Keys.viewerTheme, ThemeVariant.DARK]
     }.stateIn(coroutineScope + Dispatchers.Default, SharingStarted.Eagerly, ThemeVariant.DARK)
 
+    val homeBannerSource = context.dataStore.data.map { prefs ->
+        prefs[Keys.homeBanner, HomeBannerSource.RANDOM]
+    }
+
     suspend fun setGridScale(scale: Float) {
         context.dataStore.edit { prefs ->
             prefs[Keys.gridScale] = scale
@@ -80,6 +85,12 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    suspend fun setHomeBannerSource(value: HomeBannerSource) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.homeBanner] = value.name
+        }
+    }
+
     object Keys {
 
         val useRecycleBin = booleanPreferencesKey("recycle_bin")
@@ -87,6 +98,7 @@ class SettingsRepository @Inject constructor(
         val gridScale = floatPreferencesKey("grid_scale")
         val appTheme = stringPreferencesKey("app_theme")
         val viewerTheme = stringPreferencesKey("viewer_theme")
+        val homeBanner = stringPreferencesKey("home_banner")
     }
 
     companion object {

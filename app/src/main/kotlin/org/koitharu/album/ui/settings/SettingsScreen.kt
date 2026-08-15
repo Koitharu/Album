@@ -19,11 +19,13 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import org.koitharu.album.R
+import org.koitharu.album.model.HomeBannerSource
 import org.koitharu.album.model.ThemeVariant
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.SettingsRepository.Keys
 import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.settings.SettingsIntent.SetAppTheme
+import org.koitharu.album.ui.settings.SettingsIntent.SetHomeBanner
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRecycleBinEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRotationGestureEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetViewerTheme
@@ -83,6 +85,18 @@ fun SettingsScreen(
                 entryValues = ThemeVariant.entries.toPersistentList(),
                 selectedValue = state.viewerTheme,
                 onEntryClick = { handleIntent(SetViewerTheme(it)) }
+            )
+        }
+        item(Keys.homeBanner.name) {
+            ListPreference(
+                title = stringResource(R.string.home_slideshow),
+                entries = persistentListOf(
+                    stringResource(R.string.random_image),
+                    stringResource(R.string.none),
+                ),
+                entryValues = HomeBannerSource.entries.toPersistentList(),
+                selectedValue = state.homeBanner,
+                onEntryClick = { handleIntent(SetHomeBanner(it)) }
             )
         }
         item(key = R.string.behavior) {
