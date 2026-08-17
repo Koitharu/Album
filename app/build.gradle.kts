@@ -73,6 +73,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.telephoto.zoomable)
     implementation(libs.androidx.exifinterface)
+    implementation(libs.androidx.print)
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)

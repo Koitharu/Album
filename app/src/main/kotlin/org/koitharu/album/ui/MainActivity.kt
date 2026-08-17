@@ -113,6 +113,7 @@ fun HomeScreen() {
                         selectedTab = selectedTab,
                         foldersListState = foldersListState,
                         hasBanner = state.banner != null,
+                        isSelectionMode = state.selectedItems.isNotEmpty(),
                         albumScope = AlbumScope(
                             gridState = gridState,
                             sharedTransitionScope = this@SharedTransitionLayout,
@@ -132,6 +133,7 @@ private fun HomeContent(
     selectedTab: Int,
     foldersListState: LazyListState,
     hasBanner: Boolean,
+    isSelectionMode: Boolean,
     albumScope: AlbumScope,
     onNavigationClick: (Int) -> Unit,
     onFolderClick: (FolderItem) -> Unit,
@@ -157,7 +159,7 @@ private fun HomeContent(
         },
         bottomBar = {
             AnimatedVisibility(
-                visible = scrollDirection >= 0,
+                visible = scrollDirection >= 0 && !isSelectionMode,
                 enter = slideInVertically(initialOffsetY = { it }),
                 exit = slideOutVertically(targetOffsetY = { it })
             ) {

@@ -22,8 +22,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsIgnoringVisibility
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -44,7 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -65,18 +65,21 @@ import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
 import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviIntentHandler
+import org.koitharu.album.ui.common.OptionsMenu
 import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.theme.resolveThemeVariant
 import org.koitharu.album.ui.viewer.ViewerIntent.Delete
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
+import org.koitharu.album.ui.viewer.ViewerIntent.Print
 import org.koitharu.album.ui.viewer.ViewerIntent.Recover
+import org.koitharu.album.ui.viewer.ViewerIntent.Share
+import org.koitharu.album.ui.viewer.ViewerIntent.UseAs
 import org.koitharu.album.util.IconButtonWithTooltip
 import org.koitharu.album.util.SetSystemBarsColorsEffect
 import org.koitharu.album.util.formattedDateTime
 import org.koitharu.album.util.rememberWindowInsetsController
-import org.koitharu.album.util.shareMedia
 
 @Composable
 fun ViewerScreen(
@@ -182,6 +185,12 @@ private fun PagerMediaViewer(
                                 contentDescription = stringResource(R.string.back)
                             )
                         }
+                    },
+                    actions = {
+                        OptionMenu(
+                            media = media,
+                            handleIntent = handleIntent
+                        )
                     }
                 )
             }
@@ -316,7 +325,7 @@ fun SingleViewer(
 private fun EmptyPage() = Box(
     modifier = Modifier.fillMaxSize()
 ) {
-    CircularProgressIndicator(
+    LoadingIndicator(
         modifier = Modifier.align(Alignment.Center)
     )
 }
@@ -353,10 +362,9 @@ private fun BottomBar(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val context = LocalContext.current
         IconButtonWithTooltip(
             tooltip = stringResource(R.string.share),
-            onClick = { shareMedia(context, media) },
+            onClick = { handleIntent(Share(media)) },
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_share),
@@ -406,6 +414,33 @@ private fun BottomBar(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun OptionMenu(
+    media: AlbumItem.Media,
+    handleIntent: MviIntentHandler<ViewerIntent>,
+) = OptionsMenu { dismiss ->
+    if (media is AlbumItem.Image) {
+        DropdownMenuItem(
+            text = {
+                Text(stringResource(R.string.use_as))
+            },
+            onClick = {
+                handleIntent(UseAs(media))
+                dismiss()
+            }
+        )
+        DropdownMenuItem(
+            text = {
+                Text(stringResource(R.string.print))
+            },
+            onClick = {
+                handleIntent(Print(media))
+                dismiss()
+            }
+        )
     }
 }
 

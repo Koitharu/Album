@@ -2,7 +2,12 @@ package org.koitharu.album.ui.folders
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -27,6 +32,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.rememberViewModelStoreOwner
 import org.koitharu.album.R
+import org.koitharu.album.ui.album.AlbumActionMode
+import org.koitharu.album.ui.album.AlbumIntent.CancelSelectionMode
 import org.koitharu.album.ui.album.AlbumScope
 import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.album.Gallery
@@ -108,6 +115,25 @@ fun FolderContentScreen(
                                     )
                                 }
                             )
+                            BackHandler(
+                                enabled = state.selectedItems.isNotEmpty()
+                            ) {
+                                viewModel.handleIntent(CancelSelectionMode)
+                            }
+                            AnimatedVisibility(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(24.dp),
+                                visible = state.selectedItems.isNotEmpty(),
+                                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+                            ) {
+                                AlbumActionMode(
+                                    selectedItemCount = state.selectedItems.size,
+                                    onCancel = { viewModel.handleIntent(CancelSelectionMode) },
+                                    handleIntent = viewModel,
+                                )
+                            }
                         }
                     }
                 }

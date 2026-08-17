@@ -14,8 +14,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.systemBarsIgnoringVisibility
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -41,9 +41,8 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import me.saket.telephoto.zoomable.coil3.ZoomableAsyncImage
 import org.koitharu.album.R
-import org.koitharu.album.util.rememberWindowInsetsController
-import org.koitharu.album.util.shareImage
 import org.koitharu.album.util.IconButtonWithTooltip
+import org.koitharu.album.util.rememberWindowInsetsController
 
 @Composable
 fun SingleViewerScreen(
@@ -142,7 +141,7 @@ fun SingleViewerScreen(
                     .align(Alignment.Center),
                 visible = isLoading,
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
         }
     }
@@ -161,10 +160,9 @@ private fun BottomBar(
     horizontalArrangement = Arrangement.SpaceEvenly,
     verticalAlignment = Alignment.CenterVertically,
 ) {
-    val context = LocalContext.current
     IconButtonWithTooltip(
         tooltip = stringResource(R.string.share),
-        onClick = { shareImage(context, uri) },
+        onClick = { /* TODO */ },
     ) {
         Icon(
             painter = painterResource(R.drawable.ic_share),

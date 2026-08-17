@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
+import androidx.paging.asItemSnapshotListFlow
 import androidx.paging.cachedIn
 import androidx.paging.insertSeparators
 import androidx.paging.map
@@ -11,8 +12,10 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -26,14 +29,20 @@ import org.koitharu.album.model.HomeBannerSource.RANDOM
 import org.koitharu.album.model.isSameMonth
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
+import org.koitharu.album.ui.album.AlbumIntent.CancelSelectionMode
 import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
-import org.koitharu.album.ui.album.AlbumIntent.OpenMedia
+import org.koitharu.album.ui.album.AlbumIntent.HandleClick
+import org.koitharu.album.ui.album.AlbumIntent.HandleLongClick
+import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Delete
+import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Share
 import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
+import org.koitharu.album.ui.common.ShellIntegrationHelper
 import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.util.runCatchingCancellable
 import org.koitharu.album.util.tickerFlow
+import org.koitharu.album.util.toggling
 import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel(assistedFactory = AlbumViewModel.Factory::class)
@@ -42,6 +51,7 @@ class AlbumViewModel @AssistedInject constructor(
     private val gallerySourceFactory: GallerySourceFactory,
     private val repository: MediaStoreRepository,
     private val settingsRepository: SettingsRepository,
+    private val shellIntegrationHelper: ShellIntegrationHelper,
 ) : MviViewModel<AlbumState, AlbumIntent, Nothing>(AlbumState()) {
 
     val pagerContent = Pager(
@@ -106,8 +116,18 @@ class AlbumViewModel @AssistedInject constructor(
 
     override fun handleIntent(intent: AlbumIntent) {
         when (intent) {
-            is OpenMedia -> state.update {
-                it.copy(openedItem = intent.media)
+            is HandleClick -> state.update {
+                if (it.selectedItems.isEmpty()) {
+                    it.copy(openedItem = intent.media)
+                } else {
+                    it.copy(selectedItems = it.selectedItems.toggling(intent.media.id))
+                }
+            }
+
+            is HandleLongClick -> state.update {
+                it.copy(
+                    selectedItems = it.selectedItems.toggling(intent.media.id)
+                )
             }
 
             CloseMedia -> state.update {
@@ -120,6 +140,38 @@ class AlbumViewModel @AssistedInject constructor(
                 }.scale
                 settingsRepository.setGridScale(newScale)
             }
+
+            CancelSelectionMode -> state.update {
+                it.copy(selectedItems = persistentSetOf())
+            }
+
+            is AlbumIntent.SelectionAlbumIntent -> viewModelScope.launch(Dispatchers.Default) {
+                val snapshot = gridContent.asItemSnapshotListFlow().first()
+                val selectedItems = state.value.selectedItems.mapNotNull {
+                    snapshot.find { x -> x?.id == it } as? AlbumItem.Media
+                }
+                if (handleSelectionIntent(selectedItems = selectedItems, intent = intent)) {
+                    handleIntent(CancelSelectionMode)
+                }
+            }
+        }
+    }
+
+    private suspend fun handleSelectionIntent(
+        selectedItems: Collection<AlbumItem.Media>,
+        intent: AlbumIntent.SelectionAlbumIntent,
+    ): Boolean = when (intent) {
+        Share -> {
+            shellIntegrationHelper.shareMedia(selectedItems)
+            true
+        }
+
+        Delete -> {
+            repository.deleteMedia(
+                media = selectedItems.map { it.uri },
+                useRecycleBin = settingsRepository.useRecycleBin.first(),
+            )
+            true
         }
     }
 

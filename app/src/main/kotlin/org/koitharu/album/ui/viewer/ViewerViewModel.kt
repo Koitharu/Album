@@ -18,12 +18,16 @@ import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
+import org.koitharu.album.ui.common.ShellIntegrationHelper
 import org.koitharu.album.ui.viewer.ViewerEffect.OnError
 import org.koitharu.album.ui.viewer.ViewerIntent.Delete
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
+import org.koitharu.album.ui.viewer.ViewerIntent.Print
 import org.koitharu.album.ui.viewer.ViewerIntent.Recover
 import org.koitharu.album.ui.viewer.ViewerIntent.Rotate
+import org.koitharu.album.ui.viewer.ViewerIntent.Share
+import org.koitharu.album.ui.viewer.ViewerIntent.UseAs
 import org.koitharu.album.util.runCatchingCancellable
 
 @HiltViewModel(assistedFactory = ViewerViewModel.Factory::class)
@@ -31,6 +35,7 @@ class ViewerViewModel @AssistedInject constructor(
     @Assisted media: AlbumItem.Media,
     private val repository: MediaStoreRepository,
     private val settingsRepository: SettingsRepository,
+    private val shellIntegrationHelper: ShellIntegrationHelper,
 ) : MviViewModel<ViewerState, ViewerIntent, ViewerEffect>(ViewerState(media)) {
 
     init {
@@ -77,6 +82,17 @@ class ViewerViewModel @AssistedInject constructor(
             is Delete -> delete(intent.media)
             is Recover -> recover(intent.media)
             is Rotate -> Unit // TODO
+            is Print -> viewModelScope.launch {
+                shellIntegrationHelper.print(intent.image)
+            }
+
+            is Share -> viewModelScope.launch {
+                shellIntegrationHelper.shareMedia(intent.media)
+            }
+
+            is UseAs -> viewModelScope.launch {
+                shellIntegrationHelper.openUseAs(intent.image)
+            }
         }
     }
 

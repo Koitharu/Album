@@ -6,23 +6,35 @@ sealed interface ViewerIntent {
 
     data class OnMediaChanged(
         val media: AlbumItem.Media,
-    ): ViewerIntent
+    ) : ViewerIntent
 
     data class Favorite(
         val media: AlbumItem.Media,
         val isFavorite: Boolean,
-    ): ViewerIntent
+    ) : ViewerIntent
 
     data class Delete(
         val media: AlbumItem.Media,
-    ): ViewerIntent
+    ) : ViewerIntent
 
     data class Recover(
         val media: AlbumItem.Media,
-    ): ViewerIntent
+    ) : ViewerIntent
 
     data class Rotate(
         val media: AlbumItem.Media,
         val angle: Int,
-    ): ViewerIntent
+    ) : ViewerIntent
+
+    data class Share(
+        val media: AlbumItem.Media,
+    ) : ViewerIntent
+
+    data class Print(
+        val image: AlbumItem.Image,
+    ) : ViewerIntent
+
+    data class UseAs(
+        val image: AlbumItem.Image,
+    ) : ViewerIntent
 }

@@ -28,6 +28,8 @@
     <string name="random_image">Random image</string>
     <string name="none">None</string>
     <string name="home_slideshow">Slideshow on the main screen</string>
+    <string name="use_as">Use as</string>
+    <string name="print">Print</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

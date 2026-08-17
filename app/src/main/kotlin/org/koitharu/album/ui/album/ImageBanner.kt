@@ -38,9 +38,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import org.koitharu.album.R
-import org.koitharu.album.ui.album.AlbumIntent.OpenMedia
+import org.koitharu.album.ui.album.AlbumIntent.HandleClick
 import org.koitharu.album.ui.common.AlbumItem
-import org.koitharu.album.util.SetSystemBarsColorsEffect
 import kotlin.math.min
 
 @Composable
@@ -73,7 +72,7 @@ fun HomeScreenBanner(
             gridState = albumScope.gridState,
             height = 240.dp,
             overlayContent = overlayContent,
-            onClick = { viewModel.handleIntent(OpenMedia(banner)) }
+            onClick = { viewModel.handleIntent(HandleClick(banner)) }
         )
     }
 }
