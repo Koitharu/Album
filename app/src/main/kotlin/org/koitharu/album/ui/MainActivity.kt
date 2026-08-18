@@ -2,12 +2,7 @@ package org.koitharu.album.ui
 
 import android.Manifest
 import android.content.Intent
-import android.content.IntentSender
 import android.os.Build
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
@@ -45,6 +40,7 @@ import org.koitharu.album.ui.album.AlbumScope
 import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.album.HomeScreenBanner
 import org.koitharu.album.ui.common.AlbumItem.Media
+import org.koitharu.album.ui.common.ComposeActivity
 import org.koitharu.album.ui.common.OptionsMenu
 import org.koitharu.album.ui.folders.FolderContentScreen
 import org.koitharu.album.ui.folders.FolderItem
@@ -52,44 +48,33 @@ import org.koitharu.album.ui.folders.FoldersContent
 import org.koitharu.album.ui.settings.SettingsActivity
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.viewer.ViewerScreen
-import org.koitharu.album.util.IntentSenderLauncher
-import org.koitharu.album.util.IntentSenderLauncherRegistry
 import org.koitharu.album.util.SetSystemBarsColorsEffect
 import org.koitharu.album.util.rememberNestedScrollDirectionConnection
 import org.koitharu.album.util.rememberPermissionCheck
 import org.koitharu.album.util.rememberPermissionsCheck
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity(), IntentSenderLauncher {
+class MainActivity : ComposeActivity() {
 
-    private val intentSenderLauncherRegistry = IntentSenderLauncherRegistry(this)
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            AlbumTheme {
-                val isPermissionGranted by
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    rememberPermissionsCheck(
-                        Manifest.permission.READ_MEDIA_IMAGES,
-                        Manifest.permission.READ_MEDIA_VIDEO,
-                    )
-                } else {
-                    rememberPermissionCheck(
-                        Manifest.permission.READ_EXTERNAL_STORAGE
-                    )
-                }
-                if (isPermissionGranted) {
-                    HomeScreen()
-                }
+    @Composable
+    override fun Content() {
+        AlbumTheme {
+            val isPermissionGranted by
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                rememberPermissionsCheck(
+                    Manifest.permission.READ_MEDIA_IMAGES,
+                    Manifest.permission.READ_MEDIA_VIDEO,
+                )
+            } else {
+                rememberPermissionCheck(
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                )
+            }
+            if (isPermissionGranted) {
+                HomeScreen()
             }
         }
     }
-
-    override suspend fun awaitIntentSenderForResult(
-        intentSender: IntentSender
-    ): Intent? = intentSenderLauncherRegistry.awaitIntentSenderForResult(intentSender)
 }
 
 @Composable

@@ -31,6 +31,13 @@
     <string name="use_as">Use as</string>
     <string name="print">Print</string>
     <string name="videos">Videos</string>
+    <string name="set_as_wallpaper">Set as wallpaper</string>
+    <string name="apply">Apply</string>
+    <string name="home_screen">Home screen</string>
+    <string name="lockscreen">Lockscreen</string>
+    <string name="both">Both</string>
+    <string name="wallpaper_applied">Wallpaper has been applied</string>
+    <string name="set_as_wallpaper_hint">Zoom and pan image to fit it into the screen</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

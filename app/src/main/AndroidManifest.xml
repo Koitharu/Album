@@ -13,7 +13,7 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.MANAGE_MEDIA" />
-    <uses-permission android:name="com.android.providers.media.permission.ACCESS_OEM_METADATA" />
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
 
     <application
         android:name=".AlbumApp"
@@ -54,6 +54,16 @@
         <activity
             android:name=".ui.settings.SettingsActivity"
             android:label="@string/settings" />
+        <activity
+            android:name=".ui.wallpaper.WallpaperActivity"
+            android:exported="true"
+            android:label="@string/set_as_wallpaper">
+            <intent-filter>
+                <action android:name="android.intent.action.ATTACH_DATA" />
+                <data android:mimeType="image/*" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

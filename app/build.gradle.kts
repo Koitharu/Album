@@ -40,6 +40,7 @@ kotlin {
         optIn.add("kotlinx.coroutines.ExperimentalCoroutinesApi")
         optIn.add("coil3.annotation.InternalCoilApi")
         optIn.add("coil3.annotation.ExperimentalCoilApi")
+        optIn.add("me.saket.telephoto.ExperimentalTelephotoApi")
         optIn.add("androidx.compose.material3.ExperimentalMaterial3Api")
         optIn.add("androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
         optIn.add("androidx.compose.foundation.layout.ExperimentalLayoutApi")

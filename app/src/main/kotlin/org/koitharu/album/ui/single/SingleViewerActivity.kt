@@ -1,36 +1,31 @@
 package org.koitharu.album.ui.single
 
-import android.graphics.Color
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import dagger.hilt.android.AndroidEntryPoint
+import org.koitharu.album.ui.common.ComposeActivity
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.theme.resolveThemeVariant
 
 @AndroidEntryPoint
-class SingleViewerActivity : ComponentActivity() {
+class SingleViewerActivity : ComposeActivity() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    @Composable
+    override fun Content() {
         val uri = intent.dataString
+        LaunchedEffect(uri.isNullOrEmpty()) {
+            if (uri.isNullOrEmpty()) {
+                finishAfterTransition()
+            }
+        }
         if (uri.isNullOrEmpty()) {
-            finishAfterTransition()
             return
         }
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-        )
-        setContent {
-            AlbumTheme(variant = resolveThemeVariant(isForViewer = true)) {
-                SingleViewerScreen(
-                    uri = uri,
-                    onClose = { finishAfterTransition() },
-                )
-            }
+        AlbumTheme(variant = resolveThemeVariant(isForViewer = true)) {
+            SingleViewerScreen(
+                uri = uri,
+                onClose = { finishAfterTransition() },
+            )
         }
     }
 }
