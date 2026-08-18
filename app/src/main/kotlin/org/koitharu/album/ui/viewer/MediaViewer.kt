@@ -69,6 +69,8 @@ import org.koitharu.album.ui.common.OptionsMenu
 import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.theme.resolveThemeVariant
+import org.koitharu.album.ui.viewer.ViewerEffect.Invalidate
+import org.koitharu.album.ui.viewer.ViewerEffect.OnError
 import org.koitharu.album.ui.viewer.ViewerIntent.Delete
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
@@ -104,9 +106,11 @@ fun ViewerScreen(
         LaunchedEffect(Unit) {
             viewModel.effect.collect { effect ->
                 when (effect) {
-                    is ViewerEffect.OnError -> snackbarHostState.showSnackbar(
+                    is OnError -> snackbarHostState.showSnackbar(
                         effect.error.message ?: resources.getString(R.string.error_message_generic)
                     )
+
+                    Invalidate -> Unit
                 }
             }
         }
@@ -304,7 +308,7 @@ fun SingleViewer(
             is AlbumItem.Image -> ImageViewer(
                 modifier = modifier,
                 image = media,
-                onRotate = { angle -> handleIntent(ViewerIntent.Rotate(media, angle)) },
+                onRotated = { angle -> handleIntent(ViewerIntent.Rotate(media, angle)) },
                 isRotationGestureEnabled = isRotationGestureEnabled,
                 onClick = onClick,
             )

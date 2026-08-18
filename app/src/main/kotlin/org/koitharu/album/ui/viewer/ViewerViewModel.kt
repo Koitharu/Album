@@ -14,11 +14,13 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.koitharu.album.repository.ExifEditor
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.common.ShellIntegrationHelper
+import org.koitharu.album.ui.viewer.ViewerEffect.Invalidate
 import org.koitharu.album.ui.viewer.ViewerEffect.OnError
 import org.koitharu.album.ui.viewer.ViewerIntent.Delete
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
@@ -36,6 +38,7 @@ class ViewerViewModel @AssistedInject constructor(
     private val repository: MediaStoreRepository,
     private val settingsRepository: SettingsRepository,
     private val shellIntegrationHelper: ShellIntegrationHelper,
+    private val editorFactory: ExifEditor.Factory,
 ) : MviViewModel<ViewerState, ViewerIntent, ViewerEffect>(ViewerState(media)) {
 
     init {
@@ -81,7 +84,18 @@ class ViewerViewModel @AssistedInject constructor(
 
             is Delete -> delete(intent.media)
             is Recover -> recover(intent.media)
-            is Rotate -> Unit // TODO
+            is Rotate -> viewModelScope.launch {
+                runCatchingCancellable {
+                    editorFactory.create(intent.image.uri)
+                        .rotate(intent.angle)
+                        .commit()
+                }.onSuccess {
+                    sendEffect(Invalidate)
+                }.onFailure { e ->
+                    sendEffect(OnError(e))
+                }
+            }
+
             is Print -> viewModelScope.launch {
                 shellIntegrationHelper.print(intent.image)
             }

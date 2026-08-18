@@ -1,7 +1,6 @@
 package org.koitharu.album.model
 
 import android.net.Uri
-import org.koitharu.album.repository.ThumbnailFetcher.Companion.thumbnailUri
 
 data class MediaItem(
     val index: Int,
@@ -10,11 +9,9 @@ data class MediaItem(
     val mimeType: String,
     val uri: Uri,
     val dateAdded: Long,
+    val dateModified: Long,
     val isFavorite: Boolean,
     val isTrashed: Boolean,
     val isVideo: Boolean,
     private val path: String?,
-) {
-
-    val thumbnail: Uri = uri.thumbnailUri()
-}
+)

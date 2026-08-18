@@ -28,6 +28,7 @@ sealed interface FolderItem : Parcelable {
         is Favorites -> stringResource(R.string.favorites)
         is RecycleBin -> stringResource(R.string.recycle_bin)
         is Photos -> stringResource(R.string.photos)
+        is Videos -> stringResource(R.string.videos)
     }
 
     @Parcelize
@@ -67,6 +68,19 @@ sealed interface FolderItem : Parcelable {
 
         override val iconId: Int
             get() = R.drawable.ic_photo_camera
+    }
+
+    @Parcelize
+    data class Videos(
+        override val size: Int,
+        override val thumbnail: Uri?
+    ) : FolderItem {
+
+        @IgnoredOnParcel
+        override val id = "_videos"
+
+        override val iconId: Int
+            get() = R.drawable.ic_movie
     }
 
     @Parcelize

@@ -9,7 +9,6 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.provider.MediaStore.Files.FileColumns
-import android.util.Log
 import androidx.core.database.getStringOrNull
 import androidx.paging.PagingSource
 import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
@@ -33,12 +32,13 @@ abstract class GallerySource(
     private val legacyFavoritesRepository: LegacyFavoritesRepository,
 ) : PagingSource<Int, MediaItem>() {
 
-    val projection = buildList(9) {
+    val projection = buildList(10) {
         add(FileColumns._ID)
         add(FileColumns.DISPLAY_NAME)
         add(FileColumns.MIME_TYPE)
         add(FileColumns.MEDIA_TYPE)
         add(FileColumns.DATE_ADDED)
+        add(FileColumns.DATE_MODIFIED)
         if (Features.isNativeFavoritesSupported) {
             add(FileColumns.IS_FAVORITE)
         }
@@ -88,7 +88,6 @@ abstract class GallerySource(
         val anchorPosition = state.anchorPosition ?: return null
         val pageSize = state.config.pageSize
         val result = (anchorPosition / pageSize) * pageSize
-        Log.i("ALBUMSRC", "refresh(key = $result)")
         return result
     }
 
@@ -111,6 +110,7 @@ abstract class GallerySource(
             val mimeTypeColumn = cursor.getColumnIndexOrThrow(FileColumns.MIME_TYPE)
             val mediaTypeColumn = cursor.getColumnIndexOrThrow(FileColumns.MEDIA_TYPE)
             val dateAddedColumn = cursor.getColumnIndexOrThrow(FileColumns.DATE_ADDED)
+            val dateModifiedColumn = cursor.getColumnIndexOrThrow(FileColumns.DATE_MODIFIED)
             val favoriteColumn = if (Features.isNativeFavoritesSupported) {
                 cursor.getColumnIndex(FileColumns.IS_FAVORITE)
             } else {
@@ -140,11 +140,7 @@ abstract class GallerySource(
                 } else {
                     legacyFavoritesRepository.isFavorite(id)
                 }
-                val isTrashed = if (trashedColumn >= 0) {
-                    cursor.getInt(trashedColumn) > 0
-                } else {
-                    false
-                }
+                val isTrashed = trashedColumn >= 0 && cursor.getInt(trashedColumn) > 0
                 result.add(
                     MediaItem(
                         index = offset + result.size,
@@ -156,6 +152,7 @@ abstract class GallerySource(
                         isFavorite = isFavorite,
                         isTrashed = isTrashed,
                         dateAdded = cursor.getLong(dateAddedColumn),
+                        dateModified = cursor.getLong(dateModifiedColumn),
                         path = if (pathColumn >= 0) {
                             cursor.getStringOrNull(pathColumn)
                         } else {
@@ -187,9 +184,7 @@ abstract class GallerySource(
                 } else {
                     COUNT_UNDEFINED
                 },
-            ).also {
-                Log.i("ALBUMSRC", "page($offset, $limit) = $it")
-            }
+            )
         }
     }
 

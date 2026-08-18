@@ -1,7 +1,7 @@
 package org.koitharu.album.repository.mediastore
 
-import android.app.RecoverableSecurityException
 import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
+import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.observeChanges
 import org.koitharu.album.repository.queryCompat
@@ -83,25 +84,50 @@ class MediaStoreRepository30Impl(
         )
     }
 
-    private suspend fun RecoverableSecurityException.resolve() {
-        activityContextProvider.get().startIntentSender(
-            userAction.actionIntent.intentSender,
-            null,
-            0,
-            0,
-            0
-        )
-    }
-
     override suspend fun getFavoritesSize(): Int = withContext(Dispatchers.IO) {
         contentResolver.queryCompat(
             uri = baseUri,
             projection = arrayOf(FileColumns._ID),
-            selection = "(${FileColumns.MEDIA_TYPE} = ? OR ${FileColumns.MEDIA_TYPE} = ?) AND ${FileColumns.IS_FAVORITE} = ?",
+            selection = "(${FileColumns.MEDIA_TYPE} = ? OR ${FileColumns.MEDIA_TYPE} = ?) AND ${FileColumns.IS_FAVORITE} = ? AND ${FileColumns.IS_TRASHED} = ?",
             selectionArgs = arrayOf(
                 FileColumns.MEDIA_TYPE_IMAGE.toString(),
                 FileColumns.MEDIA_TYPE_VIDEO.toString(),
-                "1"
+                "1",
+                "0",
+            )
+        )?.use {
+            it.count
+        } ?: 0
+    }
+
+    override suspend fun getPhotosCount(): Int {
+        val pathColumn = if (Features.isPathColumnSupported) {
+            FileColumns.RELATIVE_PATH
+        } else {
+            FileColumns.DATA
+        }
+        return contentResolver.queryCompat(
+            uri = baseUri,
+            projection = arrayOf(FileColumns._ID),
+            selection = "${FileColumns.MEDIA_TYPE} = ? AND $pathColumn LIKE ? AND ${FileColumns.IS_TRASHED} = ?",
+            selectionArgs = arrayOf(
+                FileColumns.MEDIA_TYPE_IMAGE.toString(),
+                "%DCIM%",
+                "0",
+            )
+        )?.use {
+            it.count
+        } ?: 0
+    }
+
+    override suspend fun getVideosCount(): Int {
+        return contentResolver.queryCompat(
+            uri = baseUri,
+            projection = arrayOf(FileColumns._ID),
+            selection = "${FileColumns.MEDIA_TYPE} = ? AND ${FileColumns.IS_TRASHED} = ?",
+            selectionArgs = arrayOf(
+                FileColumns.MEDIA_TYPE_VIDEO.toString(),
+                "0",
             )
         )?.use {
             it.count

@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.compose.runtime.Immutable
 import org.koitharu.album.model.ImmutableDateTime
 import org.koitharu.album.model.MediaItem
+import org.koitharu.album.repository.ThumbnailFetcher.Companion.thumbnailUri
 
 @Immutable
 sealed interface AlbumItem {
@@ -42,30 +43,35 @@ sealed interface AlbumItem {
 
         companion object {
 
-            operator fun invoke(mediaItem: MediaItem): Media = if (mediaItem.isVideo) {
-                Video(
-                    index = mediaItem.index,
-                    id = mediaItem.id,
-                    uri = mediaItem.uri,
-                    thumbnail = mediaItem.thumbnail,
-                    name = mediaItem.name,
-                    mimeType = mediaItem.mimeType,
-                    dateAdded = ImmutableDateTime.ofSeconds(mediaItem.dateAdded),
-                    isFavorite = mediaItem.isFavorite,
-                    isTrashed = mediaItem.isTrashed,
-                )
-            } else {
-                Image(
-                    index = mediaItem.index,
-                    id = mediaItem.id,
-                    uri = mediaItem.uri,
-                    thumbnail = mediaItem.thumbnail,
-                    name = mediaItem.name,
-                    mimeType = mediaItem.mimeType,
-                    dateAdded = ImmutableDateTime.ofSeconds(mediaItem.dateAdded),
-                    isFavorite = mediaItem.isFavorite,
-                    isTrashed = mediaItem.isTrashed,
-                )
+            operator fun invoke(mediaItem: MediaItem): Media {
+                val versionedUri = mediaItem.uri.buildUpon()
+                    .appendQueryParameter("v", mediaItem.dateModified.toString())
+                    .build()
+                return if (mediaItem.isVideo) {
+                    Video(
+                        index = mediaItem.index,
+                        id = mediaItem.id,
+                        uri = versionedUri,
+                        thumbnail = versionedUri.thumbnailUri(),
+                        name = mediaItem.name,
+                        mimeType = mediaItem.mimeType,
+                        dateAdded = ImmutableDateTime.ofSeconds(mediaItem.dateAdded),
+                        isFavorite = mediaItem.isFavorite,
+                        isTrashed = mediaItem.isTrashed,
+                    )
+                } else {
+                    Image(
+                        index = mediaItem.index,
+                        id = mediaItem.id,
+                        uri = versionedUri,
+                        thumbnail = versionedUri.thumbnailUri(),
+                        name = mediaItem.name,
+                        mimeType = mediaItem.mimeType,
+                        dateAdded = ImmutableDateTime.ofSeconds(mediaItem.dateAdded),
+                        isFavorite = mediaItem.isFavorite,
+                        isTrashed = mediaItem.isTrashed,
+                    )
+                }
             }
         }
     }

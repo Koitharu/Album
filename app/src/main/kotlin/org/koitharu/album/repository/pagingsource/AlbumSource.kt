@@ -13,7 +13,7 @@ class AlbumSource @AssistedInject constructor(
     legacyFavoritesRepository: LegacyFavoritesRepository,
 ) : GallerySource(
     contentResolver = contentResolver,
-    legacyFavoritesRepository = legacyFavoritesRepository
+    legacyFavoritesRepository = legacyFavoritesRepository,
 ) {
 
     override val selection = buildString {

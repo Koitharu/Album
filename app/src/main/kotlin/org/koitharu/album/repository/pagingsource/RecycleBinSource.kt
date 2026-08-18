@@ -7,8 +7,11 @@ import javax.inject.Inject
 
 class RecycleBinSource @Inject constructor(
     contentResolver: ContentResolver,
-    legacyFavoritesRepository: LegacyFavoritesRepository
-) : GallerySource(contentResolver, legacyFavoritesRepository) {
+    legacyFavoritesRepository: LegacyFavoritesRepository,
+) : GallerySource(
+    contentResolver = contentResolver,
+    legacyFavoritesRepository = legacyFavoritesRepository,
+) {
 
     override val selection = buildString {
         append('(')

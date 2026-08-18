@@ -27,6 +27,8 @@ interface MediaStoreRepository {
 
     suspend fun getPhotosCount(): Int
 
+    suspend fun getVideosCount(): Int
+
     suspend fun getMedia(id: Long): MediaItem
 
     fun observeMedia(id: Long, withStartValue: Boolean): Flow<MediaItem>

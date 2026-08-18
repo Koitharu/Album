@@ -22,7 +22,7 @@ sealed interface ViewerIntent {
     ) : ViewerIntent
 
     data class Rotate(
-        val media: AlbumItem.Media,
+        val image: AlbumItem.Image,
         val angle: Int,
     ) : ViewerIntent
 

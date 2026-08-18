@@ -58,6 +58,12 @@ class FoldersViewModel @Inject constructor(
                     thumbnail = null,
                 )
             )
+            add(
+                FolderItem.Videos(
+                    size = repository.getVideosCount(),
+                    thumbnail = null,
+                )
+            )
             list.mapTo(this) {
                 FolderItem.Bucket(
                     id = it.id,

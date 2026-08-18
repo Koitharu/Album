@@ -138,19 +138,32 @@ open class MediaStoreRepositoryLegacyImpl(
         return legacyFavoritesRepository.observeIsFavorite(id)
     }
 
-    override suspend fun getPhotosCount(): Int = withContext(Dispatchers.IO) {
+    override suspend fun getPhotosCount(): Int {
         val pathColumn = if (Features.isPathColumnSupported) {
             FileColumns.RELATIVE_PATH
         } else {
             FileColumns.DATA
         }
-        contentResolver.queryCompat(
+        return contentResolver.queryCompat(
             uri = baseUri,
             projection = arrayOf(FileColumns._ID),
             selection = "${FileColumns.MEDIA_TYPE} = ? AND $pathColumn LIKE ?",
             selectionArgs = arrayOf(
                 FileColumns.MEDIA_TYPE_IMAGE.toString(),
                 "%DCIM%"
+            )
+        )?.use {
+            it.count
+        } ?: 0
+    }
+
+    override suspend fun getVideosCount(): Int {
+        return contentResolver.queryCompat(
+            uri = baseUri,
+            projection = arrayOf(FileColumns._ID),
+            selection = "${FileColumns.MEDIA_TYPE} = ?",
+            selectionArgs = arrayOf(
+                FileColumns.MEDIA_TYPE_VIDEO.toString()
             )
         )?.use {
             it.count
@@ -199,11 +212,12 @@ open class MediaStoreRepositoryLegacyImpl(
         isFavoriteOnly: Boolean
     ): MediaItem? = contentResolver.queryCompat(
         uri = baseUri,
-        projection = buildList(8) {
+        projection = buildList(10) {
             add(FileColumns._ID)
             add(FileColumns.DISPLAY_NAME)
             add(FileColumns.MIME_TYPE)
             add(FileColumns.DATE_ADDED)
+            add(FileColumns.DATE_MODIFIED)
             add(FileColumns.MEDIA_TYPE)
             if (Features.isNativeFavoritesSupported) {
                 add(FileColumns.IS_FAVORITE)
@@ -276,6 +290,7 @@ open class MediaStoreRepositoryLegacyImpl(
         val nameColumn = getColumnIndexOrThrow(FileColumns.DISPLAY_NAME)
         val mimeTypeColumn = getColumnIndexOrThrow(FileColumns.MIME_TYPE)
         val dateAddedColumn = getColumnIndexOrThrow(FileColumns.DATE_ADDED)
+        val dateModifiedColumn = getColumnIndexOrThrow(FileColumns.DATE_MODIFIED)
         val mediaTypeColumn = getColumnIndexOrThrow(FileColumns.MEDIA_TYPE)
         val favoriteColumn = if (Features.isNativeFavoritesSupported) {
             getColumnIndex(FileColumns.IS_FAVORITE)
@@ -308,6 +323,7 @@ open class MediaStoreRepositoryLegacyImpl(
                 mimeType = getString(mimeTypeColumn),
                 uri = contentUri,
                 dateAdded = getLong(dateAddedColumn),
+                dateModified = getLong(dateModifiedColumn),
                 isFavorite = if (favoriteColumn >= 0) {
                     getInt(favoriteColumn) > 0
                 } else {

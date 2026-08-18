@@ -31,7 +31,7 @@ fun ImageViewer(
     modifier: Modifier,
     image: AlbumItem.Image,
     isRotationGestureEnabled: Boolean,
-    onRotate: (Int) -> Unit,
+    onRotated: (Int) -> Unit,
     onClick: () -> Unit,
 ) = Box(
     modifier = Modifier.fillMaxSize(),
@@ -44,8 +44,9 @@ fun ImageViewer(
             .run {
                 if (isRotationGestureEnabled) {
                     snappedRotationGesture(
+                        key = image.uri.toString(),
                         isRotationEnabled = zoomableState.zoomFraction == 0f,
-                        onRotationSaved = onRotate,
+                        onRotated = onRotated,
                     )
                 } else {
                     this

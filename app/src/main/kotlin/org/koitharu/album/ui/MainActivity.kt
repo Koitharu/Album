@@ -2,6 +2,7 @@ package org.koitharu.album.ui
 
 import android.Manifest
 import android.content.Intent
+import android.content.IntentSender
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -51,13 +52,17 @@ import org.koitharu.album.ui.folders.FoldersContent
 import org.koitharu.album.ui.settings.SettingsActivity
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.viewer.ViewerScreen
+import org.koitharu.album.util.IntentSenderLauncher
+import org.koitharu.album.util.IntentSenderLauncherRegistry
 import org.koitharu.album.util.SetSystemBarsColorsEffect
 import org.koitharu.album.util.rememberNestedScrollDirectionConnection
 import org.koitharu.album.util.rememberPermissionCheck
 import org.koitharu.album.util.rememberPermissionsCheck
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), IntentSenderLauncher {
+
+    private val intentSenderLauncherRegistry = IntentSenderLauncherRegistry(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,6 +86,10 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override suspend fun awaitIntentSenderForResult(
+        intentSender: IntentSender
+    ): Intent? = intentSenderLauncherRegistry.awaitIntentSenderForResult(intentSender)
 }
 
 @Composable

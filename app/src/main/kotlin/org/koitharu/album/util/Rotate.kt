@@ -1,87 +1,67 @@
 package org.koitharu.album.util
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateRotation
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import kotlinx.coroutines.launch
-import kotlin.math.abs
+import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 fun Modifier.snappedRotationGesture(
+    key: Any? = null,
     isRotationEnabled: Boolean = true,
     rotationThresholdDegrees: Float = 7f,
-    onRotationSaved: (Int) -> Unit = {},
+    onRotated: (Int) -> Unit = {},
 ): Modifier = composed {
-    val scope = rememberCoroutineScope()
-    val animatedRotation = remember { Animatable(0f) }
-    var savedRotation by remember { mutableIntStateOf(0) }
-    var currentGestureRotation by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(savedRotation, currentGestureRotation) {
-        animatedRotation.snapTo(savedRotation + currentGestureRotation)
+    val currentRotation = remember(key) { Animatable(0f) }
+    var isGestureInProgress by remember(key) { mutableStateOf(false) }
+    var targetRotation by remember(key) { mutableFloatStateOf(0f) }
+    LaunchedEffect(targetRotation, isGestureInProgress) {
+        if (!isGestureInProgress) {
+            currentRotation.animateTo(targetRotation)
+            val intValue = (targetRotation.roundToInt() % 360 + 360) % 360
+            if (intValue != 0) {
+                onRotated(intValue)
+            }
+        } else {
+            currentRotation.snapTo(targetRotation)
+        }
     }
 
     pointerInput(isRotationEnabled) {
-        awaitPointerEventScope {
-            while (true) {
-                var event = awaitPointerEvent(PointerEventPass.Initial)
-                var isGestureActive = event.changes.size > 1
-
-                var isRotationStarted = false
-                var accumulatedRotation = 0f
-
-                while (isGestureActive) {
-                    val rotationChange = if (isRotationEnabled) event.calculateRotation() else 0f
-                    accumulatedRotation += rotationChange
-
-                    if (isRotationStarted) {
-                        currentGestureRotation += rotationChange
-                    } else if (abs(accumulatedRotation) >= rotationThresholdDegrees) {
-                        isRotationStarted = true
-                        currentGestureRotation = accumulatedRotation
+        if (isRotationEnabled) {
+            awaitEachGesture {
+                awaitFirstDown(pass = PointerEventPass.Initial)
+                var gestureRotation = 0f
+                do {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    val rotation = event.calculateRotation()
+                    gestureRotation += rotation
+                    if (isGestureInProgress || gestureRotation.absoluteValue >= rotationThresholdDegrees) {
+                        targetRotation = gestureRotation
+                        isGestureInProgress = true
+                        event.consume()
                     }
+                } while (event.changes.any { it.pressed })
 
-                    event = awaitPointerEvent(PointerEventPass.Initial)
-                    isGestureActive = event.changes.size > 1
-                }
-
-                if (currentGestureRotation != 0f) {
-                    val totalRotation = savedRotation + currentGestureRotation
-                    val snapped = (totalRotation / 90f).roundToInt() * 90
-                    val normalizedRotation = (snapped % 360 + 360) % 360
-
-                    currentGestureRotation = 0f
-                    savedRotation = normalizedRotation
-
-                    scope.launch {
-                        animatedRotation.animateTo(
-                            targetValue = normalizedRotation.toFloat(),
-                            animationSpec = tween(durationMillis = 300)
-                        )
-                        onRotationSaved(normalizedRotation)
-                    }
-                } else if (accumulatedRotation != 0f && !isRotationStarted) {
-                    scope.launch {
-                        animatedRotation.animateTo(
-                            targetValue = savedRotation.toFloat(),
-                            animationSpec = tween(durationMillis = 150)
-                        )
-                    }
-                }
+                val aligned = (targetRotation / 90f).roundToInt() * 90
+                targetRotation = aligned.toFloat()
+                isGestureInProgress = false
             }
         }
-    }.graphicsLayer {
-        rotationZ = animatedRotation.value
-    }
+    }.graphicsLayer(rotationZ = currentRotation.value)
 }
+
+private fun PointerEvent.consume() = changes.forEach { it.consume() }
