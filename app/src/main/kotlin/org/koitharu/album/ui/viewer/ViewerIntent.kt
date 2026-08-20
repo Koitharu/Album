@@ -37,4 +37,8 @@ sealed interface ViewerIntent {
     data class UseAs(
         val image: AlbumItem.Image,
     ) : ViewerIntent
+
+    data class Edit(
+        val image: AlbumItem.Image,
+    ) : ViewerIntent
 }

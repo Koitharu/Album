@@ -43,6 +43,11 @@ class SettingsRepository @Inject constructor(
             prefs[Keys.useRecycleBin] ?: Features.isRecycleBinSupported
         }
 
+    val useExternalEditor: Flow<Boolean>
+        get() = context.dataStore.data.map { prefs ->
+            prefs[Keys.useExternalEditor] ?: false
+        }
+
     val appTheme: StateFlow<ThemeVariant> = context.dataStore.data.map { prefs ->
         prefs[Keys.appTheme, ThemeVariant.SYSTEM]
     }.stateIn(coroutineScope + Dispatchers.Default, SharingStarted.Eagerly, ThemeVariant.SYSTEM)
@@ -91,6 +96,12 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    suspend fun setUseExternalEditor(value: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.useExternalEditor] = value
+        }
+    }
+
     object Keys {
 
         val useRecycleBin = booleanPreferencesKey("recycle_bin")
@@ -99,6 +110,7 @@ class SettingsRepository @Inject constructor(
         val appTheme = stringPreferencesKey("app_theme")
         val viewerTheme = stringPreferencesKey("viewer_theme")
         val homeBanner = stringPreferencesKey("home_banner")
+        val useExternalEditor = booleanPreferencesKey("external_editor")
     }
 
     companion object {

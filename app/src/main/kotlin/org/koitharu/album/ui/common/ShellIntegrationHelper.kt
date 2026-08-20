@@ -60,6 +60,14 @@ class ShellIntegrationHelper @Inject constructor(
         context.startActivity(chooserIntent)
     }
 
+    suspend fun openImageEditor(image: AlbumItem.Image) {
+        val context = activityContextProvider.get()
+        val intent = Intent(Intent.ACTION_EDIT)
+            .setDataAndType(image.uri, image.mimeType)
+        val chooserIntent = Intent.createChooser(intent, context.getString(R.string.edit))
+        context.startActivity(chooserIntent)
+    }
+
     @Suppress("SuspendCoroutineLacksCancellationGuarantees")
     suspend fun print(image: AlbumItem.Image) {
         val context = activityContextProvider.get()

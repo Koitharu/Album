@@ -4,6 +4,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.IconToggleButtonColors
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
@@ -38,6 +40,42 @@ fun IconButtonWithTooltip(
     ) {
         IconButton(
             onClick = onClick,
+            modifier = modifier,
+            enabled = enabled,
+            colors = colors,
+            interactionSource = interactionSource,
+            shape = shape,
+            content = content,
+        )
+    }
+}
+
+@Composable
+fun IconToggleButtonWithTooltip(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: IconToggleButtonColors = IconButtonDefaults.iconToggleButtonColors(),
+    tooltip: String,
+    tooltipAnchorPosition: TooltipAnchorPosition = TooltipAnchorPosition.Below,
+    interactionSource: MutableInteractionSource? = null,
+    shape: Shape = IconButtonDefaults.standardShape,
+    content: @Composable () -> Unit,
+) {
+    val tooltipState = rememberTooltipState()
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(tooltipAnchorPosition),
+        tooltip = {
+            PlainTooltip {
+                Text(tooltip)
+            }
+        },
+        state = tooltipState
+    ) {
+        IconToggleButton(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
             modifier = modifier,
             enabled = enabled,
             colors = colors,

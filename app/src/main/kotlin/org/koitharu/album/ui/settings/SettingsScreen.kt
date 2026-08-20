@@ -28,6 +28,7 @@ import org.koitharu.album.ui.settings.SettingsIntent.SetAppTheme
 import org.koitharu.album.ui.settings.SettingsIntent.SetHomeBanner
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRecycleBinEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRotationGestureEnabled
+import org.koitharu.album.ui.settings.SettingsIntent.SetUseExternalEditor
 import org.koitharu.album.ui.settings.SettingsIntent.SetViewerTheme
 import org.koitharu.album.ui.settings.preferences.ListPreference
 import org.koitharu.album.ui.settings.preferences.PreferenceCategory
@@ -121,6 +122,14 @@ fun SettingsScreen(
                 summary = stringResource(R.string.allow_rotation_gesture_summary),
                 isChecked = state.isRotationGestureEnabled,
                 onClick = { handleIntent(SetIsRotationGestureEnabled(!state.isRotationGestureEnabled)) },
+            )
+        }
+        item(Keys.useExternalEditor.name) {
+            SwitchPreference(
+                title = stringResource(R.string.use_external_editor),
+                summary = stringResource(R.string.use_external_editor_summary),
+                isChecked = state.useExternalEditor,
+                onClick = { handleIntent(SetUseExternalEditor(!state.useExternalEditor)) },
             )
         }
     }

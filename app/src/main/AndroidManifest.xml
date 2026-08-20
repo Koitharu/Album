@@ -52,6 +52,17 @@
         </activity>
 
         <activity
+            android:name=".ui.editor.ImageEditorActivity"
+            android:exported="true"
+            android:label="@string/edit">
+            <intent-filter>
+                <action android:name="android.intent.action.EDIT" />
+                <data android:mimeType="image/*" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".ui.settings.SettingsActivity"
             android:label="@string/settings" />
         <activity
@@ -64,6 +75,16 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

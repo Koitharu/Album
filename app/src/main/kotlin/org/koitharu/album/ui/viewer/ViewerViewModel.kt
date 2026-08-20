@@ -20,9 +20,9 @@ import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.common.ShellIntegrationHelper
-import org.koitharu.album.ui.viewer.ViewerEffect.Invalidate
 import org.koitharu.album.ui.viewer.ViewerEffect.OnError
 import org.koitharu.album.ui.viewer.ViewerIntent.Delete
+import org.koitharu.album.ui.viewer.ViewerIntent.Edit
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
 import org.koitharu.album.ui.viewer.ViewerIntent.Print
@@ -89,8 +89,6 @@ class ViewerViewModel @AssistedInject constructor(
                     editorFactory.create(intent.image.uri)
                         .rotate(intent.angle)
                         .commit()
-                }.onSuccess {
-                    sendEffect(Invalidate)
                 }.onFailure { e ->
                     sendEffect(OnError(e))
                 }
@@ -107,6 +105,8 @@ class ViewerViewModel @AssistedInject constructor(
             is UseAs -> viewModelScope.launch {
                 shellIntegrationHelper.openUseAs(intent.image)
             }
+
+            is Edit -> openEditor(intent.image)
         }
     }
 
@@ -119,6 +119,16 @@ class ViewerViewModel @AssistedInject constructor(
                 repository.setIsFavorite(listOf(media.uri), isFavorite)
             }.onFailure {
                 sendEffect(OnError(it))
+            }
+        }
+    }
+
+    private fun openEditor(image: AlbumItem.Image) {
+        viewModelScope.launch {
+            if (settingsRepository.useExternalEditor.first()) {
+                shellIntegrationHelper.openImageEditor(image)
+            } else {
+                sendEffect(ViewerEffect.OpenImageEditor(image.uri, image.name))
             }
         }
     }

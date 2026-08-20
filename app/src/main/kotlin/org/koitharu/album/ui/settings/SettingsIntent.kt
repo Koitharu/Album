@@ -14,4 +14,6 @@ sealed interface SettingsIntent {
     data class SetViewerTheme(val value: ThemeVariant) : SettingsIntent
 
     data class SetHomeBanner(val value: HomeBannerSource) : SettingsIntent
+
+    data class SetUseExternalEditor(val value: Boolean) : SettingsIntent
 }

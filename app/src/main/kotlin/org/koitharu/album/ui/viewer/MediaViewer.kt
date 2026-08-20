@@ -1,6 +1,7 @@
 package org.koitharu.album.ui.viewer
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -45,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -59,19 +61,22 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import org.koitharu.album.R
 import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
 import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.common.OptionsMenu
+import org.koitharu.album.ui.editor.ImageEditorActivity
 import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.theme.resolveThemeVariant
-import org.koitharu.album.ui.viewer.ViewerEffect.Invalidate
 import org.koitharu.album.ui.viewer.ViewerEffect.OnError
+import org.koitharu.album.ui.viewer.ViewerEffect.OpenImageEditor
 import org.koitharu.album.ui.viewer.ViewerIntent.Delete
+import org.koitharu.album.ui.viewer.ViewerIntent.Edit
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
 import org.koitharu.album.ui.viewer.ViewerIntent.Print
@@ -102,6 +107,7 @@ fun ViewerScreen(
         }
         val state by viewModel.collectState()
         val resources = LocalResources.current
+        val context = LocalContext.current
         val snackbarHostState = remember { SnackbarHostState() }
         LaunchedEffect(Unit) {
             viewModel.effect.collect { effect ->
@@ -110,7 +116,13 @@ fun ViewerScreen(
                         effect.error.message ?: resources.getString(R.string.error_message_generic)
                     )
 
-                    Invalidate -> Unit
+                    is OpenImageEditor -> context.startActivity(
+                        Intent(
+                            context,
+                            ImageEditorActivity::class.java
+                        ).setData(effect.uri)
+                            .putExtra(ImageEditorActivity.EXTRA_NAME, effect.name)
+                    )
                 }
             }
         }
@@ -263,9 +275,13 @@ fun ViewerPager(
         pageCount = { images.itemCount }
     )
     LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.settledPage }.mapNotNull { images.peek(it) }.collect {
-            handleIntent(OnMediaChanged(it))
-        }
+        snapshotFlow { pagerState.settledPage }
+            .flatMapLatest { index ->
+                snapshotFlow { images.peek(index) }
+            }.filterNotNull()
+            .collect {
+                handleIntent(OnMediaChanged(it))
+            }
     }
     HorizontalPager(
         modifier = Modifier.fillMaxSize(),
@@ -388,14 +404,16 @@ private fun BottomBar(
                 )
             }
         }
-        IconButtonWithTooltip(
-            tooltip = stringResource(R.string.edit),
-            onClick = { /* TODO */ },
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_edit_image),
-                contentDescription = stringResource(R.string.edit)
-            )
+        if (media is AlbumItem.Image) {
+            IconButtonWithTooltip(
+                tooltip = stringResource(R.string.edit),
+                onClick = { handleIntent(Edit(media)) },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_edit_image),
+                    contentDescription = stringResource(R.string.edit)
+                )
+            }
         }
         if (media.isTrashed) {
             IconButtonWithTooltip(

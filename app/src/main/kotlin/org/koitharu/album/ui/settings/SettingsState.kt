@@ -12,6 +12,7 @@ data class SettingsState(
     val appTheme: ThemeVariant,
     val viewerTheme: ThemeVariant,
     val homeBanner: HomeBannerSource,
+    val useExternalEditor: Boolean,
 ) {
 
     constructor() : this(
@@ -20,5 +21,6 @@ data class SettingsState(
         appTheme = ThemeVariant.SYSTEM,
         viewerTheme = ThemeVariant.DARK,
         homeBanner = HomeBannerSource.RANDOM,
+        useExternalEditor = false,
     )
 }
