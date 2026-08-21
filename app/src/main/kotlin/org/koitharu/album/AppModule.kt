@@ -13,6 +13,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import org.koitharu.album.repository.LegacyFavoritesRepository
+import org.koitharu.album.repository.MediaStoreConfirmationDialogs
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository30Impl
 import org.koitharu.album.repository.mediastore.MediaStoreRepositoryLegacyImpl
@@ -37,17 +38,20 @@ class AppModule {
         activityContextProvider: ActivityContextProvider,
         contentResolver: ContentResolver,
         legacyFavoritesRepository: LegacyFavoritesRepository,
+        confirmationDialogs: MediaStoreConfirmationDialogs,
     ): MediaStoreRepository = when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> MediaStoreRepository30Impl(
             activityContextProvider = activityContextProvider,
             contentResolver = contentResolver,
             legacyFavoritesRepository = legacyFavoritesRepository,
+            confirmationDialogs = confirmationDialogs,
         )
 
         else -> MediaStoreRepositoryLegacyImpl(
             activityContextProvider = activityContextProvider,
             contentResolver = contentResolver,
             legacyFavoritesRepository = legacyFavoritesRepository,
+            confirmationDialogs = confirmationDialogs,
         )
     }
 }

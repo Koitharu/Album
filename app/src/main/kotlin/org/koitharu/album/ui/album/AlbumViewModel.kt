@@ -27,6 +27,7 @@ import kotlinx.coroutines.plus
 import org.koitharu.album.model.HomeBannerSource.NONE
 import org.koitharu.album.model.HomeBannerSource.RANDOM
 import org.koitharu.album.model.isSameMonth
+import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.ui.album.AlbumIntent.CancelSelectionMode
@@ -34,7 +35,12 @@ import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
 import org.koitharu.album.ui.album.AlbumIntent.HandleClick
 import org.koitharu.album.ui.album.AlbumIntent.HandleLongClick
 import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Delete
+import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Hide
+import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Recover
 import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Share
+import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Trash
+import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Unfavorite
+import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Unhide
 import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
@@ -52,7 +58,8 @@ class AlbumViewModel @AssistedInject constructor(
     private val repository: MediaStoreRepository,
     private val settingsRepository: SettingsRepository,
     private val shellIntegrationHelper: ShellIntegrationHelper,
-) : MviViewModel<AlbumState, AlbumIntent, Nothing>(AlbumState()) {
+    private val hiddenMediaRepository: HiddenMediaRepository,
+) : MviViewModel<AlbumState, AlbumIntent, Nothing>(AlbumState(folder)) {
 
     val pagerContent = Pager(
         config = PagingConfig(
@@ -112,6 +119,11 @@ class AlbumViewModel @AssistedInject constructor(
                 state.update { it.copy(scale = gridScale) }
             }
         }
+        viewModelScope.launch(Dispatchers.Default) {
+            settingsRepository.useRecycleBin.collect { isRecycleBinEnabled ->
+                state.update { it.copy(isRecycleBinEnabled = isRecycleBinEnabled) }
+            }
+        }
     }
 
     override fun handleIntent(intent: AlbumIntent) {
@@ -169,7 +181,35 @@ class AlbumViewModel @AssistedInject constructor(
         Delete -> {
             repository.deleteMedia(
                 media = selectedItems.map { it.uri },
-                useRecycleBin = settingsRepository.useRecycleBin.first(),
+                useRecycleBin = false,
+            )
+            true
+        }
+
+        Hide -> {
+            hiddenMediaRepository.setIsHidden(selectedItems.map { it.id }, true)
+            true
+        }
+
+        Recover -> {
+            repository.recoverMedia(selectedItems.map { it.uri })
+            true
+        }
+
+        Unfavorite -> {
+            repository.setIsFavorite(selectedItems.map { it.uri }, false)
+            true
+        }
+
+        Unhide -> {
+            hiddenMediaRepository.setIsHidden(selectedItems.map { it.id }, false)
+            true
+        }
+
+        Trash -> {
+            repository.deleteMedia(
+                media = selectedItems.map { it.uri },
+                useRecycleBin = true,
             )
             true
         }

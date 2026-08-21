@@ -1,7 +1,6 @@
 package org.koitharu.album.repository.mediastore
 
 import android.content.ContentResolver
-import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -14,6 +13,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.LegacyFavoritesRepository
+import org.koitharu.album.repository.MediaStoreConfirmationDialogs
 import org.koitharu.album.repository.observeChanges
 import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.ActivityContextProvider
@@ -23,10 +23,12 @@ class MediaStoreRepository30Impl(
     activityContextProvider: ActivityContextProvider,
     contentResolver: ContentResolver,
     legacyFavoritesRepository: LegacyFavoritesRepository,
+    confirmationDialogs: MediaStoreConfirmationDialogs,
 ) : MediaStoreRepositoryLegacyImpl(
     activityContextProvider = activityContextProvider,
     contentResolver = contentResolver,
     legacyFavoritesRepository = legacyFavoritesRepository,
+    confirmationDialogs = confirmationDialogs,
 ) {
 
     override suspend fun deleteMedia(media: Collection<Uri>, useRecycleBin: Boolean) {
@@ -154,5 +156,12 @@ class MediaStoreRepository30Impl(
         kickstart = true
     ).mapLatest {
         isFavorite(id)
+    }.distinctUntilChanged()
+
+    override fun observeFavoritesSize(): Flow<Int> = contentResolver.observeChanges(
+        uri = baseUri,
+        kickstart = true
+    ).mapLatest {
+        getFavoritesSize()
     }.distinctUntilChanged()
 }

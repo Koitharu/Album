@@ -23,6 +23,11 @@ sealed interface AlbumIntent {
     enum class SelectionAlbumIntent : AlbumIntent {
 
         Share,
+        Trash,
         Delete,
+        Recover,
+        Unfavorite,
+        Hide,
+        Unhide,
     }
 }

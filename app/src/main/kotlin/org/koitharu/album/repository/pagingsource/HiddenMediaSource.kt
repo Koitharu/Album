@@ -5,11 +5,13 @@ import android.provider.MediaStore.Files.FileColumns
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import org.koitharu.album.repository.Features
+import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import javax.inject.Inject
 
-class FavoritesSource @Inject constructor(
-    private val legacyFavoritesRepository: LegacyFavoritesRepository,
+class HiddenMediaSource @Inject constructor(
+    private val hiddenMediaRepository: HiddenMediaRepository,
+    legacyFavoritesRepository: LegacyFavoritesRepository,
     contentResolver: ContentResolver,
 ) : GallerySource(
     contentResolver = contentResolver,
@@ -26,20 +28,15 @@ class FavoritesSource @Inject constructor(
             append(" = ?")
         }
         append(" AND ")
-        if (Features.isNativeFavoritesSupported) {
-            append(FileColumns.IS_FAVORITE)
-            append(" = ?")
-        } else {
-            append(FileColumns._ID)
-            append(" IN (")
-            repeat(legacyFavoritesRepository.getFavoritesCount()) { i ->
-                if (i != 0) {
-                    append(",")
-                }
-                append("?")
+        append(FileColumns._ID)
+        append(" IN (")
+        repeat(hiddenMediaRepository.getHiddenCount()) { i ->
+            if (i != 0) {
+                append(",")
             }
-            append(")")
+            append("?")
         }
+        append(")")
     }
 
     override val selectionArgs = buildList {
@@ -47,24 +44,18 @@ class FavoritesSource @Inject constructor(
         if (Features.isRecycleBinSupported) {
             add("0")
         }
-        if (Features.isNativeFavoritesSupported) {
-            add("1")
-        } else {
-            legacyFavoritesRepository.getFavorites().mapTo(this) {
-                it.toString()
-            }
+        hiddenMediaRepository.getHiddenIds().mapTo(this) {
+            it.toString()
         }
     }.toTypedArray()
 
     init {
-        if (!Features.isNativeFavoritesSupported) {
-            sourceScope.launch {
-                legacyFavoritesRepository.observeCount()
-                    .drop(1)
-                    .collect {
-                        invalidate()
-                    }
-            }
+        sourceScope.launch {
+            hiddenMediaRepository.observeHiddenCount()
+                .drop(1)
+                .collect {
+                    invalidate()
+                }
         }
     }
 }

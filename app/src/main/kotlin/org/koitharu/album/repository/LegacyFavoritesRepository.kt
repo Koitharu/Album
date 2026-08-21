@@ -1,23 +1,20 @@
 package org.koitharu.album.repository
 
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.core.content.edit
 import dagger.Reusable
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.channels.trySendBlocking
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
+import org.koitharu.album.util.observeChanges
 import javax.inject.Inject
 
 @Reusable
 class LegacyFavoritesRepository @Inject constructor(
-    @ApplicationContext context: Context
+    @ApplicationContext context: Context,
 ) {
 
     private val prefs = context.getSharedPreferences("fav", Context.MODE_PRIVATE)
@@ -45,15 +42,15 @@ class LegacyFavoritesRepository @Inject constructor(
         it.value == true
     }
 
-    fun observeIsFavorite(id: Long) = prefs.observe().map {
+    fun observeIsFavorite(id: Long) = prefs.observeChanges().map {
         isFavorite(id)
+    }.onStart {
+        emit(isFavorite(id))
     }.distinctUntilChanged()
 
-    private fun SharedPreferences.observe(): Flow<String?> = callbackFlow {
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            trySendBlocking(key)
-        }
-        registerOnSharedPreferenceChangeListener(listener)
-        awaitClose { unregisterOnSharedPreferenceChangeListener(listener) }
-    }
+    fun observeCount() = prefs.observeChanges().map {
+        getFavoritesCount()
+    }.onStart {
+        emit(getFavoritesCount())
+    }.distinctUntilChanged()
 }

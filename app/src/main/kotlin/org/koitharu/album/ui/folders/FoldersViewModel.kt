@@ -5,11 +5,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koitharu.album.model.MediaFolder
 import org.koitharu.album.repository.Features
+import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.ui.common.MviViewModel
 import javax.inject.Inject
@@ -17,30 +18,42 @@ import javax.inject.Inject
 @HiltViewModel
 class FoldersViewModel @Inject constructor(
     private val repository: MediaStoreRepository,
+    private val hiddenMediaRepository: HiddenMediaRepository,
 ) : MviViewModel<FoldersState, FoldersIntent, Nothing>(FoldersState()) {
 
     init {
         viewModelScope.launch(Dispatchers.Default) {
-            repository.observeFolders()
-                .map { list ->
-                    mapFolders(list)
-                }.collect { folders ->
-                    state.update {
-                        it.copy(items = folders)
-                    }
+            combine(
+                repository.observeFolders(),
+                repository.observeFavoritesSize(),
+                hiddenMediaRepository.observeHiddenCount(),
+            ) { list, favoritesCount, hiddenCount ->
+                mapFolders(
+                    list = list,
+                    favoritesCount = favoritesCount,
+                    hiddenCount = hiddenCount,
+                )
+            }.collect { folders ->
+                state.update {
+                    it.copy(items = folders)
                 }
+            }
         }
     }
 
     override fun handleIntent(intent: FoldersIntent) {
-        TODO("Not yet implemented")
+
     }
 
-    private suspend fun mapFolders(list: List<MediaFolder>): PersistentList<FolderItem> =
+    private suspend fun mapFolders(
+        list: List<MediaFolder>,
+        favoritesCount: Int,
+        hiddenCount: Int,
+    ): PersistentList<FolderItem> =
         buildList(list.size + 2) {
             add(
                 FolderItem.Favorites(
-                    size = repository.getFavoritesSize(),
+                    size = favoritesCount,
                     thumbnail = null,
                 )
             )
@@ -61,6 +74,12 @@ class FoldersViewModel @Inject constructor(
             add(
                 FolderItem.Videos(
                     size = repository.getVideosCount(),
+                    thumbnail = null,
+                )
+            )
+            add(
+                FolderItem.Hidden(
+                    size = hiddenCount,
                     thumbnail = null,
                 )
             )

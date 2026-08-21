@@ -129,6 +129,8 @@ fun FolderContentScreen(
                                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
                             ) {
                                 AlbumActionMode(
+                                    folder = state.folder,
+                                    isRecycleBinEnabled = state.isRecycleBinEnabled,
                                     selectedItemCount = state.selectedItems.size,
                                     onCancel = { viewModel.handleIntent(CancelSelectionMode) },
                                     handleIntent = viewModel,

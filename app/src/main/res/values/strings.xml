@@ -60,9 +60,17 @@
     <string name="editor_close_message">You made changes that were not saved</string>
     <string name="continue_editing">Continue editing</string>
     <string name="discard_changes">Discard changes</string>
+    <string name="hidden">Hidden</string>
+    <string name="hide">Hide</string>
+    <string name="unhide">Unhide</string>
+    <string name="remove_from_favorites">Remove from favorites</string>
+    <string name="delete_permanently">Delete permanently</string>
+    <string name="move_to_recycle_bin">Move to recycle bin</string>
+    <string name="delete_confirmation">Are you sure you want to delete %s?</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>
         <item quantity="many">%d items</item>
+        <item quantity="other">%d items</item>
     </plurals>
 </resources>

@@ -101,6 +101,8 @@ fun AlbumContent(
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
             AlbumActionMode(
+                folder = state.folder,
+                isRecycleBinEnabled = state.isRecycleBinEnabled,
                 selectedItemCount = state.selectedItems.size,
                 onCancel = { viewModel.handleIntent(CancelSelectionMode) },
                 handleIntent = viewModel,
@@ -284,7 +286,7 @@ private fun Modifier.gridCell(isSelected: Boolean) = fillMaxWidth()
     .aspectRatio(1f)
     .then(
         if (isSelected) {
-            val foreground = MaterialTheme.colorScheme.surfaceDim.copy(alpha = 0.4f)
+            val foreground = MaterialTheme.colorScheme.surfaceDim.copy(alpha = 0.8f)
             Modifier
                 .border(4.dp, MaterialTheme.colorScheme.primaryFixed)
                 .drawWithContent {

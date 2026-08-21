@@ -17,6 +17,8 @@ interface MediaStoreRepository {
 
     suspend fun getFavoritesSize(): Int
 
+    fun observeFavoritesSize(): Flow<Int>
+
     suspend fun getRecycleBinSize(): Int
 
     suspend fun getFolders(): List<MediaFolder>

@@ -19,33 +19,35 @@ import org.koitharu.album.model.MediaFolder
 import org.koitharu.album.model.MediaItem
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.LegacyFavoritesRepository
+import org.koitharu.album.repository.MediaStoreConfirmationDialogs
 import org.koitharu.album.repository.OrderDirection.DESC
 import org.koitharu.album.repository.ThumbnailFetcher.Companion.thumbnailUri
 import org.koitharu.album.repository.observeChanges
 import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.ActivityContextProvider
+import org.koitharu.album.util.resolve
 
 open class MediaStoreRepositoryLegacyImpl(
     protected val activityContextProvider: ActivityContextProvider,
     protected val contentResolver: ContentResolver,
     private val legacyFavoritesRepository: LegacyFavoritesRepository,
+    private val confirmationDialogs: MediaStoreConfirmationDialogs,
 ) : MediaStoreRepository {
 
     protected val baseUri: Uri = MediaStore.Files.getContentUri("external")
 
     override suspend fun deleteMedia(media: Collection<Uri>, useRecycleBin: Boolean) {
+        if (!confirmationDialogs.confirmDeletion(media)) {
+            return
+        }
         for (uri in media) {
             try {
                 contentResolver.delete(uri, null, null)
             } catch (securityException: SecurityException) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && securityException is RecoverableSecurityException) {
-                    activityContextProvider.get().startIntentSender(
-                        securityException.userAction.actionIntent.intentSender,
-                        null,
-                        0,
-                        0,
-                        0
-                    )
+                    if (securityException.resolve(activityContextProvider.get())) {
+                        contentResolver.delete(uri, null, null)
+                    }
                 } else {
                     throw securityException
                 }
@@ -136,6 +138,10 @@ open class MediaStoreRepositoryLegacyImpl(
 
     override fun observeIsFavorite(id: Long): Flow<Boolean> {
         return legacyFavoritesRepository.observeIsFavorite(id)
+    }
+
+    override fun observeFavoritesSize(): Flow<Int> {
+        return legacyFavoritesRepository.observeCount()
     }
 
     override suspend fun getPhotosCount(): Int {
@@ -229,8 +235,12 @@ open class MediaStoreRepositoryLegacyImpl(
             }
         }.toTypedArray(),
         selection = buildString {
-            append(FileColumns.IS_TRASHED)
-            append(" = ? AND (")
+            if (Features.isRecycleBinSupported) {
+                append(FileColumns.IS_TRASHED)
+                append(" = ? AND (")
+            } else {
+                append('(')
+            }
             append(FileColumns.MEDIA_TYPE)
             append(" = ?")
             if (!isImageOnly) {
@@ -259,7 +269,9 @@ open class MediaStoreRepositoryLegacyImpl(
             }
         },
         selectionArgs = buildList {
-            add("0")
+            if (Features.isRecycleBinSupported) {
+                add("0")
+            }
             add(FileColumns.MEDIA_TYPE_IMAGE.toString())
             if (!isImageOnly) {
                 add(FileColumns.MEDIA_TYPE_VIDEO.toString())

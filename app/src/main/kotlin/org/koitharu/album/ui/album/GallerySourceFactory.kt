@@ -3,6 +3,7 @@ package org.koitharu.album.ui.album
 import org.koitharu.album.repository.pagingsource.AlbumSource
 import org.koitharu.album.repository.pagingsource.FavoritesSource
 import org.koitharu.album.repository.pagingsource.GallerySource
+import org.koitharu.album.repository.pagingsource.HiddenMediaSource
 import org.koitharu.album.repository.pagingsource.PhotosSource
 import org.koitharu.album.repository.pagingsource.RecycleBinSource
 import org.koitharu.album.repository.pagingsource.VideosSource
@@ -16,6 +17,7 @@ class GallerySourceFactory @Inject constructor(
     private val favoritesSourceFactory: Provider<FavoritesSource>,
     private val photosSourceFactory: Provider<PhotosSource>,
     private val videosSourceFactory: Provider<VideosSource>,
+    private val hiddenSourceFactory: Provider<HiddenMediaSource>,
 ) {
 
     fun create(folderItem: FolderItem?): GallerySource = when (folderItem) {
@@ -24,6 +26,7 @@ class GallerySourceFactory @Inject constructor(
         is FolderItem.RecycleBin -> recycleBinSourceFactory.get()
         is FolderItem.Photos -> photosSourceFactory.get()
         is FolderItem.Videos -> videosSourceFactory.get()
+        is FolderItem.Hidden -> hiddenSourceFactory.get()
         null -> albumSourceFactory.create(null)
     }
 }
