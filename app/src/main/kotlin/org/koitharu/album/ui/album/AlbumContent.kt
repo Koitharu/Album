@@ -1,6 +1,5 @@
 package org.koitharu.album.ui.album
 
-import android.text.format.DateUtils
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -17,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -50,6 +50,7 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import kotlinx.coroutines.flow.Flow
 import org.koitharu.album.R
+import org.koitharu.album.model.format
 import org.koitharu.album.ui.album.AlbumIntent.CancelSelectionMode
 import org.koitharu.album.ui.album.AlbumIntent.HandleClick
 import org.koitharu.album.ui.album.AlbumIntent.HandleLongClick
@@ -57,7 +58,7 @@ import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.folders.FolderItem
-import org.koitharu.album.util.formattedDateTime
+import org.koitharu.album.util.toTitleCase
 
 @Composable
 fun AlbumContent(
@@ -152,10 +153,7 @@ fun BoxScope.Gallery(
         ) { i ->
             when (val item = images[i]) {
                 is AlbumItem.DateHeader -> DateHeader(
-                    formattedDateTime(
-                        item.date,
-                        DateUtils.FORMAT_SHOW_DATE
-                    )
+                    item.date.format("LLLL yyyy").toTitleCase()
                 )
 
                 is AlbumItem.Image -> albumScope.GalleryImageItem(
@@ -179,6 +177,7 @@ fun BoxScope.Gallery(
     FastScroller(
         modifier = Modifier
             .padding(scrollerPadding)
+            .fillMaxHeight()
             .align(Alignment.TopEnd),
         gridState = albumScope.gridState,
         dateProvider = { index ->
