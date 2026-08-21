@@ -87,6 +87,7 @@ import org.koitharu.album.util.IconButtonWithTooltip
 import org.koitharu.album.util.SetSystemBarsColorsEffect
 import org.koitharu.album.util.formattedDateTime
 import org.koitharu.album.util.rememberWindowInsetsController
+import org.koitharu.album.util.slideUpToClose
 
 @Composable
 fun ViewerScreen(
@@ -238,6 +239,8 @@ private fun PagerMediaViewer(
         }
         if (initialIndex == -1) {
             SingleViewer(
+                modifier = Modifier.fillMaxSize()
+                    .slideUpToClose(onClose),
                 media = media,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
@@ -248,6 +251,8 @@ private fun PagerMediaViewer(
             )
         } else {
             ViewerPager(
+                modifier = Modifier.fillMaxSize()
+                    .slideUpToClose(onClose),
                 images = images,
                 initialIndex = initialIndex,
                 sharedTransitionScope = sharedTransitionScope,
@@ -262,6 +267,7 @@ private fun PagerMediaViewer(
 
 @Composable
 fun ViewerPager(
+    modifier: Modifier,
     images: LazyPagingItems<AlbumItem.Media>,
     initialIndex: Int,
     isRotationGestureEnabled: Boolean,
@@ -284,12 +290,13 @@ fun ViewerPager(
             }
     }
     HorizontalPager(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         state = pagerState,
         snapPosition = SnapPosition.Center,
         key = images.itemKey { it.id },
     ) { page ->
         SingleViewer(
+            modifier = Modifier.fillMaxSize(),
             media = images[page],
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
@@ -303,6 +310,7 @@ fun ViewerPager(
 
 @Composable
 fun SingleViewer(
+    modifier: Modifier,
     media: AlbumItem.Media?,
     isRotationGestureEnabled: Boolean,
     sharedTransitionScope: SharedTransitionScope,
@@ -313,12 +321,12 @@ fun SingleViewer(
 ) {
     with(sharedTransitionScope) {
         val modifier = if (isActive && media is AlbumItem.Media) {
-            Modifier.sharedElement(
+            modifier.sharedElement(
                 rememberSharedContentState(key = "image_${media.id}"),
                 animatedVisibilityScope = animatedVisibilityScope
             )
         } else {
-            Modifier
+            modifier
         }
         when (media) {
             is AlbumItem.Image -> ImageViewer(

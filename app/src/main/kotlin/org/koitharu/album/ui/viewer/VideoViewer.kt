@@ -28,7 +28,7 @@ fun VideoViewer(
     isActive: Boolean,
     onClick: () -> Unit,
 ) = Box(
-    modifier = modifier.fillMaxSize(),
+    modifier = modifier,
 ) {
     var isOverlayVisible by remember { mutableStateOf(true) }
     VideoPlayer(
