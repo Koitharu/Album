@@ -67,6 +67,17 @@
     <string name="delete_permanently">Delete permanently</string>
     <string name="move_to_recycle_bin">Move to recycle bin</string>
     <string name="delete_confirmation">Are you sure you want to delete %s?</string>
+    <string name="no_permissions">No permissions</string>
+    <string name="no_permissions_message">The app requires permissions to access media content on the device.</string>
+    <string name="no_media">No media</string>
+    <string name="no_media_message">Looks like you have no any media on your device yet</string>
+    <string name="empty_folder_message">You have no any media in this folder</string>
+    <string name="empty_favorites">No favorites yet</string>
+    <string name="empty_hidden">No hidden items</string>
+    <string name="empty_recycle_bin">Recycle Bin is empty</string>
+    <string name="empty_recycle_bin_message">You can temporarily delete your media files to the Recycle Bin so that you can restore them later</string>
+    <string name="empty_favorites_message">You can click the Star icon to add some media files to your favorites</string>
+    <string name="empty_hidden_message">You can hide some media files so they won\'t appear in the Albums section</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -26,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
@@ -38,6 +36,7 @@ import org.koitharu.album.ui.album.AlbumScope
 import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.album.Gallery
 import org.koitharu.album.ui.common.AlbumItem.Media
+import org.koitharu.album.ui.common.EmptyState
 import org.koitharu.album.ui.viewer.ViewerScreen
 import org.koitharu.album.util.IconButtonWithTooltip
 
@@ -105,13 +104,29 @@ fun FolderContentScreen(
                                 ),
                                 handleIntent = viewModel,
                                 emptyContent = {
-                                    Text(
-                                        modifier = Modifier
-                                            .padding(16.dp)
-                                            .align(Alignment.Center),
-                                        text = stringResource(R.string.folder_is_empty),
-                                        textAlign = TextAlign.Center,
-                                        style = MaterialTheme.typography.bodyMedium,
+                                    EmptyState(
+                                        modifier = Modifier.fillMaxSize(),
+                                        iconResId = folder.iconId,
+                                        title = stringResource(
+                                            when (folder) {
+                                                is FolderItem.Favorites -> R.string.empty_favorites
+                                                is FolderItem.Hidden -> R.string.empty_hidden
+                                                is FolderItem.RecycleBin -> R.string.empty_recycle_bin
+                                                is FolderItem.Bucket,
+                                                is FolderItem.Photos,
+                                                is FolderItem.Videos -> R.string.folder_is_empty
+                                            }
+                                        ),
+                                        message = stringResource(
+                                            when (folder) {
+                                                is FolderItem.Favorites -> R.string.empty_favorites_message
+                                                is FolderItem.Hidden -> R.string.empty_hidden_message
+                                                is FolderItem.RecycleBin -> R.string.empty_recycle_bin_message
+                                                is FolderItem.Bucket,
+                                                is FolderItem.Photos,
+                                                is FolderItem.Videos -> R.string.empty_folder_message
+                                            }
+                                        ),
                                     )
                                 }
                             )

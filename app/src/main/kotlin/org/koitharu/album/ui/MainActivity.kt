@@ -2,7 +2,9 @@ package org.koitharu.album.ui
 
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -41,6 +44,7 @@ import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.album.HomeScreenBanner
 import org.koitharu.album.ui.common.AlbumItem.Media
 import org.koitharu.album.ui.common.ComposeActivity
+import org.koitharu.album.ui.common.EmptyState
 import org.koitharu.album.ui.common.OptionsMenu
 import org.koitharu.album.ui.folders.FolderContentScreen
 import org.koitharu.album.ui.folders.FolderItem
@@ -72,8 +76,37 @@ class MainActivity : ComposeActivity() {
             }
             if (isPermissionGranted) {
                 HomeScreen()
+            } else {
+                EmptyState(
+                    modifier = Modifier.fillMaxSize(),
+                    iconResId = R.drawable.ic_photo_camera,
+                    title = stringResource(R.string.no_permissions),
+                    message = stringResource(R.string.no_permissions_message),
+                ) {
+                    EmptyState(
+                        modifier = Modifier.fillMaxSize(),
+                        iconResId = R.drawable.ic_folder_alert,
+                        title = stringResource(R.string.no_permissions),
+                        message = stringResource(R.string.no_permissions_message),
+                    ) {
+                        Button(
+                            onClick = { openAppSettings() }
+                        ) {
+                            Text(
+                                text = stringResource(R.string.settings)
+                            )
+                        }
+                    }
+                }
             }
         }
+    }
+
+    private fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", packageName, null)
+        }
+        startActivity(intent)
     }
 }
 

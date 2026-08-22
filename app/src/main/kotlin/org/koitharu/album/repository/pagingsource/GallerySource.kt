@@ -98,11 +98,21 @@ abstract class GallerySource(
         val offset = params.key ?: 0
         val total = totalCount.getOrDefault(0)
 
+        if (total == 0) {
+            return@withContext LoadResult.Page(
+                data = emptyList(),
+                prevKey = null,
+                nextKey = null,
+                itemsBefore = 0,
+                itemsAfter = 0,
+            )
+        }
+
         val query = query(limit, offset) ?: return@withContext LoadResult.Invalid()
 
-        query.use { cursor ->
+        val result = query.use { cursor ->
             if (!cursor.moveToFirst()) {
-                return@withContext LoadResult.Invalid()
+                return@use emptyList()
             }
             val result = ArrayList<MediaItem>(cursor.count)
             val idColumn = cursor.getColumnIndexOrThrow(FileColumns._ID)
@@ -161,31 +171,29 @@ abstract class GallerySource(
                     )
                 )
             } while (cursor.moveToNext())
-            if (result.isEmpty()) {
-                return@withContext LoadResult.Invalid()
-            }
-            LoadResult.Page(
-                data = result,
-                prevKey = if (offset > 0) {
-                    (offset - limit).coerceAtLeast(0)
-                } else {
-                    null
-                },
-                nextKey = (offset + result.size).takeIf {
-                    it < total
-                },
-                itemsBefore = if (total > 0) {
-                    offset
-                } else {
-                    COUNT_UNDEFINED
-                },
-                itemsAfter = if (total > 0) {
-                    (total - offset - result.size).coerceAtLeast(0)
-                } else {
-                    COUNT_UNDEFINED
-                },
-            )
+            result
         }
+        LoadResult.Page(
+            data = result,
+            prevKey = if (offset > 0) {
+                (offset - limit).coerceAtLeast(0)
+            } else {
+                null
+            },
+            nextKey = (offset + result.size).takeIf {
+                it < total
+            },
+            itemsBefore = if (total > 0) {
+                offset
+            } else {
+                COUNT_UNDEFINED
+            },
+            itemsAfter = if (total > 0) {
+                (total - offset - result.size).coerceAtLeast(0)
+            } else {
+                COUNT_UNDEFINED
+            },
+        )
     }
 
     private fun queryCount(
