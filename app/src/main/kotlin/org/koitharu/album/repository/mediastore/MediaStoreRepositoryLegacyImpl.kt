@@ -9,6 +9,8 @@ import android.os.Build
 import android.provider.MediaStore
 import android.provider.MediaStore.Files.FileColumns
 import androidx.core.database.getStringOrNull
+import androidx.paging.PagingSource.LoadParams.Refresh
+import androidx.paging.PagingSource.LoadResult
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +25,7 @@ import org.koitharu.album.repository.MediaStoreConfirmationDialogs
 import org.koitharu.album.repository.OrderDirection.DESC
 import org.koitharu.album.repository.ThumbnailFetcher.Companion.thumbnailUri
 import org.koitharu.album.repository.observeChanges
+import org.koitharu.album.repository.pagingsource.DateRangeSource
 import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.ActivityContextProvider
 import org.koitharu.album.util.resolve
@@ -32,6 +35,7 @@ open class MediaStoreRepositoryLegacyImpl(
     protected val contentResolver: ContentResolver,
     private val legacyFavoritesRepository: LegacyFavoritesRepository,
     private val confirmationDialogs: MediaStoreConfirmationDialogs,
+    private val dateRangeSourceFactory: DateRangeSource.Factory,
 ) : MediaStoreRepository {
 
     protected val baseUri: Uri = MediaStore.Files.getContentUri("external")
@@ -187,6 +191,27 @@ open class MediaStoreRepositoryLegacyImpl(
             )
         ).use {
             it.count
+        }
+    }
+
+    override suspend fun findByDate(
+        dateFrom: Long,
+        dateTo: Long,
+        limit: Int
+    ): List<MediaItem> {
+        val source = dateRangeSourceFactory.create(
+            dateFrom = dateFrom,
+            dateTo = dateTo,
+        )
+        val params = Refresh(
+            key = 0,
+            loadSize = limit,
+            placeholdersEnabled = false,
+        )
+        return when (val result = source.load(params)) {
+            is LoadResult.Error<*, *> -> throw result.throwable
+            is LoadResult.Invalid<*, *> -> emptyList()
+            is LoadResult.Page<Int, MediaItem> -> result.data
         }
     }
 

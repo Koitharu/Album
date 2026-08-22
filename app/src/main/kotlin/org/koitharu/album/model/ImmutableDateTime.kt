@@ -10,9 +10,14 @@ value class ImmutableDateTime(
     val millis: Long,
 ) {
 
+    val seconds: Long
+        get() = TimeUnit.MILLISECONDS.toSeconds(millis)
+
     companion object {
 
         fun ofSeconds(seconds: Long) = ImmutableDateTime(TimeUnit.SECONDS.toMillis(seconds))
+
+        fun now() = ImmutableDateTime(System.currentTimeMillis())
     }
 }
 

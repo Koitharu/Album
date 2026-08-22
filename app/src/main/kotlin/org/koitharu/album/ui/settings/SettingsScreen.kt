@@ -92,8 +92,9 @@ fun SettingsScreen(
             ListPreference(
                 title = stringResource(R.string.home_slideshow),
                 entries = persistentListOf(
-                    stringResource(R.string.random_image),
                     stringResource(R.string.none),
+                    stringResource(R.string.random_image),
+                    stringResource(R.string.previous_year),
                 ),
                 entryValues = HomeBannerSource.entries.toPersistentList(),
                 selectedValue = state.homeBanner,

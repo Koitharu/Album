@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import org.koitharu.album.model.HomeBannerSource.NONE
+import org.koitharu.album.model.HomeBannerSource.PREV_YEAR
 import org.koitharu.album.model.HomeBannerSource.RANDOM
 import org.koitharu.album.model.isSameMonth
 import org.koitharu.album.repository.HiddenMediaRepository
@@ -109,6 +110,12 @@ class AlbumViewModel @AssistedInject constructor(
                                     isImageOnly = true,
                                     isFavoriteOnly = false
                                 )
+
+                                PREV_YEAR -> repository.findByDate(
+                                    dateTo = System.currentTimeMillis(),
+                                    dateFrom = 0L,
+                                    limit = 1,
+                                ).firstOrNull()
 
                                 NONE -> null
                             }

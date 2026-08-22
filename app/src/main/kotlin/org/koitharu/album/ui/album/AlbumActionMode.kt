@@ -93,7 +93,7 @@ fun AlbumActionMode(
                     contentDescription = stringResource(R.string.unhide),
                 )
             }
-        } else {
+        } else if (folder == null) {
             IconButtonWithTooltip(
                 tooltip = stringResource(R.string.hide),
                 tooltipAnchorPosition = TooltipAnchorPosition.Above,

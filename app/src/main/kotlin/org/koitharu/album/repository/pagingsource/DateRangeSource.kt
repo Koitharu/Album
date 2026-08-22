@@ -10,9 +10,11 @@ import kotlinx.coroutines.launch
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
+import java.util.concurrent.TimeUnit
 
-class AlbumSource @AssistedInject constructor(
-    @Assisted bucketId: String?,
+class DateRangeSource @AssistedInject constructor(
+    @Assisted("from") dateFrom: Long,
+    @Assisted("to") dateTo: Long,
     contentResolver: ContentResolver,
     legacyFavoritesRepository: LegacyFavoritesRepository,
     private val hiddenMediaRepository: HiddenMediaRepository,
@@ -30,23 +32,23 @@ class AlbumSource @AssistedInject constructor(
             append(FileColumns.IS_TRASHED)
             append(" = ?")
         }
-        if (bucketId != null) {
-            append(" AND ")
-            append(FileColumns.BUCKET_ID)
-            append(" = ?")
-        } else {
-            val hidden = hiddenMediaRepository.getHiddenCount()
-            if (hidden > 0) {
+        when {
+            dateFrom != 0L && dateTo != 0L -> {
                 append(" AND ")
-                append(FileColumns._ID)
-                append(" NOT IN (")
-                repeat(hidden) { i ->
-                    if (i != 0) {
-                        append(",")
-                    }
-                    append("?")
-                }
-                append(")")
+                append(FileColumns.DATE_ADDED)
+                append(" BETWEEN ? AND ?")
+            }
+
+            dateFrom != 0L -> {
+                append(" AND ")
+                append(FileColumns.DATE_ADDED)
+                append(" >= ?")
+            }
+
+            dateTo != 0L -> {
+                append(" AND ")
+                append(FileColumns.DATE_ADDED)
+                append(" <= ?")
             }
         }
     }
@@ -56,12 +58,11 @@ class AlbumSource @AssistedInject constructor(
         if (Features.isRecycleBinSupported) {
             add("0")
         }
-        if (bucketId != null) {
-            add(bucketId)
-        } else {
-            hiddenMediaRepository.getHiddenIds().mapTo(this) {
-                it.toString()
-            }
+        if (dateFrom != 0L) {
+            add(TimeUnit.MILLISECONDS.toSeconds(dateFrom).toString())
+        }
+        if (dateTo != 0L) {
+            add(TimeUnit.MILLISECONDS.toSeconds(dateTo).toString())
         }
     }.toTypedArray()
 
@@ -78,6 +79,9 @@ class AlbumSource @AssistedInject constructor(
     @AssistedFactory
     interface Factory {
 
-        fun create(bucketId: String?): AlbumSource
+        fun create(
+            @Assisted("from") dateFrom: Long,
+            @Assisted("to") dateTo: Long,
+        ): DateRangeSource
     }
 }

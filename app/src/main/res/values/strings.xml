@@ -78,6 +78,7 @@
     <string name="empty_recycle_bin_message">You can temporarily delete your media files to the Recycle Bin so that you can restore them later</string>
     <string name="empty_favorites_message">You can click the Star icon to add some media files to your favorites</string>
     <string name="empty_hidden_message">You can hide some media files so they won\'t appear in the Albums section</string>
+    <string name="previous_year">Previous year</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

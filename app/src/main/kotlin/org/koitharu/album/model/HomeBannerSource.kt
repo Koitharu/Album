@@ -1,5 +1,5 @@
 package org.koitharu.album.model
 
 enum class HomeBannerSource {
-    RANDOM, NONE
+    NONE, RANDOM, PREV_YEAR,
 }

@@ -17,6 +17,7 @@ import org.koitharu.album.repository.MediaStoreConfirmationDialogs
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository30Impl
 import org.koitharu.album.repository.mediastore.MediaStoreRepositoryLegacyImpl
+import org.koitharu.album.repository.pagingsource.DateRangeSource
 import org.koitharu.album.util.ActivityContextProvider
 
 @Module
@@ -39,12 +40,14 @@ class AppModule {
         contentResolver: ContentResolver,
         legacyFavoritesRepository: LegacyFavoritesRepository,
         confirmationDialogs: MediaStoreConfirmationDialogs,
+        dateRangeSourceFactory: DateRangeSource.Factory,
     ): MediaStoreRepository = when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> MediaStoreRepository30Impl(
             activityContextProvider = activityContextProvider,
             contentResolver = contentResolver,
             legacyFavoritesRepository = legacyFavoritesRepository,
             confirmationDialogs = confirmationDialogs,
+            dateRangeSourceFactory = dateRangeSourceFactory,
         )
 
         else -> MediaStoreRepositoryLegacyImpl(
@@ -52,6 +55,7 @@ class AppModule {
             contentResolver = contentResolver,
             legacyFavoritesRepository = legacyFavoritesRepository,
             confirmationDialogs = confirmationDialogs,
+            dateRangeSourceFactory = dateRangeSourceFactory,
         )
     }
 }
