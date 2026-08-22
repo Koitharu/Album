@@ -35,16 +35,19 @@ class AlbumSource @AssistedInject constructor(
             append(FileColumns.BUCKET_ID)
             append(" = ?")
         }
-        append(" AND ")
-        append(FileColumns._ID)
-        append(" NOT IN (")
-        repeat(hiddenMediaRepository.getHiddenCount()) { i ->
-            if (i != 0) {
-                append(",")
+        val hidden = hiddenMediaRepository.getHiddenCount()
+        if (hidden > 0) {
+            append(" AND ")
+            append(FileColumns._ID)
+            append(" NOT IN (")
+            repeat(hidden) { i ->
+                if (i != 0) {
+                    append(",")
+                }
+                append("?")
             }
-            append("?")
+            append(")")
         }
-        append(")")
     }
 
     override val selectionArgs = buildList {

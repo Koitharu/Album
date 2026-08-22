@@ -77,12 +77,21 @@ class AlbumViewModel @AssistedInject constructor(
 
     val gridContent: Flow<PagingData<AlbumItem>> = pagerContent.map { pagingData ->
         pagingData.insertSeparators { before, after ->
-            if (before == null || after == null) {
-                null
-            } else if (!isSameMonth(before.dateAdded, after.dateAdded)) {
-                AlbumItem.DateHeader(after.dateAdded)
-            } else {
-                null
+            when {
+                after == null -> null
+                before == null ->
+                    if (folder != null) {
+                        AlbumItem.DateHeader(after.dateAdded)
+                    } else {
+                        null
+                    }
+
+                !isSameMonth(
+                    before.dateAdded,
+                    after.dateAdded
+                ) -> AlbumItem.DateHeader(after.dateAdded)
+
+                else -> null
             }
         }
     }.cachedIn(viewModelScope + Dispatchers.Default)

@@ -22,15 +22,16 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -164,10 +165,6 @@ private fun AlbumScope.GalleryImageItem(
             contentScale = ContentScale.Crop,
         )
     }
-    SelectionCheckmark(
-        modifier = Modifier.align(Alignment.TopStart),
-        isVisible = isSelected,
-    )
 }
 
 @Composable
@@ -213,10 +210,6 @@ private fun AlbumScope.GalleryVideoItem(
         ),
         contentDescription = null,
     )
-    SelectionCheckmark(
-        modifier = Modifier.align(Alignment.TopStart),
-        isVisible = isSelected,
-    )
 }
 
 @Composable
@@ -226,17 +219,27 @@ private fun GalleryItemPlaceholder() = Surface(
 ) {}
 
 @Composable
-@ReadOnlyComposable
 private fun Modifier.gridCell(isSelected: Boolean) = fillMaxWidth()
     .aspectRatio(1f)
     .then(
         if (isSelected) {
+            val checkmark = painterResource(R.drawable.ic_check_circle)
+            val tint = LocalContentColor.current
             val foreground = MaterialTheme.colorScheme.surfaceDim.copy(alpha = 0.8f)
             Modifier
-                .border(4.dp, MaterialTheme.colorScheme.primaryFixed)
+                .border(4.dp, MaterialTheme.colorScheme.outline)
                 .drawWithContent {
                     drawContent()
                     drawRect(foreground)
+                    with(checkmark) {
+                        val padding = 6.dp.toPx()
+                        translate(left = padding, top = padding) {
+                            draw(
+                                size = intrinsicSize,
+                                colorFilter = ColorFilter.tint(tint)
+                            )
+                        }
+                    }
                 }
         } else {
             Modifier
@@ -257,7 +260,7 @@ private fun SelectionCheckmark(
         modifier = Modifier.padding(6.dp),
         painter = painterResource(R.drawable.ic_check_circle),
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.primaryFixed,
+//        tint = MaterialTheme.colorScheme.primaryFixed,
     )
 }
 

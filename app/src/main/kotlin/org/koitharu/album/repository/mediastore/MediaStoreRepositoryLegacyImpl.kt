@@ -83,14 +83,28 @@ open class MediaStoreRepositoryLegacyImpl(
             FileColumns.MEDIA_TYPE,
             FileColumns._ID,
         ),
-        selection = "${FileColumns.MEDIA_TYPE} = ? OR ${FileColumns.MEDIA_TYPE} = ?",
-        selectionArgs = arrayOf(
-            FileColumns.MEDIA_TYPE_IMAGE.toString(),
-            FileColumns.MEDIA_TYPE_VIDEO.toString()
-        ),
+        selection = buildString {
+            append('(')
+            append(FileColumns.MEDIA_TYPE)
+            append(" = ? OR ")
+            append(FileColumns.MEDIA_TYPE)
+            append(" = ?)")
+            if (Features.isRecycleBinSupported) {
+                append(" AND ")
+                append(FileColumns.IS_TRASHED)
+                append(" = ?")
+            }
+        },
+        selectionArgs = buildList(3) {
+            add(FileColumns.MEDIA_TYPE_IMAGE.toString())
+            add(FileColumns.MEDIA_TYPE_VIDEO.toString())
+            if (Features.isRecycleBinSupported) {
+                add("0")
+            }
+        }.toTypedArray(),
         orderBy = FileColumns.DATE_ADDED,
         orderDirection = DESC,
-    )?.use { cursor ->
+    ).use { cursor ->
         if (!cursor.moveToFirst()) {
             return@use persistentListOf()
         }
@@ -127,7 +141,7 @@ open class MediaStoreRepositoryLegacyImpl(
             }
         }
         result.values.toList()
-    } ?: listOf()
+    }
 
     override fun observeFolders(): Flow<List<MediaFolder>> = contentResolver.observeChanges(
         uri = baseUri,
@@ -158,9 +172,9 @@ open class MediaStoreRepositoryLegacyImpl(
                 FileColumns.MEDIA_TYPE_IMAGE.toString(),
                 "%DCIM%"
             )
-        )?.use {
+        ).use {
             it.count
-        } ?: 0
+        }
     }
 
     override suspend fun getVideosCount(): Int {
@@ -171,9 +185,9 @@ open class MediaStoreRepositoryLegacyImpl(
             selectionArgs = arrayOf(
                 FileColumns.MEDIA_TYPE_VIDEO.toString()
             )
-        )?.use {
+        ).use {
             it.count
-        } ?: 0
+        }
     }
 
     override suspend fun getMedia(id: Long): MediaItem = contentResolver.queryCompat(
@@ -199,7 +213,7 @@ open class MediaStoreRepositoryLegacyImpl(
         selection = "${FileColumns._ID} = ?",
         selectionArgs = arrayOf(id.toString()),
         limit = 1,
-    )?.use { cursor ->
+    ).use { cursor ->
         cursor.parseMediaList(withIndices = false).firstOrNull()
     } ?: error("Unable to load media $id")
 
@@ -288,7 +302,7 @@ open class MediaStoreRepositoryLegacyImpl(
         }.toTypedArray(),
         orderBy = "RANDOM()",
         limit = 1,
-    )?.use { cursor ->
+    ).use { cursor ->
         cursor.parseMediaList(withIndices = false).firstOrNull()
     }
 
@@ -342,11 +356,7 @@ open class MediaStoreRepositoryLegacyImpl(
                     legacyFavoritesRepository.isFavorite(id)
                 },
                 isVideo = isVideo,
-                isTrashed = if (trashedColumn >= 0) {
-                    getInt(trashedColumn) > 0
-                } else {
-                    false
-                },
+                isTrashed = trashedColumn >= 0 && getInt(trashedColumn) > 0,
                 path = if (pathColumn >= 0) {
                     getStringOrNull(pathColumn)
                 } else {

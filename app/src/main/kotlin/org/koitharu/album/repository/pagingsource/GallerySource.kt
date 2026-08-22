@@ -108,7 +108,7 @@ abstract class GallerySource(
             )
         }
 
-        val query = query(limit, offset) ?: return@withContext LoadResult.Invalid()
+        val query = query(limit, offset)
 
         val result = query.use { cursor ->
             if (!cursor.moveToFirst()) {

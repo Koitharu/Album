@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
 import org.koitharu.album.repository.OrderDirection.ASC
 import org.koitharu.album.repository.OrderDirection.DESC
+import org.koitharu.album.repository.mediastore.MediaStoreException
 import org.koitharu.album.util.runCancellable
 
 suspend fun ContentResolver.queryCompat(
@@ -26,7 +27,7 @@ suspend fun ContentResolver.queryCompat(
     orderDirection: OrderDirection = ASC,
     offset: Int = -1,
     limit: Int = -1,
-): Cursor? = withContext(Dispatchers.IO) {
+): Cursor = withContext(Dispatchers.IO) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         val queryArgs = Bundle(7).apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Features.isRecycleBinSupported) {
@@ -110,7 +111,7 @@ suspend fun ContentResolver.queryCompat(
             )
         }
     }
-}
+} ?: throw MediaStoreException("Query returns null")
 
 enum class OrderDirection {
     ASC, DESC;
