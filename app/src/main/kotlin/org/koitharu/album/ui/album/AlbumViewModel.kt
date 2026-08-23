@@ -25,8 +25,8 @@ import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import org.koitharu.album.model.HomeBannerSource.NONE
-import org.koitharu.album.model.HomeBannerSource.PREV_YEAR
 import org.koitharu.album.model.HomeBannerSource.RANDOM
+import org.koitharu.album.model.HomeBannerSource.YEAR_AGO
 import org.koitharu.album.model.isSameMonth
 import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.SettingsRepository
@@ -50,6 +50,7 @@ import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.util.runCatchingCancellable
 import org.koitharu.album.util.tickerFlow
 import org.koitharu.album.util.toggling
+import java.util.Calendar
 import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel(assistedFactory = AlbumViewModel.Factory::class)
@@ -111,11 +112,11 @@ class AlbumViewModel @AssistedInject constructor(
                                     isFavoriteOnly = false
                                 )
 
-                                PREV_YEAR -> repository.findByDate(
-                                    dateTo = System.currentTimeMillis(),
-                                    dateFrom = 0L,
-                                    limit = 1,
-                                ).firstOrNull()
+                                YEAR_AGO -> repository.findByDate(
+                                    dateTo = yearAgo(minusDays = 0),
+                                    dateFrom = yearAgo(minusDays = 30),
+                                    limit = 40,
+                                ).randomOrNull()
 
                                 NONE -> null
                             }
@@ -229,6 +230,13 @@ class AlbumViewModel @AssistedInject constructor(
             )
             true
         }
+    }
+
+    private fun yearAgo(minusDays: Int): Long {
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.YEAR, -1)
+        calendar.add(Calendar.DAY_OF_MONTH, -minusDays)
+        return calendar.timeInMillis
     }
 
     @AssistedFactory

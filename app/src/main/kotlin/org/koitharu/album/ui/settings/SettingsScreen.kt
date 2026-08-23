@@ -94,7 +94,7 @@ fun SettingsScreen(
                 entries = persistentListOf(
                     stringResource(R.string.none),
                     stringResource(R.string.random_image),
-                    stringResource(R.string.previous_year),
+                    stringResource(R.string.year_ago),
                 ),
                 entryValues = HomeBannerSource.entries.toPersistentList(),
                 selectedValue = state.homeBanner,
