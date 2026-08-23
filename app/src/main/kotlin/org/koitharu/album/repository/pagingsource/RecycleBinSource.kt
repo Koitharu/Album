@@ -2,6 +2,8 @@ package org.koitharu.album.repository.pagingsource
 
 import android.content.ContentResolver
 import android.provider.MediaStore.Files.FileColumns
+import android.util.Log
+import org.koitharu.album.model.MediaItem
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import javax.inject.Inject
 
@@ -25,4 +27,10 @@ class RecycleBinSource @Inject constructor(
         addAll(super.selectionArgs)
         add("1")
     }.toTypedArray()
+
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, MediaItem> {
+        return super.load(params).also {
+            Log.i("PAGSRC", "load($params) = $it")
+        }
+    }
 }

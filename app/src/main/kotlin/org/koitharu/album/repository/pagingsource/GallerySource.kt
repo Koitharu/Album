@@ -4,7 +4,6 @@ import android.content.ContentResolver
 import android.content.ContentUris
 import android.database.ContentObserver
 import android.net.Uri
-import android.os.CancellationSignal
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
@@ -24,7 +23,6 @@ import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.OrderDirection.DESC
 import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.getOrDefault
-import org.koitharu.album.util.runCancellable
 import org.koitharu.album.util.suspendLazy
 
 abstract class GallerySource(
@@ -60,9 +58,7 @@ abstract class GallerySource(
     val sourceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val totalCount = suspendLazy {
-        runCancellable { signal ->
-            queryCount(signal)
-        }
+        queryCount()
     }
 
     init {
@@ -196,18 +192,14 @@ abstract class GallerySource(
         )
     }
 
-    private fun queryCount(
-        cancellationSignal: CancellationSignal,
-    ) = contentResolver.query(
-        queryUri,
-        arrayOf(MediaStore.Images.Media._ID),
-        selection,
-        selectionArgs,
-        null,
-        cancellationSignal
-    )?.use {
+    private suspend fun queryCount() = contentResolver.queryCompat(
+        uri = queryUri,
+        projection = arrayOf(MediaStore.Images.Media._ID),
+        selection = selection,
+        selectionArgs = selectionArgs,
+    ).use {
         it.count
-    } ?: 0
+    }
 
     private suspend fun query(limit: Int, offset: Int) = contentResolver.queryCompat(
         uri = queryUri,
