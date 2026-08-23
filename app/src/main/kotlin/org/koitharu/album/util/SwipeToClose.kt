@@ -1,6 +1,7 @@
 package org.koitharu.album.util
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -25,7 +26,8 @@ fun Modifier.slideUpToClose(
         alpha = (1f - progress).coerceIn(0f, 1f)
     }.pointerInput(Unit) {
         detectDragGestures(
-            onDragStart = {
+            orientationLock = Orientation.Vertical,
+            onDragStart = { _, _, _ ->
                 velocityTracker.resetTracking()
             },
             onDragCancel = {

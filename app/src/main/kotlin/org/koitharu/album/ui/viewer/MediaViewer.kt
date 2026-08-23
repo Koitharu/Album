@@ -14,6 +14,7 @@ import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -231,7 +232,7 @@ private fun PagerMediaViewer(
             SnackbarHost(snackbarHostState)
         },
         contentWindowInsets = WindowInsets.systemBarsIgnoringVisibility,
-    ) { _ ->
+    ) { innerPadding ->
         BackHandler(onBack = onClose)
         val images = pagingData.collectAsLazyPagingItems(Dispatchers.Default)
         val initialIndex = remember(media) {
@@ -242,11 +243,13 @@ private fun PagerMediaViewer(
                 modifier = Modifier.fillMaxSize()
                     .slideUpToClose(onClose),
                 media = media,
+                contentPadding = innerPadding,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
                 handleIntent = handleIntent,
                 isRotationGestureEnabled = isRotationGestureEnabled,
                 onClick = { isUiVisible = !isUiVisible },
+                isUiVisible = isUiVisible,
                 isActive = true,
             )
         } else {
@@ -254,11 +257,13 @@ private fun PagerMediaViewer(
                 modifier = Modifier.fillMaxSize()
                     .slideUpToClose(onClose),
                 images = images,
+                contentPadding = innerPadding,
                 initialIndex = initialIndex,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
                 handleIntent = handleIntent,
                 isRotationGestureEnabled = isRotationGestureEnabled,
+                isUiVisible = isUiVisible,
                 onClick = { isUiVisible = !isUiVisible },
             )
         }
@@ -271,9 +276,11 @@ fun ViewerPager(
     images: LazyPagingItems<AlbumItem.Media>,
     initialIndex: Int,
     isRotationGestureEnabled: Boolean,
+    contentPadding: PaddingValues,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     handleIntent: MviIntentHandler<ViewerIntent>,
+    isUiVisible: Boolean,
     onClick: () -> Unit,
 ) {
     val pagerState = rememberPagerState(
@@ -298,10 +305,12 @@ fun ViewerPager(
         SingleViewer(
             modifier = Modifier.fillMaxSize(),
             media = images[page],
+            contentPadding = contentPadding,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
             handleIntent = handleIntent,
             isActive = page == pagerState.currentPage,
+            isUiVisible = isUiVisible,
             isRotationGestureEnabled = isRotationGestureEnabled,
             onClick = onClick,
         )
@@ -311,12 +320,14 @@ fun ViewerPager(
 @Composable
 fun SingleViewer(
     modifier: Modifier,
+    contentPadding: PaddingValues,
     media: AlbumItem.Media?,
     isRotationGestureEnabled: Boolean,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     handleIntent: MviIntentHandler<ViewerIntent>,
     isActive: Boolean,
+    isUiVisible: Boolean,
     onClick: () -> Unit,
 ) {
     with(sharedTransitionScope) {
@@ -340,7 +351,8 @@ fun SingleViewer(
             is AlbumItem.Video -> VideoViewer(
                 modifier = modifier,
                 video = media,
-                isActive = isActive,
+                contentPadding = contentPadding,
+                isUiVisible = isUiVisible,
                 onClick = onClick,
             )
 
