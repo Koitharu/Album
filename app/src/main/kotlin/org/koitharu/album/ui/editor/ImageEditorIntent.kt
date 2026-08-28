@@ -1,14 +1,27 @@
 package org.koitharu.album.ui.editor
 
+import androidx.compose.ui.graphics.Color
+import org.koitharu.album.model.DrawPrimitive
+
 sealed interface ImageEditorIntent {
 
-    data class ToggleMode(
-        val mode: ImageEditorMode,
+    data class SetMode(
+        val mode: ImageEditorMode?,
     ) : ImageEditorIntent
 
     data class Crop(
         val frame: FrameOffset,
     ): ImageEditorIntent
+
+    data class Rotate(
+        val degrees: Int,
+    ): ImageEditorIntent
+
+    data class Draw(
+        val primitive: DrawPrimitive,
+    ): ImageEditorIntent
+
+    data object Reset: ImageEditorIntent
 
     data object FlipHorizontal: ImageEditorIntent
 
@@ -27,6 +40,10 @@ sealed interface ImageEditorIntent {
     data object Share: ImageEditorIntent
 
     data class ImageLoadFailed(
-        val error: Throwable
+        val error: Throwable,
+    ): ImageEditorIntent
+
+    data class SetColor(
+        val color: Color,
     ): ImageEditorIntent
 }

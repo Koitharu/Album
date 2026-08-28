@@ -81,6 +81,10 @@
     <string name="year_ago">Year ago</string>
     <string name="pause">Pause</string>
     <string name="play">Play</string>
+    <string name="select_color">Select color</string>
+    <string name="reset">Reset</string>
+    <string name="rotate_ccw">Rotate counterclockwise</string>
+    <string name="rotate_cw">Rotate clockwise</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

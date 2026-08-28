@@ -1,11 +1,15 @@
 package org.koitharu.album.repository.editor
 
+import android.graphics.Bitmap.Config
 import android.graphics.Bitmap.createBitmap
 import android.graphics.Matrix
+import android.graphics.Paint
 import androidx.compose.runtime.Immutable
+import androidx.core.graphics.applyCanvas
 import coil3.Bitmap
 import coil3.size.Size
 import coil3.transform.Transformation
+import org.koitharu.album.model.DrawPrimitive
 import kotlin.math.roundToInt
 
 @Immutable
@@ -57,6 +61,35 @@ sealed class ImageEditOperation(
                 preScale(1.0f, -1.0f)
             }
             return createBitmap(input, 0, 0, input.width, input.height, matrix, true)
+        }
+    }
+
+    @Immutable
+    data class Rotate(
+        val degrees: Int,
+    ) : ImageEditOperation("rotate_$degrees") {
+
+        override suspend fun transform(input: Bitmap, size: Size): Bitmap {
+            val matrix = Matrix().apply {
+                preRotate(degrees.toFloat())
+            }
+            return createBitmap(input, 0, 0, input.width, input.height, matrix, true)
+        }
+    }
+
+    @Immutable
+    data class Draw(
+        val primitive: DrawPrimitive,
+    ) : ImageEditOperation("draw_$primitive") {
+
+        override suspend fun transform(input: Bitmap, size: Size): Bitmap {
+            val paint = Paint()
+            return input.copy(input.config ?: Config.ARGB_8888, true).applyCanvas {
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = primitive.lineHeight
+                paint.setColor(primitive.color)
+                drawPath(primitive.toPath(width.toFloat(), height.toFloat()), paint)
+            }
         }
     }
 }

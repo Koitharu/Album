@@ -1,11 +1,16 @@
 package org.koitharu.album.ui.editor
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
@@ -21,7 +26,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
-import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -58,17 +63,22 @@ import coil3.request.ImageRequest
 import coil3.request.transformations
 import kotlinx.collections.immutable.persistentListOf
 import org.koitharu.album.R
+import org.koitharu.album.model.DrawPrimitive.Arrow
 import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.editor.ImageEditorIntent.Apply
 import org.koitharu.album.ui.editor.ImageEditorIntent.Crop
+import org.koitharu.album.ui.editor.ImageEditorIntent.Draw
 import org.koitharu.album.ui.editor.ImageEditorIntent.FlipHorizontal
 import org.koitharu.album.ui.editor.ImageEditorIntent.FlipVertical
 import org.koitharu.album.ui.editor.ImageEditorIntent.ImageLoadFailed
 import org.koitharu.album.ui.editor.ImageEditorIntent.Redo
+import org.koitharu.album.ui.editor.ImageEditorIntent.Reset
+import org.koitharu.album.ui.editor.ImageEditorIntent.Rotate
 import org.koitharu.album.ui.editor.ImageEditorIntent.SaveCopy
 import org.koitharu.album.ui.editor.ImageEditorIntent.SaveReplacing
+import org.koitharu.album.ui.editor.ImageEditorIntent.SetColor
+import org.koitharu.album.ui.editor.ImageEditorIntent.SetMode
 import org.koitharu.album.ui.editor.ImageEditorIntent.Share
-import org.koitharu.album.ui.editor.ImageEditorIntent.ToggleMode
 import org.koitharu.album.ui.editor.ImageEditorIntent.Undo
 import org.koitharu.album.ui.editor.ImageEditorMode.CROP
 import org.koitharu.album.ui.editor.ImageEditorMode.DRAW_ARROW
@@ -77,7 +87,6 @@ import org.koitharu.album.ui.editor.ImageEditorMode.MIRROR
 import org.koitharu.album.ui.editor.ImageEditorMode.ROTATE
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.util.IconButtonWithTooltip
-import org.koitharu.album.util.IconToggleButtonWithTooltip
 
 @Composable
 fun ImageEditorScreen(
@@ -214,106 +223,7 @@ fun ImageEditorScreen(
             )
         },
         bottomBar = {
-            BottomAppBar(
-                floatingActionButton = {
-                    AnimatedVisibility(
-                        visible = state.canApply,
-                    ) {
-                        FloatingActionButton(
-                            onClick = { handleIntent(Apply) },
-                            containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
-                            elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation(),
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_check),
-                                contentDescription = stringResource(R.string.apply),
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    IconButtonWithTooltip(
-                        tooltip = stringResource(R.string.undo),
-                        tooltipAnchorPosition = TooltipAnchorPosition.Above,
-                        enabled = state.operations.isNotEmpty(),
-                        onClick = { handleIntent(Undo) }
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_undo),
-                            contentDescription = stringResource(R.string.undo),
-                        )
-                    }
-                    IconButtonWithTooltip(
-                        tooltip = stringResource(R.string.redo),
-                        tooltipAnchorPosition = TooltipAnchorPosition.Above,
-                        enabled = state.undoneOperations.isNotEmpty(),
-                        onClick = { handleIntent(Redo) }
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_redo),
-                            contentDescription = stringResource(R.string.redo),
-                        )
-                    }
-                    VerticalDivider(
-                        modifier = Modifier.height(38.dp)
-                    )
-                    IconToggleButtonWithTooltip(
-                        tooltip = stringResource(R.string.crop),
-                        tooltipAnchorPosition = TooltipAnchorPosition.Above,
-                        checked = state.mode == CROP,
-                        onCheckedChange = { handleIntent(ToggleMode(CROP)) },
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_crop),
-                            contentDescription = stringResource(R.string.crop),
-                        )
-                    }
-                    IconToggleButtonWithTooltip(
-                        tooltip = stringResource(R.string.rotate),
-                        tooltipAnchorPosition = TooltipAnchorPosition.Above,
-                        checked = state.mode == ROTATE,
-                        onCheckedChange = { handleIntent(ToggleMode(ROTATE)) },
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_rotate_90),
-                            contentDescription = stringResource(R.string.rotate),
-                        )
-                    }
-                    IconToggleButtonWithTooltip(
-                        tooltip = stringResource(R.string.mirror),
-                        tooltipAnchorPosition = TooltipAnchorPosition.Above,
-                        checked = state.mode == MIRROR,
-                        onCheckedChange = { handleIntent(ToggleMode(MIRROR)) },
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_flip_horizontal),
-                            contentDescription = stringResource(R.string.mirror),
-                        )
-                    }
-                    IconToggleButtonWithTooltip(
-                        tooltip = stringResource(R.string.draw_arrow),
-                        tooltipAnchorPosition = TooltipAnchorPosition.Above,
-                        checked = state.mode == DRAW_ARROW,
-                        onCheckedChange = { handleIntent(ToggleMode(DRAW_ARROW)) },
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_arrow_target),
-                            contentDescription = stringResource(R.string.draw_arrow),
-                        )
-                    }
-                    IconToggleButtonWithTooltip(
-                        tooltip = stringResource(R.string.free_draw),
-                        tooltipAnchorPosition = TooltipAnchorPosition.Above,
-                        checked = state.mode == DRAW_FREE,
-                        onCheckedChange = { handleIntent(ToggleMode(DRAW_FREE)) },
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_draw),
-                            contentDescription = stringResource(R.string.free_draw),
-                        )
-                    }
-                }
-            )
+            BottomBar(state, handleIntent)
         }
     ) { innerPadding ->
         Box(
@@ -360,39 +270,25 @@ fun ImageEditorScreen(
                         },
                     )
 
-                    MIRROR -> HorizontalFloatingToolbar(
-                        expanded = true,
-                    ) {
-                        IconButtonWithTooltip(
-                            tooltip = stringResource(R.string.mirror_horizontal),
-                            tooltipAnchorPosition = TooltipAnchorPosition.Above,
-                            onClick = { handleIntent(FlipHorizontal) },
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_flip_horizontal),
-                                contentDescription = stringResource(R.string.mirror_horizontal),
-                            )
-                        }
-                        IconButtonWithTooltip(
-                            tooltip = stringResource(R.string.mirror_vertical),
-                            tooltipAnchorPosition = TooltipAnchorPosition.Above,
-                            onClick = { handleIntent(FlipVertical) },
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_flip_vertical),
-                                contentDescription = stringResource(R.string.mirror_vertical),
-                            )
-                        }
-                    }
+                    DRAW_ARROW -> ArrowChalkboard(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(imagePadding)
+                            .aspectRatio(size.width / size.height),
+                        arrow = state.currentPrimitive as? Arrow,
+                        currentColor = state.currentColor,
+                        onArrowDrawn = { handleIntent(Draw(it)) },
+                    )
 
-                    null -> Unit
-                    else -> Text(
+                    DRAW_FREE -> Text(
                         modifier = Modifier.background(
                             color = MaterialTheme.colorScheme.surfaceDim.copy(alpha = 0.8f),
                             shape = MaterialTheme.shapes.medium,
                         ),
                         text = "Not yet implemented",
                     )
+
+                    else -> Unit
                 }
             } ?: LoadingIndicator()
         }
@@ -406,16 +302,231 @@ fun ImageEditorScreen(
         CloseConfirmDialog(
             onDismissRequest = { isCloseDialogVisible = false },
             onClose = onClose,
-            handleIntent = handleIntent,
         )
     }
+}
+
+@Composable
+private fun BottomBar(
+    state: ImageEditorState,
+    handleIntent: MviIntentHandler<ImageEditorIntent>
+) {
+    BottomAppBar(
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = state.canApply,
+            ) {
+                FloatingActionButton(
+                    onClick = { handleIntent(Apply) },
+                    containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
+                    elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation(),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_check),
+                        contentDescription = stringResource(R.string.apply),
+                    )
+                }
+            }
+        },
+        actions = {
+            AnimatedContent(
+                targetState = state.mode,
+                transitionSpec = {
+                    slideIntoContainer(
+                        towards = SlideDirection.End,
+                    ) togetherWith slideOutOfContainer(
+                        towards = SlideDirection.End,
+                    )
+                }
+            ) { mode ->
+                Row(
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (mode != null) {
+                        IconButtonWithTooltip(
+                            tooltip = stringResource(R.string.back),
+                            tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                            onClick = { handleIntent(SetMode(null)) },
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_arrow_back),
+                                contentDescription = stringResource(R.string.back),
+                            )
+                        }
+                        VerticalDivider(
+                            modifier = Modifier.height(38.dp)
+                        )
+                    }
+                    when (mode) {
+                        DRAW_ARROW -> {
+                            ColorSelector(
+                                currentColor = state.currentColor,
+                                onChangeColor = { handleIntent(SetColor(it)) }
+                            )
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.delete),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                enabled = state.currentPrimitive != null,
+                                onClick = { handleIntent(Reset) },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_backspace),
+                                    contentDescription = stringResource(R.string.delete),
+                                )
+                            }
+                        }
+
+                        CROP -> {
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.reset),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                enabled = state.cropFrame != FrameOffset.Zero,
+                                onClick = { handleIntent(Reset) },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_backspace),
+                                    contentDescription = stringResource(R.string.reset),
+                                )
+                            }
+                        }
+
+                        ROTATE -> {
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.rotate_ccw),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                onClick = { handleIntent(Rotate(-90)) },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_rotate_ccw),
+                                    contentDescription = stringResource(R.string.rotate_ccw),
+                                )
+                            }
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.rotate_cw),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                onClick = { handleIntent(Rotate(90)) },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_rotate_cw),
+                                    contentDescription = stringResource(R.string.rotate_cw),
+                                )
+                            }
+                        }
+
+                        MIRROR -> {
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.mirror_horizontal),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                onClick = { handleIntent(FlipHorizontal) },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_flip_horizontal),
+                                    contentDescription = stringResource(R.string.mirror_horizontal),
+                                )
+                            }
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.mirror_vertical),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                onClick = { handleIntent(FlipVertical) },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_flip_vertical),
+                                    contentDescription = stringResource(R.string.mirror_vertical),
+                                )
+                            }
+                        }
+
+                        null -> {
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.undo),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                enabled = state.operations.isNotEmpty(),
+                                onClick = { handleIntent(Undo) }
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_undo),
+                                    contentDescription = stringResource(R.string.undo),
+                                )
+                            }
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.redo),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                enabled = state.undoneOperations.isNotEmpty(),
+                                onClick = { handleIntent(Redo) }
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_redo),
+                                    contentDescription = stringResource(R.string.redo),
+                                )
+                            }
+                            VerticalDivider(
+                                modifier = Modifier.height(38.dp)
+                            )
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.crop),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                onClick = { handleIntent(SetMode(CROP)) },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_crop),
+                                    contentDescription = stringResource(R.string.crop),
+                                )
+                            }
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.rotate),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                onClick = { handleIntent(SetMode(ROTATE)) },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_rotate_90),
+                                    contentDescription = stringResource(R.string.rotate),
+                                )
+                            }
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.mirror),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                onClick = { handleIntent(SetMode(MIRROR)) },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_flip_horizontal),
+                                    contentDescription = stringResource(R.string.mirror),
+                                )
+                            }
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.draw_arrow),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                onClick = { handleIntent(SetMode(DRAW_ARROW)) },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_arrow_target),
+                                    contentDescription = stringResource(R.string.draw_arrow),
+                                )
+                            }
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.free_draw),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                onClick = { handleIntent(SetMode(DRAW_FREE)) },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_draw),
+                                    contentDescription = stringResource(R.string.free_draw),
+                                )
+                            }
+                        }
+
+                        else -> Unit
+                    }
+                }
+            }
+        }
+    )
 }
 
 @Composable
 private fun CloseConfirmDialog(
     onDismissRequest: () -> Unit,
     onClose: () -> Unit,
-    handleIntent: MviIntentHandler<ImageEditorIntent>,
 ) = AlertDialog(
     onDismissRequest = onDismissRequest,
     title = {
@@ -448,10 +559,12 @@ private fun PreviewImageEditorScreen() = AlbumTheme {
         state = ImageEditorState(
             imageUri = "stub",
             imageName = "image.png",
-            mode = MIRROR,
+            mode = DRAW_ARROW,
             operations = persistentListOf(),
             undoneOperations = persistentListOf(),
             cropFrame = FrameOffset.Zero,
+            currentPrimitive = null,
+            currentColor = Color.Red,
             isSaving = false,
         ),
         handleIntent = MviIntentHandler.NoOp,
