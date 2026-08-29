@@ -277,7 +277,7 @@ fun ImageEditorScreen(
                             .fillMaxSize()
                             .padding(imagePadding)
                             .aspectRatio(size.width / size.height),
-                        arrow = state.currentPrimitive as? Arrow,
+                        arrow = state.currentArrow as? Arrow,
                         currentColor = state.currentColor,
                         onArrowDrawn = { handleIntent(Draw(it)) },
                     )
@@ -357,7 +357,9 @@ private fun BottomBar(
                             )
                         }
                         VerticalDivider(
-                            modifier = Modifier.height(38.dp)
+                            modifier = Modifier
+                                .height(38.dp)
+                                .padding(horizontal = 8.dp)
                         )
                     }
                     when (mode) {
@@ -369,7 +371,7 @@ private fun BottomBar(
                             IconButtonWithTooltip(
                                 tooltip = stringResource(R.string.delete),
                                 tooltipAnchorPosition = TooltipAnchorPosition.Above,
-                                enabled = state.currentPrimitive != null,
+                                enabled = state.currentArrow != null,
                                 onClick = { handleIntent(Reset) },
                             ) {
                                 Icon(
@@ -382,8 +384,7 @@ private fun BottomBar(
                         CROP -> {
                             SpinnerButton(
                                 modifier = Modifier
-                                    .padding(horizontal = 6.dp)
-                                    .height(24.dp),
+                                    .padding(horizontal = 6.dp),
                                 items = persistentListOf(
                                     Fraction.Unspecified,
                                     Fraction(1, 1),
@@ -396,12 +397,19 @@ private fun BottomBar(
                                 tooltip = stringResource(R.string.aspect_ratio),
                                 tooltipAnchorPosition = TooltipAnchorPosition.Above,
                                 onItemClick = { handleIntent(SetCropAspectRatio(it)) },
-                            ) {
+                            ) { fraction, isSelected ->
+                                if (isSelected) {
+                                    Icon(
+                                        modifier = Modifier.padding(end = 8.dp),
+                                        painter = painterResource(R.drawable.ic_aspect_ratio),
+                                        contentDescription = null,
+                                    )
+                                }
                                 Text(
-                                    text = if (it.isUnspecified()) {
+                                    text = if (fraction.isUnspecified()) {
                                         stringResource(R.string.free)
                                     } else {
-                                        it.toString()
+                                        fraction.toString()
                                     },
                                 )
                             }
@@ -488,7 +496,9 @@ private fun BottomBar(
                                 )
                             }
                             VerticalDivider(
-                                modifier = Modifier.height(38.dp)
+                                modifier = Modifier
+                                    .height(38.dp)
+                                    .padding(horizontal = 8.dp)
                             )
                             IconButtonWithTooltip(
                                 tooltip = stringResource(R.string.crop),
@@ -591,7 +601,7 @@ private fun PreviewImageEditorScreen() = AlbumTheme {
             undoneOperations = persistentListOf(),
             cropFrame = FrameOffset.Zero,
             cropAspectRatio = Fraction(1, 1),
-            currentPrimitive = null,
+            currentArrow = null,
             currentColor = Color.Red,
             isSaving = false,
         ),

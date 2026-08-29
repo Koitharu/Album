@@ -178,7 +178,6 @@ fun CropGrid(
                 currentFrame.value.moveTopLeftConstrained(
                     delta = change,
                     bounds = boxSize,
-                    aspectRatio = aspectRatio,
                 )
             )
         }
@@ -194,7 +193,6 @@ fun CropGrid(
                 currentFrame.value.moveTopRightConstrained(
                     delta = change,
                     bounds = boxSize,
-                    aspectRatio = aspectRatio,
                 )
             )
         }
@@ -210,7 +208,6 @@ fun CropGrid(
                 currentFrame.value.moveBottomLeftConstrained(
                     delta = change,
                     bounds = boxSize,
-                    aspectRatio = aspectRatio,
                 )
             )
         }
@@ -226,7 +223,18 @@ fun CropGrid(
                 currentFrame.value.moveBottomRightConstrained(
                     delta = change,
                     bounds = boxSize,
-                    aspectRatio = aspectRatio,
+                )
+            )
+        }
+    }
+    CenterHandle(
+        position = bounds.center,
+        onDragEnd = onDragEnd,
+    ) { change ->
+        scope.launch {
+            currentFrame.snapTo(
+                currentFrame.value.moveAllConstrained(
+                    delta = change,
                 )
             )
         }
@@ -256,6 +264,30 @@ private fun CornerHandle(
                 }
             }
             .background(color, shape = CircleShape)
+    )
+}
+
+@Composable
+private fun CenterHandle(
+    position: Offset,
+    onDragEnd: () -> Unit,
+    onDrag: (Offset) -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .offset {
+                IntOffset(
+                    (position.x).roundToInt(),
+                    (position.y).roundToInt()
+                )
+            }
+            .size(24.dp)
+            .pointerInput(Unit) {
+                detectDragGestures(onDragEnd = onDragEnd) { change, dragAmount ->
+                    change.consume()
+                    onDrag(dragAmount)
+                }
+            }
     )
 }
 

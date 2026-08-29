@@ -61,11 +61,19 @@ data class FrameOffset(
             right = bounds.width - right,
             bottom = bounds.height - bottom,
         )
+        val boundsRatio = bounds.width / bounds.height
         val c = rect.center
         val w = rect.width
         val h = rect.height
-        val hw = (if (h > w) w else h * aspectRatio) / 2f
-        val hh = (if (h > w) w / aspectRatio else h) / 2f
+        val hw: Float
+        val hh: Float
+        if (boundsRatio > aspectRatio) {
+            hw = (if (h < w) w else h * aspectRatio) / 2f
+            hh = (if (h < w) w / aspectRatio else h) / 2f
+        } else {
+            hw = (if (h > w) w else h * aspectRatio) / 2f
+            hh = (if (h > w) w / aspectRatio else h) / 2f
+        }
         return FrameOffset(
             left = c.x - hw,
             top = c.y - hh,
@@ -78,23 +86,15 @@ data class FrameOffset(
     fun moveTopLeftConstrained(
         delta: Offset,
         bounds: Size,
-        aspectRatio: Float,
-    ): FrameOffset {
-        val t = (top + delta.y).coerceIn(0f, bounds.height - bottom - MIN_GAP)
-        val l = (left + delta.x).coerceIn(0f, bounds.width - right - MIN_GAP)
-        var r = right
-        var b = bottom
-        if (!aspectRatio.isNaN()) {
-            //TODO
-        }
-        return FrameOffset(top = t, left = l, right = r, bottom = b)
-    }
+    ) = copy(
+        top = (top + delta.y).coerceIn(0f, bounds.height - bottom - MIN_GAP),
+        left = (left + delta.x).coerceIn(0f, bounds.width - right - MIN_GAP),
+    )
 
     @CheckResult
     fun moveTopRightConstrained(
         delta: Offset,
         bounds: Size,
-        aspectRatio: Float,
     ) = copy(
         top = (top + delta.y).coerceIn(0f, bounds.height - bottom - MIN_GAP),
         right = (right - delta.x).coerceIn(0f, bounds.width - left - MIN_GAP),
@@ -104,7 +104,6 @@ data class FrameOffset(
     fun moveBottomLeftConstrained(
         delta: Offset,
         bounds: Size,
-        aspectRatio: Float,
     ) = copy(
         bottom = (bottom - delta.y).coerceIn(0f, bounds.height - top - MIN_GAP),
         left = (left + delta.x).coerceIn(0f, bounds.width - right - MIN_GAP),
@@ -114,10 +113,58 @@ data class FrameOffset(
     fun moveBottomRightConstrained(
         delta: Offset,
         bounds: Size,
-        aspectRatio: Float,
     ) = copy(
         bottom = (bottom - delta.y).coerceIn(0f, bounds.height - top - MIN_GAP),
         right = (right - delta.x).coerceIn(0f, bounds.width - left - MIN_GAP),
+    )
+
+    @CheckResult
+    fun moveAllConstrained(delta: Offset): FrameOffset {
+        var top = top + delta.y
+        var left = left + delta.x
+        var bottom = bottom - delta.y
+        var right = right - delta.x
+        if (top < 0f) {
+            val dy = -top
+            top = 0f
+            bottom -= dy
+        } else if (bottom < 0f) {
+            val dy = -bottom
+            top -= dy
+            bottom = 0f
+        }
+        if (left < 0f) {
+            val dx = -left
+            left = 0f
+            right -= dx
+        } else if (right < 0) {
+            val dy = -right
+            left -= dy
+            right = 0f
+        }
+        return FrameOffset(
+            left = left,
+            top = top,
+            right = right,
+            bottom = bottom,
+        )
+    }
+
+    fun hasNegativePoints(): Boolean = top < 0f || left < 0f || right < 0f || bottom < 0f
+
+    @CheckResult
+    fun coerceAtLeast(minValue: FrameOffset) = FrameOffset(
+        left = left.coerceAtLeast(minValue.left),
+        top = top.coerceAtLeast(minValue.top),
+        right = right.coerceAtLeast(minValue.right),
+        bottom = bottom.coerceAtLeast(minValue.bottom),
+    )
+
+    operator fun plus(delta: Float) = FrameOffset(
+        top = top + delta,
+        left = left + delta,
+        right = right + delta,
+        bottom = bottom + delta,
     )
 
     companion object {

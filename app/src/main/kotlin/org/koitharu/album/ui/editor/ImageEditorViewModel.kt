@@ -59,7 +59,7 @@ class ImageEditorViewModel @AssistedInject constructor(
                 }
 
                 is Draw -> state.update {
-                    it.copy(currentPrimitive = intent.primitive)
+                    it.copy(currentArrow = intent.primitive)
                 }
 
                 FlipHorizontal -> state.update {
@@ -71,10 +71,10 @@ class ImageEditorViewModel @AssistedInject constructor(
                 }
 
                 Apply -> state.update {
-                    it.withPendingOperations().copy(
+                    it.withPendingOperation()?.copy(
                         mode = null,
                         undoneOperations = persistentListOf(),
-                    )
+                    ) ?: it
                 }
 
                 Undo -> state.update {
@@ -135,13 +135,13 @@ class ImageEditorViewModel @AssistedInject constructor(
                 is SetColor -> state.update {
                     it.copy(
                         currentColor = intent.color,
-                        currentPrimitive = it.currentPrimitive?.colored(intent.color.toArgb()),
+                        currentArrow = it.currentArrow?.colored(intent.color.toArgb()),
                     )
                 }
 
                 Reset -> state.update {
                     it.copy(
-                        currentPrimitive = null,
+                        currentArrow = null,
                         cropFrame = FrameOffset.Zero,
                     )
                 }

@@ -3,7 +3,6 @@ package org.koitharu.album.ui.editor
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -14,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -38,7 +38,7 @@ fun <T> SpinnerButton(
     tooltip: String,
     tooltipAnchorPosition: TooltipAnchorPosition = TooltipAnchorPosition.Below,
     onItemClick: (T) -> Unit,
-    content: @Composable (T) -> Unit,
+    content: @Composable (T, Boolean) -> Unit,
 ) {
     val tooltipState = rememberTooltipState()
     TooltipBox(
@@ -53,14 +53,16 @@ fun <T> SpinnerButton(
         Box(modifier = modifier) {
             var isExpanded by remember { mutableStateOf(false) }
             Row(
-                modifier = Modifier.clickable(
-                    enabled = enabled,
-                    onClick = { isExpanded = !isExpanded },
-                    role = Role.DropdownList,
-                ).fillMaxHeight(),
+                modifier = Modifier
+                    .clickable(
+                        enabled = enabled,
+                        onClick = { isExpanded = !isExpanded },
+                        role = Role.DropdownList,
+                    )
+                    .minimumInteractiveComponentSize(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                content(selectedItem)
+                content(selectedItem, true)
                 Icon(
                     modifier = Modifier.alpha(if (enabled) 1f else 0.38f),
                     painter = painterResource(R.drawable.ic_drop_down),
@@ -75,7 +77,7 @@ fun <T> SpinnerButton(
                     items.forEach {
                         DropdownMenuItem(
                             text = {
-                                content(it)
+                                content(it, false)
                             },
                             onClick = {
                                 onItemClick(it)

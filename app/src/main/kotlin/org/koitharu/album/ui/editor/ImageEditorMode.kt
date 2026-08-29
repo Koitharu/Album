@@ -7,5 +7,5 @@ enum class ImageEditorMode {
     MIRROR,
     DRAW_ARROW,
     DRAW_FREE,
-    ERASE,
+    COLOR_CORRECTION,
 }

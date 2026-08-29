@@ -17,7 +17,7 @@ data class ImageEditorState(
     val undoneOperations: PersistentList<ImageEditOperation>,
     val cropFrame: FrameOffset,
     val cropAspectRatio: Fraction,
-    val currentPrimitive: DrawPrimitive?,
+    val currentArrow: DrawPrimitive?,
     val currentColor: Color,
     val isSaving: Boolean,
 ) {
@@ -33,44 +33,50 @@ data class ImageEditorState(
         undoneOperations = persistentListOf(),
         cropFrame = FrameOffset.Zero,
         cropAspectRatio = Fraction.Unspecified,
-        currentPrimitive = null,
+        currentArrow = null,
         currentColor = Color.Red,
         isSaving = false,
     )
 
     val canApply = when (mode) {
         ImageEditorMode.CROP -> cropFrame != FrameOffset.Zero
-        ImageEditorMode.DRAW_ARROW -> currentPrimitive is DrawPrimitive.Arrow
+        ImageEditorMode.DRAW_ARROW -> currentArrow is DrawPrimitive.Arrow
         else -> false
     }
 
-    fun withPendingOperations(): ImageEditorState = withPendingOperations(this)
-}
-
-private tailrec fun withPendingOperations(state: ImageEditorState): ImageEditorState {
-    val newState = when {
-        state.cropFrame != FrameOffset.Zero -> state.copy(
-            operations = state.operations.adding(
-                ImageEditOperation.Crop(
-                    top = state.cropFrame.top,
-                    left = state.cropFrame.left,
-                    right = state.cropFrame.right,
-                    bottom = state.cropFrame.bottom,
-                )
-            ),
-            cropFrame = FrameOffset.Zero,
-        )
-
-        state.currentPrimitive != null -> state.copy(
-            operations = state.operations.adding(
-                ImageEditOperation.Draw(
-                    primitive = state.currentPrimitive,
+    fun withPendingOperation(): ImageEditorState? = when (mode) {
+        ImageEditorMode.CROP -> if (cropFrame != FrameOffset.Zero) {
+            copy(
+                operations = operations.adding(
+                    ImageEditOperation.Crop(
+                        top = cropFrame.top.coerceAtLeast(0f),
+                        left = cropFrame.left.coerceAtLeast(0f),
+                        right = cropFrame.right.coerceAtLeast(0f),
+                        bottom = cropFrame.bottom.coerceAtLeast(0f),
+                    )
                 ),
-            ),
-            currentPrimitive = null,
-        )
+                cropFrame = FrameOffset.Zero,
+            )
+        } else {
+            null
+        }
 
-        else -> return state
+        ImageEditorMode.ROTATE, ImageEditorMode.MIRROR, null -> null
+
+        ImageEditorMode.DRAW_ARROW -> if (currentArrow != null) {
+            copy(
+                operations = operations.adding(
+                    ImageEditOperation.Draw(
+                        primitive = currentArrow,
+                    ),
+                ),
+                currentArrow = null,
+            )
+        } else {
+            null
+        }
+
+        ImageEditorMode.DRAW_FREE -> null // TODO
+        ImageEditorMode.COLOR_CORRECTION -> null // TODO
     }
-    return withPendingOperations(newState)
 }
