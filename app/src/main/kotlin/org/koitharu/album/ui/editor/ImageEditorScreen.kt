@@ -64,6 +64,7 @@ import coil3.request.transformations
 import kotlinx.collections.immutable.persistentListOf
 import org.koitharu.album.R
 import org.koitharu.album.model.DrawPrimitive.Arrow
+import org.koitharu.album.ui.common.Fraction
 import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.editor.ImageEditorIntent.Apply
 import org.koitharu.album.ui.editor.ImageEditorIntent.Crop
@@ -77,6 +78,7 @@ import org.koitharu.album.ui.editor.ImageEditorIntent.Rotate
 import org.koitharu.album.ui.editor.ImageEditorIntent.SaveCopy
 import org.koitharu.album.ui.editor.ImageEditorIntent.SaveReplacing
 import org.koitharu.album.ui.editor.ImageEditorIntent.SetColor
+import org.koitharu.album.ui.editor.ImageEditorIntent.SetCropAspectRatio
 import org.koitharu.album.ui.editor.ImageEditorIntent.SetMode
 import org.koitharu.album.ui.editor.ImageEditorIntent.Share
 import org.koitharu.album.ui.editor.ImageEditorIntent.Undo
@@ -261,10 +263,10 @@ fun ImageEditorScreen(
                             .fillMaxSize()
                             .padding(imagePadding)
                             .aspectRatio(size.width / size.height),
-                        contentPadding = PaddingValues.Zero,
                         lineColor = MaterialTheme.colorScheme.primary,
                         dimColor = MaterialTheme.colorScheme.surfaceDim.copy(alpha = 0.8f),
                         frame = state.cropFrame,
+                        aspectRatio = state.cropAspectRatio.toFloat(),
                         onFrameChanged = { frame ->
                             handleIntent(Crop(frame = frame))
                         },
@@ -378,6 +380,31 @@ private fun BottomBar(
                         }
 
                         CROP -> {
+                            SpinnerButton(
+                                modifier = Modifier
+                                    .padding(horizontal = 6.dp)
+                                    .height(24.dp),
+                                items = persistentListOf(
+                                    Fraction.Unspecified,
+                                    Fraction(1, 1),
+                                    Fraction(4, 3),
+                                    Fraction(3, 4),
+                                    Fraction(16, 9),
+                                    Fraction(9, 16),
+                                ),
+                                selectedItem = state.cropAspectRatio,
+                                tooltip = stringResource(R.string.aspect_ratio),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                                onItemClick = { handleIntent(SetCropAspectRatio(it)) },
+                            ) {
+                                Text(
+                                    text = if (it.isUnspecified()) {
+                                        stringResource(R.string.free)
+                                    } else {
+                                        it.toString()
+                                    },
+                                )
+                            }
                             IconButtonWithTooltip(
                                 tooltip = stringResource(R.string.reset),
                                 tooltipAnchorPosition = TooltipAnchorPosition.Above,
@@ -559,10 +586,11 @@ private fun PreviewImageEditorScreen() = AlbumTheme {
         state = ImageEditorState(
             imageUri = "stub",
             imageName = "image.png",
-            mode = DRAW_ARROW,
+            mode = CROP,
             operations = persistentListOf(),
             undoneOperations = persistentListOf(),
             cropFrame = FrameOffset.Zero,
+            cropAspectRatio = Fraction(1, 1),
             currentPrimitive = null,
             currentColor = Color.Red,
             isSaving = false,

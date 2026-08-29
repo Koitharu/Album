@@ -29,6 +29,7 @@ import org.koitharu.album.ui.editor.ImageEditorIntent.Rotate
 import org.koitharu.album.ui.editor.ImageEditorIntent.SaveCopy
 import org.koitharu.album.ui.editor.ImageEditorIntent.SaveReplacing
 import org.koitharu.album.ui.editor.ImageEditorIntent.SetColor
+import org.koitharu.album.ui.editor.ImageEditorIntent.SetCropAspectRatio
 import org.koitharu.album.ui.editor.ImageEditorIntent.SetMode
 import org.koitharu.album.ui.editor.ImageEditorIntent.Share
 import org.koitharu.album.ui.editor.ImageEditorIntent.Undo
@@ -150,6 +151,12 @@ class ImageEditorViewModel @AssistedInject constructor(
                         operations = it.operations.adding(
                             ImageEditOperation.Rotate(intent.degrees)
                         )
+                    )
+                }
+
+                is SetCropAspectRatio -> state.update {
+                    it.copy(
+                        cropAspectRatio = intent.fraction,
                     )
                 }
             }

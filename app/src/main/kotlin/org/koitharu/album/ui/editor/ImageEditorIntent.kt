@@ -2,6 +2,7 @@ package org.koitharu.album.ui.editor
 
 import androidx.compose.ui.graphics.Color
 import org.koitharu.album.model.DrawPrimitive
+import org.koitharu.album.ui.common.Fraction
 
 sealed interface ImageEditorIntent {
 
@@ -11,39 +12,43 @@ sealed interface ImageEditorIntent {
 
     data class Crop(
         val frame: FrameOffset,
-    ): ImageEditorIntent
+    ) : ImageEditorIntent
 
     data class Rotate(
         val degrees: Int,
-    ): ImageEditorIntent
+    ) : ImageEditorIntent
 
     data class Draw(
         val primitive: DrawPrimitive,
-    ): ImageEditorIntent
+    ) : ImageEditorIntent
 
-    data object Reset: ImageEditorIntent
+    data object Reset : ImageEditorIntent
 
-    data object FlipHorizontal: ImageEditorIntent
+    data object FlipHorizontal : ImageEditorIntent
 
-    data object FlipVertical: ImageEditorIntent
+    data object FlipVertical : ImageEditorIntent
 
-    data object Apply: ImageEditorIntent
+    data object Apply : ImageEditorIntent
 
-    data object Undo: ImageEditorIntent
+    data object Undo : ImageEditorIntent
 
-    data object Redo: ImageEditorIntent
+    data object Redo : ImageEditorIntent
 
-    data object SaveCopy: ImageEditorIntent
+    data object SaveCopy : ImageEditorIntent
 
-    data object SaveReplacing: ImageEditorIntent
+    data object SaveReplacing : ImageEditorIntent
 
-    data object Share: ImageEditorIntent
+    data object Share : ImageEditorIntent
 
     data class ImageLoadFailed(
         val error: Throwable,
-    ): ImageEditorIntent
+    ) : ImageEditorIntent
 
     data class SetColor(
         val color: Color,
-    ): ImageEditorIntent
+    ) : ImageEditorIntent
+
+    data class SetCropAspectRatio(
+        val fraction: Fraction
+    ) : ImageEditorIntent
 }

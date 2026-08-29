@@ -85,6 +85,8 @@
     <string name="reset">Reset</string>
     <string name="rotate_ccw">Rotate counterclockwise</string>
     <string name="rotate_cw">Rotate clockwise</string>
+    <string name="aspect_ratio">Aspect ratio</string>
+    <string name="free">Free</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

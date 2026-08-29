@@ -6,6 +6,7 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import org.koitharu.album.model.DrawPrimitive
 import org.koitharu.album.repository.editor.ImageEditOperation
+import org.koitharu.album.ui.common.Fraction
 
 @Immutable
 data class ImageEditorState(
@@ -15,6 +16,7 @@ data class ImageEditorState(
     val operations: PersistentList<ImageEditOperation>,
     val undoneOperations: PersistentList<ImageEditOperation>,
     val cropFrame: FrameOffset,
+    val cropAspectRatio: Fraction,
     val currentPrimitive: DrawPrimitive?,
     val currentColor: Color,
     val isSaving: Boolean,
@@ -30,6 +32,7 @@ data class ImageEditorState(
         operations = persistentListOf(),
         undoneOperations = persistentListOf(),
         cropFrame = FrameOffset.Zero,
+        cropAspectRatio = Fraction.Unspecified,
         currentPrimitive = null,
         currentColor = Color.Red,
         isSaving = false,

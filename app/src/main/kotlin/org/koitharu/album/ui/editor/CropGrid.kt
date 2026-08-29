@@ -1,20 +1,19 @@
 package org.koitharu.album.ui.editor
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -26,15 +25,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import org.koitharu.album.util.coerceAtLeast
+import kotlinx.coroutines.launch
 import org.koitharu.album.util.div
-import org.koitharu.album.util.toFrameOffset
 import kotlin.math.roundToInt
 
 @Composable
 fun CropGrid(
     modifier: Modifier,
-    contentPadding: PaddingValues,
+    aspectRatio: Float,
     lineColor: Color,
     dimColor: Color,
     frame: FrameOffset,
@@ -47,31 +45,35 @@ fun CropGrid(
             height = maxHeight.toPx(),
         )
     }
-    val scaledFrame = remember(frame, boxSize) {
-        frame.scaleToSize(Size(1f, 1f), boxSize)
+    val scope = rememberCoroutineScope()
+    val currentFrame = remember {
+        Animatable(
+            initialValue = FrameOffset.Zero,
+            typeConverter = FrameOffset.vectorConverter,
+        )
     }
-    var topLeft by remember(scaledFrame) {
-        mutableStateOf(scaledFrame.topLeft)
+    LaunchedEffect(frame, boxSize, aspectRatio) {
+        currentFrame.animateTo(
+            frame.scaleToSize(Size(1f, 1f), boxSize)
+                .withAspectRatio(boxSize, aspectRatio)
+        )
     }
-    var bottomRight by remember(scaledFrame) {
-        mutableStateOf(scaledFrame.bottomRight)
-    }
-    val padding = contentPadding.toFrameOffset()
     val onDragEnd = {
         onFrameChanged(
-            FrameOffset(topLeft = topLeft, bottomRight = bottomRight)
-                .scaleToSize(boxSize, Size(1f, 1f)),
+            currentFrame.targetValue.scaleToSize(boxSize, Size(1f, 1f)),
+        )
+    }
+    val bounds = remember(currentFrame.value, boxSize) {
+        Rect(
+            top = currentFrame.value.top,
+            left = currentFrame.value.left,
+            right = boxSize.width - currentFrame.value.right,
+            bottom = boxSize.height - currentFrame.value.bottom,
         )
     }
     Canvas(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
     ) {
-        val bounds = Rect(
-            top = topLeft.y + padding.top,
-            left = topLeft.x + padding.left,
-            right = size.width - bottomRight.x - padding.right,
-            bottom = boxSize.height - bottomRight.y - padding.bottom,
-        )
         val innerBounds = bounds / 3f
         val strokeWidth = 1.dp.toPx()
         // dim
@@ -89,28 +91,28 @@ fun CropGrid(
             color = lineColor,
             start = bounds.topLeft,
             end = bounds.topRight,
-            strokeWidth = strokeWidth
+            strokeWidth = strokeWidth,
         )
         // left
         drawLine(
             color = lineColor,
             start = bounds.topLeft,
             end = bounds.bottomLeft,
-            strokeWidth = strokeWidth
+            strokeWidth = strokeWidth,
         )
         // right
         drawLine(
             color = lineColor,
             start = bounds.topRight,
             end = bounds.bottomRight,
-            strokeWidth = strokeWidth
+            strokeWidth = strokeWidth,
         )
         // bottom
         drawLine(
             color = lineColor,
             start = bounds.bottomLeft,
             end = bounds.bottomRight,
-            strokeWidth = strokeWidth
+            strokeWidth = strokeWidth,
         )
         // inner left
         drawLine(
@@ -123,7 +125,7 @@ fun CropGrid(
                 x = innerBounds.left,
                 y = bounds.bottom,
             ),
-            strokeWidth = strokeWidth
+            strokeWidth = strokeWidth,
         )
         // inner top
         drawLine(
@@ -136,7 +138,7 @@ fun CropGrid(
                 x = bounds.right,
                 y = innerBounds.top,
             ),
-            strokeWidth = strokeWidth
+            strokeWidth = strokeWidth,
         )
         // inner right
         drawLine(
@@ -149,7 +151,7 @@ fun CropGrid(
                 x = innerBounds.right,
                 y = bounds.bottom,
             ),
-            strokeWidth = strokeWidth
+            strokeWidth = strokeWidth,
         )
         // inner bottom
         drawLine(
@@ -162,51 +164,72 @@ fun CropGrid(
                 x = bounds.right,
                 y = innerBounds.bottom,
             ),
-            strokeWidth = strokeWidth
+            strokeWidth = strokeWidth,
         )
     }
     // top left
     CornerHandle(
         color = lineColor,
-        position = topLeft + padding.topLeft,
-        onDragEnd = onDragEnd
+        position = bounds.topLeft,
+        onDragEnd = onDragEnd,
     ) { change ->
-        topLeft = (topLeft + change).coerceAtLeast(Offset.Zero)
+        scope.launch {
+            currentFrame.snapTo(
+                currentFrame.value.moveTopLeftConstrained(
+                    delta = change,
+                    bounds = boxSize,
+                    aspectRatio = aspectRatio,
+                )
+            )
+        }
     }
     // top right
     CornerHandle(
         color = lineColor,
-        position = Offset(
-            x = boxSize.width - bottomRight.x - padding.right,
-            y = topLeft.y + padding.top,
-        ),
-        onDragEnd = onDragEnd
+        position = bounds.topRight,
+        onDragEnd = onDragEnd,
     ) { change ->
-        topLeft = topLeft.copy(y = (topLeft.y + change.y).coerceAtLeast(0f))
-        bottomRight = bottomRight.copy(x = (bottomRight.x - change.x).coerceAtLeast(0f))
+        scope.launch {
+            currentFrame.snapTo(
+                currentFrame.value.moveTopRightConstrained(
+                    delta = change,
+                    bounds = boxSize,
+                    aspectRatio = aspectRatio,
+                )
+            )
+        }
     }
     // bottom left
     CornerHandle(
         color = lineColor,
-        position = Offset(
-            x = topLeft.x + padding.left,
-            y = boxSize.height - bottomRight.y - padding.bottom,
-        ),
-        onDragEnd = onDragEnd
+        position = bounds.bottomLeft,
+        onDragEnd = onDragEnd,
     ) { change ->
-        topLeft = topLeft.copy(x = (topLeft.x + change.x).coerceAtLeast(0f))
-        bottomRight = bottomRight.copy(y = (bottomRight.y - change.y).coerceAtLeast(0f))
+        scope.launch {
+            currentFrame.snapTo(
+                currentFrame.value.moveBottomLeftConstrained(
+                    delta = change,
+                    bounds = boxSize,
+                    aspectRatio = aspectRatio,
+                )
+            )
+        }
     }
     // bottom right
     CornerHandle(
         color = lineColor,
-        position = Offset(
-            x = boxSize.width - bottomRight.x - padding.right,
-            y = boxSize.height - bottomRight.y - padding.bottom,
-        ),
-        onDragEnd = onDragEnd
+        position = bounds.bottomRight,
+        onDragEnd = onDragEnd,
     ) { change ->
-        bottomRight = (bottomRight - change).coerceAtLeast(Offset.Zero)
+        scope.launch {
+            currentFrame.snapTo(
+                currentFrame.value.moveBottomRightConstrained(
+                    delta = change,
+                    bounds = boxSize,
+                    aspectRatio = aspectRatio,
+                )
+            )
+        }
     }
 }
 
