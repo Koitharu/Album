@@ -4,6 +4,11 @@ Simple Android gallery application inspired by the abandoned Sony® Album app bu
 
 ![Android 7.0](https://img.shields.io/badge/android-7.0+-brightgreen) ![License](https://img.shields.io/github/license/Koitharu/ToadLink) ![No AI](https://img.shields.io/badge/no-ai-lightblue)
 
+- Lightweight, no unrelated functionality, no internet permission.
+- Modern, convenient, and simple UI.
+- Built-in image editor.
+- Made by human, not AI.
+
 ### License
 
 [![GNU GPLv3 Image](https://www.gnu.org/graphics/gplv3-127x51.png)](http://www.gnu.org/licenses/gpl-3.0.en.html)
