@@ -52,6 +52,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -79,6 +80,7 @@ import org.koitharu.album.ui.editor.ImageEditorIntent.SaveCopy
 import org.koitharu.album.ui.editor.ImageEditorIntent.SaveReplacing
 import org.koitharu.album.ui.editor.ImageEditorIntent.SetColor
 import org.koitharu.album.ui.editor.ImageEditorIntent.SetCropAspectRatio
+import org.koitharu.album.ui.editor.ImageEditorIntent.SetLineThickness
 import org.koitharu.album.ui.editor.ImageEditorIntent.SetMode
 import org.koitharu.album.ui.editor.ImageEditorIntent.Share
 import org.koitharu.album.ui.editor.ImageEditorIntent.Undo
@@ -278,6 +280,7 @@ fun ImageEditorScreen(
                             .padding(imagePadding)
                             .aspectRatio(size.width / size.height),
                         arrow = state.currentArrow as? Arrow,
+                        lineThickness = state.lineThickness,
                         currentColor = state.currentColor,
                         onArrowDrawn = { handleIntent(Draw(it)) },
                     )
@@ -368,6 +371,33 @@ private fun BottomBar(
                                 currentColor = state.currentColor,
                                 onChangeColor = { handleIntent(SetColor(it)) }
                             )
+                            val density = LocalDensity.current
+                            SpinnerButton(
+                                modifier = Modifier
+                                    .padding(horizontal = 6.dp),
+                                items = persistentListOf(1.dp, 2.dp, 4.dp, 6.dp, 8.dp),
+                                selectedItem = state.lineThickness,
+                                tooltip = stringResource(R.string.line_thickness),
+                                onItemClick = {
+                                    handleIntent(
+                                        SetLineThickness(
+                                            thickness = it,
+                                            thicknessPx = with(density) { it.toPx() },
+                                        )
+                                    )
+                                },
+                            ) { thickness, isSelected ->
+                                if (isSelected) {
+                                    Icon(
+                                        modifier = Modifier.padding(end = 8.dp),
+                                        painter = painterResource(R.drawable.ic_line_weight),
+                                        contentDescription = null,
+                                    )
+                                }
+                                Text(
+                                    text = thickness.value.toString().removeSuffix(".0"),
+                                )
+                            }
                             IconButtonWithTooltip(
                                 tooltip = stringResource(R.string.delete),
                                 tooltipAnchorPosition = TooltipAnchorPosition.Above,
@@ -596,13 +626,14 @@ private fun PreviewImageEditorScreen() = AlbumTheme {
         state = ImageEditorState(
             imageUri = "stub",
             imageName = "image.png",
-            mode = CROP,
+            mode = DRAW_ARROW,
             operations = persistentListOf(),
             undoneOperations = persistentListOf(),
             cropFrame = FrameOffset.Zero,
             cropAspectRatio = Fraction(1, 1),
             currentArrow = null,
             currentColor = Color.Red,
+            lineThickness = 2.dp,
             isSaving = false,
         ),
         handleIntent = MviIntentHandler.NoOp,

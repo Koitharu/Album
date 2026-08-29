@@ -2,6 +2,8 @@ package org.koitharu.album.ui.editor
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import org.koitharu.album.model.DrawPrimitive
@@ -17,8 +19,9 @@ data class ImageEditorState(
     val undoneOperations: PersistentList<ImageEditOperation>,
     val cropFrame: FrameOffset,
     val cropAspectRatio: Fraction,
-    val currentArrow: DrawPrimitive?,
+    val currentArrow: DrawPrimitive.Arrow?,
     val currentColor: Color,
+    val lineThickness: Dp,
     val isSaving: Boolean,
 ) {
 
@@ -34,13 +37,14 @@ data class ImageEditorState(
         cropFrame = FrameOffset.Zero,
         cropAspectRatio = Fraction.Unspecified,
         currentArrow = null,
+        lineThickness = 2.dp,
         currentColor = Color.Red,
         isSaving = false,
     )
 
     val canApply = when (mode) {
         ImageEditorMode.CROP -> cropFrame != FrameOffset.Zero
-        ImageEditorMode.DRAW_ARROW -> currentArrow is DrawPrimitive.Arrow
+        ImageEditorMode.DRAW_ARROW -> currentArrow != null
         else -> false
     }
 

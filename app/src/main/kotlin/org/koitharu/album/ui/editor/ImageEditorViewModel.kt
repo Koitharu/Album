@@ -12,6 +12,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.koitharu.album.model.DrawPrimitive
 import org.koitharu.album.repository.editor.ImageEditOperation
 import org.koitharu.album.repository.editor.ImageEditor
 import org.koitharu.album.ui.common.MviViewModel
@@ -30,6 +31,7 @@ import org.koitharu.album.ui.editor.ImageEditorIntent.SaveCopy
 import org.koitharu.album.ui.editor.ImageEditorIntent.SaveReplacing
 import org.koitharu.album.ui.editor.ImageEditorIntent.SetColor
 import org.koitharu.album.ui.editor.ImageEditorIntent.SetCropAspectRatio
+import org.koitharu.album.ui.editor.ImageEditorIntent.SetLineThickness
 import org.koitharu.album.ui.editor.ImageEditorIntent.SetMode
 import org.koitharu.album.ui.editor.ImageEditorIntent.Share
 import org.koitharu.album.ui.editor.ImageEditorIntent.Undo
@@ -59,7 +61,9 @@ class ImageEditorViewModel @AssistedInject constructor(
                 }
 
                 is Draw -> state.update {
-                    it.copy(currentArrow = intent.primitive)
+                    it.copy(
+                        currentArrow = intent.primitive as? DrawPrimitive.Arrow ?: it.currentArrow,
+                    )
                 }
 
                 FlipHorizontal -> state.update {
@@ -157,6 +161,15 @@ class ImageEditorViewModel @AssistedInject constructor(
                 is SetCropAspectRatio -> state.update {
                     it.copy(
                         cropAspectRatio = intent.fraction,
+                    )
+                }
+
+                is SetLineThickness -> state.update {
+                    it.copy(
+                        lineThickness = intent.thickness,
+                        currentArrow = it.currentArrow?.copy(
+                            lineHeight = intent.thicknessPx,
+                        ),
                     )
                 }
             }

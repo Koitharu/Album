@@ -1,6 +1,7 @@
 package org.koitharu.album.ui.editor
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import org.koitharu.album.model.DrawPrimitive
 import org.koitharu.album.ui.common.Fraction
 
@@ -46,6 +47,11 @@ sealed interface ImageEditorIntent {
 
     data class SetColor(
         val color: Color,
+    ) : ImageEditorIntent
+
+    data class SetLineThickness(
+        val thickness: Dp,
+        val thicknessPx: Float,
     ) : ImageEditorIntent
 
     data class SetCropAspectRatio(
