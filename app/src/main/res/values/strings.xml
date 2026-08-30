@@ -88,6 +88,14 @@
     <string name="aspect_ratio">Aspect ratio</string>
     <string name="free">Free</string>
     <string name="line_thickness">Line thickness</string>
+    <string name="info">Information</string>
+    <string name="name">Name</string>
+    <string name="camera">Camera</string>
+    <string name="location">Location</string>
+    <string name="width">Width</string>
+    <string name="height">Height</string>
+    <string name="resolution">Resolution</string>
+    <string name="size_megapixels_template">%.1f MP</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

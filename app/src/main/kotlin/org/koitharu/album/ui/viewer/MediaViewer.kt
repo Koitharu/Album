@@ -72,14 +72,17 @@ import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.common.OptionsMenu
 import org.koitharu.album.ui.editor.ImageEditorActivity
 import org.koitharu.album.ui.folders.FolderItem
+import org.koitharu.album.ui.info.MediaInfoBottomSheet
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.theme.resolveThemeVariant
 import org.koitharu.album.ui.viewer.ViewerEffect.OnError
 import org.koitharu.album.ui.viewer.ViewerEffect.OpenImageEditor
+import org.koitharu.album.ui.viewer.ViewerIntent.CloseInfo
 import org.koitharu.album.ui.viewer.ViewerIntent.Delete
 import org.koitharu.album.ui.viewer.ViewerIntent.Edit
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
+import org.koitharu.album.ui.viewer.ViewerIntent.OpenInfo
 import org.koitharu.album.ui.viewer.ViewerIntent.Print
 import org.koitharu.album.ui.viewer.ViewerIntent.Recover
 import org.koitharu.album.ui.viewer.ViewerIntent.Share
@@ -136,7 +139,14 @@ fun ViewerScreen(
             animatedVisibilityScope = animatedVisibilityScope,
             isRotationGestureEnabled = state.isRotationGestureEnabled,
             handleIntent = viewModel,
-            onClose = { albumViewModel.handleIntent(CloseMedia) })
+            onClose = { albumViewModel.handleIntent(CloseMedia) }
+        )
+        state.infoBottomSheetImage?.let {
+            MediaInfoBottomSheet(
+                image = it,
+                onDismissRequest = { viewModel.handleIntent(CloseInfo) },
+            )
+        }
     }
 }
 
@@ -240,7 +250,8 @@ private fun PagerMediaViewer(
         }
         if (initialIndex == -1) {
             SingleViewer(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
                     .slideUpToClose(onClose),
                 media = media,
                 contentPadding = innerPadding,
@@ -254,7 +265,8 @@ private fun PagerMediaViewer(
             )
         } else {
             ViewerPager(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
                     .slideUpToClose(onClose),
                 images = images,
                 contentPadding = innerPadding,
@@ -480,6 +492,15 @@ private fun OptionMenu(
             },
             onClick = {
                 handleIntent(Print(media))
+                dismiss()
+            }
+        )
+        DropdownMenuItem(
+            text = {
+                Text(stringResource(R.string.info))
+            },
+            onClick = {
+                handleIntent(OpenInfo(media))
                 dismiss()
             }
         )

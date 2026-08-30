@@ -21,10 +21,12 @@ import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.common.ShellIntegrationHelper
 import org.koitharu.album.ui.viewer.ViewerEffect.OnError
+import org.koitharu.album.ui.viewer.ViewerIntent.CloseInfo
 import org.koitharu.album.ui.viewer.ViewerIntent.Delete
 import org.koitharu.album.ui.viewer.ViewerIntent.Edit
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
+import org.koitharu.album.ui.viewer.ViewerIntent.OpenInfo
 import org.koitharu.album.ui.viewer.ViewerIntent.Print
 import org.koitharu.album.ui.viewer.ViewerIntent.Recover
 import org.koitharu.album.ui.viewer.ViewerIntent.Rotate
@@ -107,6 +109,17 @@ class ViewerViewModel @AssistedInject constructor(
             }
 
             is Edit -> openEditor(intent.image)
+            CloseInfo -> state.update {
+                it.copy(
+                    infoBottomSheetImage = null,
+                )
+            }
+
+            is OpenInfo -> state.update {
+                it.copy(
+                    infoBottomSheetImage = intent.image,
+                )
+            }
         }
     }
 
