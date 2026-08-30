@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,9 @@ import org.koitharu.album.util.IconButtonWithTooltip
 fun ColorSelector(
     currentColor: Color,
     onChangeColor: (Color) -> Unit,
+    enabled: Boolean = true,
+    tooltip: String = stringResource(R.string.select_color),
+    tooltipAnchorPosition: TooltipAnchorPosition = TooltipAnchorPosition.Below,
 ) = Box {
     val colors = remember {
         persistentListOf(
@@ -59,7 +63,9 @@ fun ColorSelector(
     var isExpanded by remember { mutableStateOf(false) }
     val outlineColor = MaterialTheme.colorScheme.outline
     IconButtonWithTooltip(
-        tooltip = stringResource(R.string.select_color),
+        tooltip = tooltip,
+        tooltipAnchorPosition = tooltipAnchorPosition,
+        enabled = enabled,
         onClick = { isExpanded = !isExpanded },
     ) {
         Canvas(

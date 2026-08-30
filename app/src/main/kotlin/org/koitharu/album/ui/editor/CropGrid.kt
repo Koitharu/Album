@@ -53,10 +53,13 @@ fun CropGrid(
         )
     }
     LaunchedEffect(frame, boxSize, aspectRatio) {
-        currentFrame.animateTo(
-            frame.scaleToSize(Size(1f, 1f), boxSize)
-                .withAspectRatio(boxSize, aspectRatio)
-        )
+        val scaled = frame.scaleToSize(Size(1f, 1f), boxSize)
+        val withRatio = scaled.withAspectRatio(boxSize, aspectRatio)
+        if (withRatio != scaled) {
+            onFrameChanged(withRatio.scaleToSize(boxSize, Size(1f, 1f))
+        } else {
+            currentFrame.animateTo(withRatio)
+        }
     }
     val onDragEnd = {
         onFrameChanged(

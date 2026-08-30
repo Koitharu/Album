@@ -100,9 +100,9 @@ class MediaStoreRepository30Impl(
                 "1",
                 "0",
             )
-        )?.use {
+        ).use {
             it.count
-        } ?: 0
+        }
     }
 
     override suspend fun getPhotosCount(): Int {

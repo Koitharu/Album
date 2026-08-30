@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
@@ -53,6 +54,17 @@ fun FoldersContent(
                 folder = it,
                 onClick = { onFolderClick(it) }
             )
+        }
+        state.error?.let { error ->
+            item(
+                key = "error",
+            ) {
+                Text(
+                    modifier = Modifier.padding(12.dp),
+                    text = error.message ?: stringResource(R.string.error_message_generic),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         }
     }
 }

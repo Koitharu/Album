@@ -369,6 +369,7 @@ private fun BottomBar(
                         DRAW_ARROW -> {
                             ColorSelector(
                                 currentColor = state.currentColor,
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
                                 onChangeColor = { handleIntent(SetColor(it)) }
                             )
                             val density = LocalDensity.current
@@ -378,6 +379,7 @@ private fun BottomBar(
                                 items = persistentListOf(1.dp, 2.dp, 4.dp, 6.dp, 8.dp),
                                 selectedItem = state.lineThickness,
                                 tooltip = stringResource(R.string.line_thickness),
+                                tooltipAnchorPosition = TooltipAnchorPosition.Above,
                                 onItemClick = {
                                     handleIntent(
                                         SetLineThickness(

@@ -5,6 +5,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -33,9 +34,13 @@ class FoldersViewModel @Inject constructor(
                     favoritesCount = favoritesCount,
                     hiddenCount = hiddenCount,
                 )
+            }.catch { e ->
+                state.update {
+                    it.copy(error = e)
+                }
             }.collect { folders ->
                 state.update {
-                    it.copy(items = folders)
+                    it.copy(items = folders, error = null)
                 }
             }
         }
