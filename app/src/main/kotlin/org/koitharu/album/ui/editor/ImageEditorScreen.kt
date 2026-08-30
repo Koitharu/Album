@@ -386,7 +386,7 @@ private fun BottomBar(
                             SpinnerButton(
                                 modifier = Modifier
                                     .padding(horizontal = 6.dp),
-                                items = persistentListOf(1.dp, 2.dp, 4.dp, 6.dp, 8.dp),
+                                items = persistentListOf(1.dp, 2.dp, 4.dp, 6.dp, 8.dp, 10.dp),
                                 selectedItem = state.lineThickness,
                                 tooltip = stringResource(R.string.line_thickness),
                                 tooltipAnchorPosition = TooltipAnchorPosition.Above,

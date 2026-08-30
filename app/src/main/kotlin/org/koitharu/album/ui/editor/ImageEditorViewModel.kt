@@ -10,9 +10,11 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koitharu.album.model.DrawPrimitive
+import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.editor.ImageEditOperation
 import org.koitharu.album.repository.editor.ImageEditor
 import org.koitharu.album.ui.common.MviViewModel
@@ -42,12 +44,26 @@ class ImageEditorViewModel @AssistedInject constructor(
     @Assisted("uri") imageUri: String,
     @Assisted("name") imageName: String?,
     private val imageEditorProvider: Lazy<ImageEditor>,
+    private val settingsRepository: SettingsRepository,
 ) : MviViewModel<ImageEditorState, ImageEditorIntent, ImageEditorEffect>(
     ImageEditorState(
-        imageUri,
-        imageName
+        imageUri = imageUri,
+        imageName = imageName,
     )
 ) {
+
+    init {
+        viewModelScope.launch(Dispatchers.Default) {
+            val color = settingsRepository.editorColor.first()
+            val lineThickness = settingsRepository.editorLineThickness.first()
+            state.update {
+                it.copy(
+                    currentColor = color,
+                    lineThickness = lineThickness,
+                )
+            }
+        }
+    }
 
     override fun handleIntent(intent: ImageEditorIntent) {
         viewModelScope.launch(Dispatchers.Default) {
@@ -137,12 +153,15 @@ class ImageEditorViewModel @AssistedInject constructor(
                 }
 
                 is ImageLoadFailed -> sendEffect(OnError(intent.error))
-                is SetColor -> state.update {
-                    it.copy(
-                        currentColor = intent.color,
-                        currentArrow = it.currentArrow?.colored(intent.color.toArgb()),
-                        currentPath = it.currentPath?.colored(intent.color.toArgb()),
-                    )
+                is SetColor -> {
+                    state.update {
+                        it.copy(
+                            currentColor = intent.color,
+                            currentArrow = it.currentArrow?.colored(intent.color.toArgb()),
+                            currentPath = it.currentPath?.colored(intent.color.toArgb()),
+                        )
+                    }
+                    settingsRepository.setEditorColor(intent.color)
                 }
 
                 Reset -> state.update {
@@ -166,16 +185,19 @@ class ImageEditorViewModel @AssistedInject constructor(
                     )
                 }
 
-                is SetLineThickness -> state.update {
-                    it.copy(
-                        lineThickness = intent.thickness,
-                        currentArrow = it.currentArrow?.copy(
-                            lineHeight = intent.thicknessPx,
-                        ),
-                        currentPath = it.currentPath?.copy(
-                            lineHeight = intent.thicknessPx,
-                        ),
-                    )
+                is SetLineThickness -> {
+                    state.update {
+                        it.copy(
+                            lineThickness = intent.thickness,
+                            currentArrow = it.currentArrow?.copy(
+                                lineHeight = intent.thicknessPx,
+                            ),
+                            currentPath = it.currentPath?.copy(
+                                lineHeight = intent.thicknessPx,
+                            ),
+                        )
+                    }
+                    settingsRepository.setEditorLineThickness(intent.thickness)
                 }
             }
         }

@@ -1,11 +1,16 @@
 package org.koitharu.album.repository
 
 import android.content.Context
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.LifecycleCoroutineScope
@@ -46,6 +51,16 @@ class SettingsRepository @Inject constructor(
     val useExternalEditor: Flow<Boolean>
         get() = context.dataStore.data.map { prefs ->
             prefs[Keys.useExternalEditor] ?: false
+        }
+
+    val editorLineThickness: Flow<Dp>
+        get() = context.dataStore.data.map { prefs ->
+            (prefs[Keys.editorLineThickness] ?: 2).dp
+        }
+
+    val editorColor: Flow<Color>
+        get() = context.dataStore.data.map { prefs ->
+            prefs[Keys.editorColor]?.let { Color(it) } ?: Color.Red
         }
 
     val appTheme: StateFlow<ThemeVariant> = context.dataStore.data.map { prefs ->
@@ -102,6 +117,18 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    suspend fun setEditorColor(value: Color) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.editorColor] = value.toArgb()
+        }
+    }
+
+    suspend fun setEditorLineThickness(value: Dp) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.editorLineThickness] = value.value.toInt()
+        }
+    }
+
     object Keys {
 
         val useRecycleBin = booleanPreferencesKey("recycle_bin")
@@ -111,6 +138,8 @@ class SettingsRepository @Inject constructor(
         val viewerTheme = stringPreferencesKey("viewer_theme")
         val homeBanner = stringPreferencesKey("home_banner")
         val useExternalEditor = booleanPreferencesKey("external_editor")
+        val editorColor = intPreferencesKey("editor_color")
+        val editorLineThickness = intPreferencesKey("editor_line_thick")
     }
 
     companion object {
