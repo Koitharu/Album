@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -157,7 +156,7 @@ private fun ImageBanner(
             )
             overlayContent(
                 Modifier.align(Alignment.TopEnd),
-                MaterialTheme.colorScheme.inverseOnSurface,
+                Color.White,
             )
         }
     }

@@ -35,7 +35,7 @@ fun SetSystemBarsColorsEffect(
     isLightStatusBar: Boolean = insetsController?.isAppearanceLightStatusBars ?: false,
     isLightNavigationBar: Boolean = insetsController?.isAppearanceLightNavigationBars ?: false,
 ) = if (insetsController != null) {
-    DisposableEffect(Unit) {
+    DisposableEffect(isLightStatusBar, isLightNavigationBar) {
         val wasLightStatusBar = insetsController.isAppearanceLightStatusBars
         val wasLightNavBar = insetsController.isAppearanceLightNavigationBars
         insetsController.isAppearanceLightStatusBars = isLightStatusBar

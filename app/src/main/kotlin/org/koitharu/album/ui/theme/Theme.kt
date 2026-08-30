@@ -8,11 +8,13 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
 import org.koitharu.album.model.ThemeVariant
 import org.koitharu.album.model.ThemeVariant.DARK
 import org.koitharu.album.model.ThemeVariant.LIGHT
 import org.koitharu.album.model.ThemeVariant.SYSTEM
+import org.koitharu.album.ui.common.LocalDarkMode
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -43,7 +45,7 @@ fun AlbumTheme(
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val darkTheme = when (variant) {
+    val isDarkTheme = when (variant) {
         SYSTEM -> isSystemInDarkTheme()
         LIGHT -> false
         DARK -> true
@@ -51,16 +53,17 @@ fun AlbumTheme(
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (isDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> DarkColorScheme
+        isDarkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
-
-    MaterialExpressiveTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalDarkMode provides isDarkTheme) {
+        MaterialExpressiveTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

@@ -45,6 +45,7 @@ import org.koitharu.album.ui.album.HomeScreenBanner
 import org.koitharu.album.ui.common.AlbumItem.Media
 import org.koitharu.album.ui.common.ComposeActivity
 import org.koitharu.album.ui.common.EmptyState
+import org.koitharu.album.ui.common.LocalDarkMode
 import org.koitharu.album.ui.common.OptionsMenu
 import org.koitharu.album.ui.folders.FolderContentScreen
 import org.koitharu.album.ui.folders.FolderItem
@@ -232,7 +233,7 @@ private fun HomeContent(
         }
     }
     SetSystemBarsColorsEffect(
-        isLightStatusBar = !(selectedTab == 0 && hasBanner),
+        isLightStatusBar = !((selectedTab == 0 && hasBanner) || LocalDarkMode.current),
     )
 }
 
