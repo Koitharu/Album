@@ -5,11 +5,14 @@ import androidx.annotation.ColorInt
 import androidx.annotation.Px
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.asAndroidPath
+import org.koitharu.album.util.scaled
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import androidx.compose.ui.graphics.Path as ComposePath
 
 @Immutable
 sealed interface DrawPrimitive {
@@ -27,7 +30,7 @@ sealed interface DrawPrimitive {
 
     fun scaled(scaleX: Float, scaleY: Float): DrawPrimitive
 
-    fun colored(color: Int) : DrawPrimitive
+    fun colored(color: Int): DrawPrimitive
 
     @Immutable
     data class Arrow(
@@ -90,5 +93,30 @@ sealed interface DrawPrimitive {
                 lineTo(x2, y2)
             }
         }
+    }
+
+    @Immutable
+    data class FreePath(
+        val path: ComposePath,
+        override val color: Int,
+        override val lineHeight: Float,
+    ) : DrawPrimitive {
+
+        override fun scaled(
+            scaleX: Float,
+            scaleY: Float
+        ) = FreePath(
+            path = path.scaled(scaleX, scaleY),
+            color = color,
+            lineHeight = lineHeight,
+        )
+
+        override fun colored(color: Int) = copy(
+            color = color,
+        )
+
+        override fun toPath(width: Float, height: Float): Path = path
+            .scaled(width, height)
+            .asAndroidPath()
     }
 }

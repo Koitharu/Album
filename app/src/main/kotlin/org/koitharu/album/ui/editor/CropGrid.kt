@@ -56,7 +56,7 @@ fun CropGrid(
         val scaled = frame.scaleToSize(Size(1f, 1f), boxSize)
         val withRatio = scaled.withAspectRatio(boxSize, aspectRatio)
         if (withRatio != scaled) {
-            onFrameChanged(withRatio.scaleToSize(boxSize, Size(1f, 1f))
+            onFrameChanged(withRatio.scaleToSize(boxSize, Size(1f, 1f)))
         } else {
             currentFrame.animateTo(withRatio)
         }

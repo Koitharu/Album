@@ -4,8 +4,11 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,11 +63,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
+import coil3.compose.useExistingImageAsPlaceholder
 import coil3.request.ImageRequest
 import coil3.request.transformations
 import kotlinx.collections.immutable.persistentListOf
 import org.koitharu.album.R
-import org.koitharu.album.model.DrawPrimitive.Arrow
 import org.koitharu.album.ui.common.Fraction
 import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.editor.ImageEditorIntent.Apply
@@ -245,6 +248,7 @@ fun ImageEditorScreen(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(state.imageUri)
                     .transformations(state.operations)
+                    .useExistingImageAsPlaceholder(true)
                     .build(),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
@@ -279,18 +283,21 @@ fun ImageEditorScreen(
                             .fillMaxSize()
                             .padding(imagePadding)
                             .aspectRatio(size.width / size.height),
-                        arrow = state.currentArrow as? Arrow,
+                        arrow = state.currentArrow,
                         lineThickness = state.lineThickness,
                         currentColor = state.currentColor,
                         onArrowDrawn = { handleIntent(Draw(it)) },
                     )
 
-                    DRAW_FREE -> Text(
-                        modifier = Modifier.background(
-                            color = MaterialTheme.colorScheme.surfaceDim.copy(alpha = 0.8f),
-                            shape = MaterialTheme.shapes.medium,
-                        ),
-                        text = "Not yet implemented",
+                    DRAW_FREE -> FreeDrawChalkboard(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(imagePadding)
+                            .aspectRatio(size.width / size.height),
+                        path = state.currentPath,
+                        lineThickness = state.lineThickness,
+                        currentColor = state.currentColor,
+                        onPathDrawn = { handleIntent(Draw(it)) },
                     )
 
                     else -> Unit
@@ -320,6 +327,8 @@ private fun BottomBar(
         floatingActionButton = {
             AnimatedVisibility(
                 visible = state.canApply,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut(),
             ) {
                 FloatingActionButton(
                     onClick = { handleIntent(Apply) },
@@ -366,6 +375,7 @@ private fun BottomBar(
                         )
                     }
                     when (mode) {
+                        DRAW_FREE,
                         DRAW_ARROW -> {
                             ColorSelector(
                                 currentColor = state.currentColor,
@@ -634,6 +644,7 @@ private fun PreviewImageEditorScreen() = AlbumTheme {
             cropFrame = FrameOffset.Zero,
             cropAspectRatio = Fraction(1, 1),
             currentArrow = null,
+            currentPath = null,
             currentColor = Color.Red,
             lineThickness = 2.dp,
             isSaving = false,

@@ -63,6 +63,7 @@ class ImageEditorViewModel @AssistedInject constructor(
                 is Draw -> state.update {
                     it.copy(
                         currentArrow = intent.primitive as? DrawPrimitive.Arrow ?: it.currentArrow,
+                        currentPath = intent.primitive as? DrawPrimitive.FreePath ?: it.currentPath,
                     )
                 }
 
@@ -140,6 +141,7 @@ class ImageEditorViewModel @AssistedInject constructor(
                     it.copy(
                         currentColor = intent.color,
                         currentArrow = it.currentArrow?.colored(intent.color.toArgb()),
+                        currentPath = it.currentPath?.colored(intent.color.toArgb()),
                     )
                 }
 
@@ -168,6 +170,9 @@ class ImageEditorViewModel @AssistedInject constructor(
                     it.copy(
                         lineThickness = intent.thickness,
                         currentArrow = it.currentArrow?.copy(
+                            lineHeight = intent.thicknessPx,
+                        ),
+                        currentPath = it.currentPath?.copy(
                             lineHeight = intent.thicknessPx,
                         ),
                     )

@@ -87,6 +87,7 @@ sealed class ImageEditOperation(
             return input.copy(input.config ?: Config.ARGB_8888, true).applyCanvas {
                 paint.style = Paint.Style.STROKE
                 paint.strokeWidth = primitive.lineHeight
+                paint.strokeCap = Paint.Cap.ROUND
                 paint.setColor(primitive.color)
                 drawPath(primitive.toPath(width.toFloat(), height.toFloat()), paint)
             }

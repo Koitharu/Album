@@ -1,10 +1,14 @@
 package org.koitharu.album.util
 
+import androidx.annotation.CheckResult
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.copy
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import org.koitharu.album.ui.editor.FrameOffset
@@ -48,4 +52,13 @@ fun Offset.coerceAtLeast(minimumValue: Offset) = if (
         x = this.x.coerceAtLeast(minimumValue.x),
         y = this.y.coerceAtLeast(minimumValue.y),
     )
+}
+
+@CheckResult
+fun Path.scaled(scaleX: Float, scaleY: Float): Path {
+    val matrix = Matrix()
+    matrix.scale(scaleX, scaleY)
+    val result = copy()
+    result.transform(matrix)
+    return result
 }

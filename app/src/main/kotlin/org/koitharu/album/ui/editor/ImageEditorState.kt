@@ -20,6 +20,7 @@ data class ImageEditorState(
     val cropFrame: FrameOffset,
     val cropAspectRatio: Fraction,
     val currentArrow: DrawPrimitive.Arrow?,
+    val currentPath: DrawPrimitive.FreePath?,
     val currentColor: Color,
     val lineThickness: Dp,
     val isSaving: Boolean,
@@ -37,6 +38,7 @@ data class ImageEditorState(
         cropFrame = FrameOffset.Zero,
         cropAspectRatio = Fraction.Unspecified,
         currentArrow = null,
+        currentPath = null,
         lineThickness = 2.dp,
         currentColor = Color.Red,
         isSaving = false,
@@ -45,6 +47,7 @@ data class ImageEditorState(
     val canApply = when (mode) {
         ImageEditorMode.CROP -> cropFrame != FrameOffset.Zero
         ImageEditorMode.DRAW_ARROW -> currentArrow != null
+        ImageEditorMode.DRAW_FREE -> currentPath != null
         else -> false
     }
 
@@ -80,7 +83,19 @@ data class ImageEditorState(
             null
         }
 
-        ImageEditorMode.DRAW_FREE -> null // TODO
+        ImageEditorMode.DRAW_FREE -> if (currentPath != null) {
+            copy(
+                operations = operations.adding(
+                    ImageEditOperation.Draw(
+                        primitive = currentPath,
+                    ),
+                ),
+                currentPath = null,
+            )
+        } else {
+            null
+        }
+
         ImageEditorMode.COLOR_CORRECTION -> null // TODO
     }
 }
