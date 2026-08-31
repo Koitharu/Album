@@ -11,6 +11,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -233,7 +234,7 @@ fun ImageEditorScreen(
             BottomBar(state, handleIntent)
         }
     ) { innerPadding ->
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -263,12 +264,14 @@ fun ImageEditorScreen(
                 }
             )
             imageSize?.let { size ->
+                val imageAspectRatio = size.width / size.height
+                val boxAspectRatio = maxWidth.value / maxHeight.value
                 when (state.mode) {
                     CROP -> CropGrid(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(imagePadding)
-                            .aspectRatio(size.width / size.height),
+                            .aspectRatio(imageAspectRatio, boxAspectRatio > imageAspectRatio),
                         lineColor = MaterialTheme.colorScheme.primary,
                         dimColor = MaterialTheme.colorScheme.surfaceDim.copy(alpha = 0.8f),
                         frame = state.cropFrame,
@@ -282,7 +285,7 @@ fun ImageEditorScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(imagePadding)
-                            .aspectRatio(size.width / size.height),
+                            .aspectRatio(imageAspectRatio, boxAspectRatio > imageAspectRatio),
                         arrow = state.currentArrow,
                         lineThickness = state.lineThickness,
                         currentColor = state.currentColor,
@@ -293,7 +296,7 @@ fun ImageEditorScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(imagePadding)
-                            .aspectRatio(size.width / size.height),
+                            .aspectRatio(imageAspectRatio, boxAspectRatio > imageAspectRatio),
                         path = state.currentPath,
                         lineThickness = state.lineThickness,
                         currentColor = state.currentColor,
