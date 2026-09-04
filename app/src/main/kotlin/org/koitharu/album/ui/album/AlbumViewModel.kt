@@ -1,5 +1,7 @@
 package org.koitharu.album.ui.album
 
+import android.content.ContentResolver
+import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
@@ -47,6 +50,7 @@ import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.common.ShellIntegrationHelper
 import org.koitharu.album.ui.folders.FolderItem
+import org.koitharu.album.ui.info.BitmapAnalyzer
 import org.koitharu.album.util.runCatchingCancellable
 import org.koitharu.album.util.tickerFlow
 import org.koitharu.album.util.toggling
@@ -61,6 +65,7 @@ class AlbumViewModel @AssistedInject constructor(
     private val settingsRepository: SettingsRepository,
     private val shellIntegrationHelper: ShellIntegrationHelper,
     private val hiddenMediaRepository: HiddenMediaRepository,
+    private val contentResolver: ContentResolver,
 ) : MviViewModel<AlbumState, AlbumIntent, Nothing>(AlbumState(folder)) {
 
     val pagerContent = Pager(
@@ -99,6 +104,22 @@ class AlbumViewModel @AssistedInject constructor(
     }.cachedIn(viewModelScope + Dispatchers.Default)
 
     init {
+        if (folder == null) {
+            observeBanner()
+        }
+        viewModelScope.launch(Dispatchers.Default) {
+            settingsRepository.gridScale.collect { gridScale ->
+                state.update { it.copy(scale = gridScale) }
+            }
+        }
+        viewModelScope.launch(Dispatchers.Default) {
+            settingsRepository.useRecycleBin.collect { isRecycleBinEnabled ->
+                state.update { it.copy(isRecycleBinEnabled = isRecycleBinEnabled) }
+            }
+        }
+    }
+
+    private fun observeBanner() {
         viewModelScope.launch(Dispatchers.Default) {
             settingsRepository.homeBannerSource.flatMapLatest { bannerSource ->
                 if (bannerSource == NONE) {
@@ -125,20 +146,15 @@ class AlbumViewModel @AssistedInject constructor(
                         }.getOrNull()
                     }
                 }
-            }.collect { image ->
+            }.mapLatest { image ->
+                image to (image?.run { isBannerDark(uri) } == true)
+            }.collect { (image, isDark) ->
                 state.update {
-                    it.copy(banner = image?.let { x -> AlbumItem.Media(x) as? AlbumItem.Image })
+                    it.copy(
+                        banner = image?.let { x -> AlbumItem.Media(x) as? AlbumItem.Image },
+                        isBannerDark = isDark,
+                    )
                 }
-            }
-        }
-        viewModelScope.launch(Dispatchers.Default) {
-            settingsRepository.gridScale.collect { gridScale ->
-                state.update { it.copy(scale = gridScale) }
-            }
-        }
-        viewModelScope.launch(Dispatchers.Default) {
-            settingsRepository.useRecycleBin.collect { isRecycleBinEnabled ->
-                state.update { it.copy(isRecycleBinEnabled = isRecycleBinEnabled) }
             }
         }
     }
@@ -238,6 +254,12 @@ class AlbumViewModel @AssistedInject constructor(
         calendar.add(Calendar.DAY_OF_MONTH, -minusDays)
         return calendar.timeInMillis
     }
+
+    private suspend fun isBannerDark(image: Uri) = runCatchingCancellable {
+        contentResolver.openInputStream(image)?.use {
+            BitmapAnalyzer().isTopRegionDark(it)
+        } == true
+    }.getOrDefault(true)
 
     @AssistedFactory
     interface Factory {

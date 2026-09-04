@@ -70,6 +70,7 @@ import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.common.OptionsMenu
+import org.koitharu.album.ui.common.SetSystemBarsColorsEffect
 import org.koitharu.album.ui.editor.ImageEditorActivity
 import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.info.MediaInfoBottomSheet
@@ -88,7 +89,6 @@ import org.koitharu.album.ui.viewer.ViewerIntent.Recover
 import org.koitharu.album.ui.viewer.ViewerIntent.Share
 import org.koitharu.album.ui.viewer.ViewerIntent.UseAs
 import org.koitharu.album.util.IconButtonWithTooltip
-import org.koitharu.album.util.SetSystemBarsColorsEffect
 import org.koitharu.album.util.formattedDateTime
 import org.koitharu.album.util.rememberWindowInsetsController
 import org.koitharu.album.util.slideUpToClose
@@ -165,11 +165,7 @@ private fun PagerMediaViewer(
     val insetsController = rememberWindowInsetsController()
     var isUiVisible by remember { mutableStateOf(true) }
     if (insetsController != null) {
-        SetSystemBarsColorsEffect(
-            insetsController = insetsController,
-            isLightStatusBar = false,
-            isLightNavigationBar = false,
-        )
+        SetSystemBarsColorsEffect(insetsController = insetsController)
         DisposableEffect(Unit) {
             onDispose {
                 insetsController.show(WindowInsetsCompat.Type.systemBars())

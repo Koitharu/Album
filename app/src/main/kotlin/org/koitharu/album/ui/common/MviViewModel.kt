@@ -1,8 +1,8 @@
 package org.koitharu.album.ui.common
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,5 +27,5 @@ abstract class MviViewModel<S, I, E>(
     }
 
     @Composable
-    fun collectState() = state.collectAsState()
+    fun collectState() = state.collectAsStateWithLifecycle()
 }

@@ -34,7 +34,7 @@ class MediaInfoViewModel @AssistedInject constructor(
     private fun readHistogram() = viewModelScope.launch(Dispatchers.Default) {
         val histogram = runCatchingCancellable {
             contentResolver.openInputStream(media.uri)?.use { stream ->
-                HistogramReader().decodeHistogram(stream)
+                BitmapAnalyzer().decodeHistogram(stream)
             }
         }.getOrNull()
         state.update {

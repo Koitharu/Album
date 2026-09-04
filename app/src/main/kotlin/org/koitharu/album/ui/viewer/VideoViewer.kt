@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -212,15 +214,20 @@ private fun VideoControls(
 ) = Box(
     modifier = modifier,
 ) {
+    val controlsBackground = MaterialTheme.colorScheme.background.copy(alpha = 0.74f)
     IconButton(
         modifier = Modifier
-            .size(64.dp)
+            .size(82.dp)
+            .background(
+                color = controlsBackground,
+                shape = CircleShape,
+            )
             .align(Alignment.Center),
         onClick = onPlayPauseClick,
     ) {
-        val iconTint = MaterialTheme.colorScheme.primaryFixedDim.copy(alpha = 0.6f)
         AnimatedContent(
-            modifier = Modifier,
+            modifier = Modifier
+                .padding(12.dp),
             targetState = isPlaying,
             contentAlignment = Alignment.Center,
         ) { playing ->
@@ -229,14 +236,12 @@ private fun VideoControls(
                     modifier = Modifier.fillMaxSize(),
                     painter = painterResource(R.drawable.ic_pause_circle),
                     contentDescription = stringResource(R.string.pause),
-                    tint = iconTint,
                 )
             } else {
                 Icon(
                     modifier = Modifier.fillMaxSize(),
                     painter = painterResource(R.drawable.ic_play_circle),
                     contentDescription = stringResource(R.string.play),
-                    tint = iconTint,
                 )
             }
         }
@@ -244,6 +249,11 @@ private fun VideoControls(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .background(
+                color = controlsBackground,
+                shape = MaterialTheme.shapes.large,
+            )
             .align(Alignment.BottomCenter),
     ) {
         Slider(

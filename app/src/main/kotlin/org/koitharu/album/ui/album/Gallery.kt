@@ -1,11 +1,9 @@
 package org.koitharu.album.ui.album
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,17 +19,19 @@ import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -41,6 +41,7 @@ import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
+import coil3.ColorImage
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
@@ -51,6 +52,7 @@ import org.koitharu.album.ui.album.AlbumIntent.HandleClick
 import org.koitharu.album.ui.album.AlbumIntent.HandleLongClick
 import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
 import org.koitharu.album.ui.common.AlbumItem
+import org.koitharu.album.ui.common.ErrorImageFactory
 import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.util.toTitleCase
 
@@ -159,6 +161,8 @@ private fun AlbumScope.GalleryImageItem(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(image.thumbnail)
                 .diskCachePolicy(CachePolicy.DISABLED)
+                .placeholder(ColorImage(MaterialTheme.colorScheme.surfaceContainer.toArgb()))
+                .error(ErrorImageFactory())
                 .memoryCacheKey(image.memoryCacheKey)
                 .build(),
             contentDescription = image.name,
@@ -193,6 +197,8 @@ private fun AlbumScope.GalleryVideoItem(
                 .data(image.thumbnail)
                 .diskCachePolicy(CachePolicy.DISABLED)
                 .memoryCacheKey(image.memoryCacheKey)
+                .placeholder(ColorImage(MaterialTheme.colorScheme.surfaceContainer.toArgb()))
+                .error(ErrorImageFactory())
                 .build(),
             contentDescription = image.name,
             contentScale = ContentScale.Crop,
@@ -213,55 +219,50 @@ private fun AlbumScope.GalleryVideoItem(
 }
 
 @Composable
-private fun GalleryItemPlaceholder() = Surface(
-    modifier = Modifier.gridCell(isSelected = false),
-    color = MaterialTheme.colorScheme.surfaceDim,
-) {}
+private fun GalleryItemPlaceholder() = Box(
+    modifier = Modifier.gridCell(isSelected = false)
+        .background(MaterialTheme.colorScheme.surfaceContainer)
+) {
+
+}
 
 @Composable
-private fun Modifier.gridCell(isSelected: Boolean) = fillMaxWidth()
-    .aspectRatio(1f)
-    .then(
-        if (isSelected) {
-            val checkmark = painterResource(R.drawable.ic_check_circle)
-            val tint = LocalContentColor.current
-            val foreground = MaterialTheme.colorScheme.surfaceDim.copy(alpha = 0.8f)
-            Modifier
-                .border(4.dp, MaterialTheme.colorScheme.outline)
-                .drawWithContent {
-                    drawContent()
-                    drawRect(foreground)
-                    with(checkmark) {
-                        val padding = 6.dp.toPx()
-                        translate(left = padding, top = padding) {
-                            draw(
-                                size = intrinsicSize,
-                                colorFilter = ColorFilter.tint(tint)
-                            )
+private fun Modifier.gridCell(isSelected: Boolean): Modifier {
+    val factor by animateFloatAsState(
+        targetValue = if (isSelected) 1f else 0f,
+        animationSpec = spring(),
+    )
+    return fillMaxWidth()
+        .aspectRatio(1f)
+        .then(
+            if (factor >= 0.01f) {
+                val checkmark = painterResource(R.drawable.ic_check_circle)
+                val tint = LocalContentColor.current
+                val foreground = MaterialTheme.colorScheme.surfaceDim.copy(alpha = 0.6f * factor)
+                Modifier
+                    .border(4.dp * factor, MaterialTheme.colorScheme.outline)
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(foreground)
+                        with(checkmark) {
+                            val padding = 6.dp.toPx()
+                            translate(left = padding, top = padding) {
+                                scale(
+                                    scale = factor,
+                                    pivot = intrinsicSize.center,
+                                ) {
+                                    draw(
+                                        size = intrinsicSize,
+                                        colorFilter = ColorFilter.tint(tint)
+                                    )
+                                }
+                            }
                         }
                     }
-                }
-        } else {
-            Modifier
-        }
-    )
-
-@Composable
-private fun SelectionCheckmark(
-    modifier: Modifier,
-    isVisible: Boolean,
-) = AnimatedVisibility(
-    modifier = modifier,
-    visible = isVisible,
-    enter = scaleIn() + fadeIn(),
-    exit = scaleOut() + fadeOut(),
-) {
-    Icon(
-        modifier = Modifier.padding(6.dp),
-        painter = painterResource(R.drawable.ic_check_circle),
-        contentDescription = null,
-//        tint = MaterialTheme.colorScheme.primaryFixed,
-    )
+            } else {
+                Modifier
+            }
+        )
 }
 
 @Composable

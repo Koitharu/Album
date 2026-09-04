@@ -37,6 +37,7 @@ import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.album.Gallery
 import org.koitharu.album.ui.common.AlbumItem.Media
 import org.koitharu.album.ui.common.EmptyState
+import org.koitharu.album.ui.common.SetSystemBarsColorsEffect
 import org.koitharu.album.ui.viewer.ViewerScreen
 import org.koitharu.album.util.IconButtonWithTooltip
 
@@ -156,5 +157,6 @@ fun FolderContentScreen(
                 }
             }
         }
+        SetSystemBarsColorsEffect()
     }
 }

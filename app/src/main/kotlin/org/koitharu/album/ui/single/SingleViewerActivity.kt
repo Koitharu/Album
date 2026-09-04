@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.album.ui.common.ComposeActivity
+import org.koitharu.album.ui.common.SetSystemBarsColorsEffect
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.theme.resolveThemeVariant
 
@@ -26,6 +27,7 @@ class SingleViewerActivity : ComposeActivity() {
                 uri = uri,
                 onClose = { finishAfterTransition() },
             )
+            SetSystemBarsColorsEffect()
         }
     }
 }

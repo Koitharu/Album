@@ -4,15 +4,11 @@ import android.app.Activity
 import android.content.ContextWrapper
 import android.view.View
 import android.view.Window
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.NonRestartableComposable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 @Composable
@@ -21,32 +17,11 @@ fun rememberWindowInsetsController(): WindowInsetsControllerCompat? {
     return remember(view) {
         val window = view.findCurrentWindow()
         if (window != null) {
-            WindowInsetsControllerCompat(window, window.decorView)
+            WindowCompat.getInsetsController(window, view)
         } else {
             null
         }
     }
-}
-
-@Composable
-@NonRestartableComposable
-fun SetSystemBarsColorsEffect(
-    insetsController: WindowInsetsControllerCompat? = rememberWindowInsetsController(),
-    isLightStatusBar: Boolean = insetsController?.isAppearanceLightStatusBars ?: false,
-    isLightNavigationBar: Boolean = insetsController?.isAppearanceLightNavigationBars ?: false,
-) = if (insetsController != null) {
-    DisposableEffect(isLightStatusBar, isLightNavigationBar) {
-        val wasLightStatusBar = insetsController.isAppearanceLightStatusBars
-        val wasLightNavBar = insetsController.isAppearanceLightNavigationBars
-        insetsController.isAppearanceLightStatusBars = isLightStatusBar
-        insetsController.isAppearanceLightNavigationBars = isLightNavigationBar
-        onDispose {
-            insetsController.isAppearanceLightStatusBars = wasLightStatusBar
-            insetsController.isAppearanceLightNavigationBars = wasLightNavBar
-        }
-    }
-} else {
-    Unit
 }
 
 private fun View.findCurrentWindow(): Window? {
@@ -66,12 +41,3 @@ private fun View.findCurrentWindow(): Window? {
 
     return null
 }
-
-
-context(drawScope: DrawScope)
-fun WindowInsets.toRect() = Rect(
-    top = getTop(drawScope).toFloat(),
-    left = getLeft(drawScope, drawScope.layoutDirection).toFloat(),
-    bottom = getBottom(drawScope).toFloat(),
-    right = getRight(drawScope, drawScope.layoutDirection).toFloat(),
-)

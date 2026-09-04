@@ -15,6 +15,7 @@ import org.koitharu.album.model.ThemeVariant.DARK
 import org.koitharu.album.model.ThemeVariant.LIGHT
 import org.koitharu.album.model.ThemeVariant.SYSTEM
 import org.koitharu.album.ui.common.LocalDarkMode
+import org.koitharu.album.ui.common.LocalSystemBarsColorHolder
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -59,7 +60,11 @@ fun AlbumTheme(
         isDarkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
-    CompositionLocalProvider(LocalDarkMode provides isDarkTheme) {
+    val systemBarsColorHolder = LocalSystemBarsColorHolder.current
+    CompositionLocalProvider(
+        LocalDarkMode provides isDarkTheme,
+        LocalSystemBarsColorHolder provides systemBarsColorHolder,
+    ) {
         MaterialExpressiveTheme(
             colorScheme = colorScheme,
             typography = Typography,

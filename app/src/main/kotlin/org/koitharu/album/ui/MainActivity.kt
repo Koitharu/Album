@@ -47,13 +47,13 @@ import org.koitharu.album.ui.common.ComposeActivity
 import org.koitharu.album.ui.common.EmptyState
 import org.koitharu.album.ui.common.LocalDarkMode
 import org.koitharu.album.ui.common.OptionsMenu
+import org.koitharu.album.ui.common.SetSystemBarsColorsEffect
 import org.koitharu.album.ui.folders.FolderContentScreen
 import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.folders.FoldersContent
 import org.koitharu.album.ui.settings.SettingsActivity
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.viewer.ViewerScreen
-import org.koitharu.album.util.SetSystemBarsColorsEffect
 import org.koitharu.album.util.rememberNestedScrollDirectionConnection
 import org.koitharu.album.util.rememberPermissionCheck
 import org.koitharu.album.util.rememberPermissionsCheck
@@ -141,6 +141,7 @@ fun HomeScreen() {
                         selectedTab = selectedTab,
                         foldersListState = foldersListState,
                         hasBanner = state.banner != null,
+                        isBannerDark = state.isBannerDark,
                         isSelectionMode = state.selectedItems.isNotEmpty(),
                         albumScope = AlbumScope(
                             gridState = gridState,
@@ -161,6 +162,7 @@ private fun HomeContent(
     selectedTab: Int,
     foldersListState: LazyListState,
     hasBanner: Boolean,
+    isBannerDark: Boolean,
     isSelectionMode: Boolean,
     albumScope: AlbumScope,
     onNavigationClick: (Int) -> Unit,
@@ -233,7 +235,11 @@ private fun HomeContent(
         }
     }
     SetSystemBarsColorsEffect(
-        isLightStatusBar = !((selectedTab == 0 && hasBanner) || LocalDarkMode.current),
+        isLightStatusBar = !if (selectedTab == 0 && hasBanner) {
+            isBannerDark
+        } else {
+            LocalDarkMode.current
+        },
     )
 }
 
