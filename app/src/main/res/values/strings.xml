@@ -97,6 +97,10 @@
     <string name="resolution">Resolution</string>
     <string name="size_megapixels_template">%.1f MP</string>
     <string name="open_with">Open with</string>
+    <string name="mute">Mute</string>
+    <string name="unmute">Unmute</string>
+    <string name="start_videos_muted">Start videos muted</string>
+    <string name="start_videos_muted_summary">Mute sound when playback starts. The sound can be turned on manually</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

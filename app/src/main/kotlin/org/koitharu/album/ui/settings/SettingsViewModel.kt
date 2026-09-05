@@ -14,6 +14,7 @@ import org.koitharu.album.ui.settings.SettingsIntent.SetHomeBanner
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRecycleBinEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRotationGestureEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetUseExternalEditor
+import org.koitharu.album.ui.settings.SettingsIntent.SetVideosMutedOnStart
 import org.koitharu.album.ui.settings.SettingsIntent.SetViewerTheme
 import javax.inject.Inject
 
@@ -31,6 +32,7 @@ class SettingsViewModel @Inject constructor(
                 repository.viewerTheme,
                 repository.homeBannerSource,
                 repository.useExternalEditor,
+                repository.isVideMutedOnStart,
             ) { data ->
                 SettingsState(
                     isRecycleBinEnabled = data[0] as Boolean,
@@ -39,6 +41,7 @@ class SettingsViewModel @Inject constructor(
                     viewerTheme = data[3] as ThemeVariant,
                     homeBanner = data[4] as HomeBannerSource,
                     useExternalEditor = data[5] as Boolean,
+                    isVideosMutedOnStart = data[6] as Boolean,
                 )
             }.collect {
                 state.value = it
@@ -55,6 +58,7 @@ class SettingsViewModel @Inject constructor(
                 is SetViewerTheme -> repository.setViewerTheme(intent.value)
                 is SetHomeBanner -> repository.setHomeBannerSource(intent.value)
                 is SetUseExternalEditor -> repository.setUseExternalEditor(intent.value)
+                is SetVideosMutedOnStart -> repository.setVideosMutedOnStart(intent.value)
             }
         }
     }

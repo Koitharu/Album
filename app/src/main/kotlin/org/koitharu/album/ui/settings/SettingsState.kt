@@ -13,6 +13,7 @@ data class SettingsState(
     val viewerTheme: ThemeVariant,
     val homeBanner: HomeBannerSource,
     val useExternalEditor: Boolean,
+    val isVideosMutedOnStart: Boolean,
 ) {
 
     constructor() : this(
@@ -22,5 +23,6 @@ data class SettingsState(
         viewerTheme = ThemeVariant.DARK,
         homeBanner = HomeBannerSource.RANDOM,
         useExternalEditor = false,
+        isVideosMutedOnStart = false,
     )
 }

@@ -29,6 +29,7 @@ import org.koitharu.album.ui.settings.SettingsIntent.SetHomeBanner
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRecycleBinEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRotationGestureEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetUseExternalEditor
+import org.koitharu.album.ui.settings.SettingsIntent.SetVideosMutedOnStart
 import org.koitharu.album.ui.settings.SettingsIntent.SetViewerTheme
 import org.koitharu.album.ui.settings.preferences.ListPreference
 import org.koitharu.album.ui.settings.preferences.PreferenceCategory
@@ -131,6 +132,14 @@ fun SettingsScreen(
                 summary = stringResource(R.string.use_external_editor_summary),
                 isChecked = state.useExternalEditor,
                 onClick = { handleIntent(SetUseExternalEditor(!state.useExternalEditor)) },
+            )
+        }
+        item(Keys.muteVideoOnStart.name) {
+            SwitchPreference(
+                title = stringResource(R.string.start_videos_muted),
+                summary = stringResource(R.string.start_videos_muted_summary),
+                isChecked = state.isVideosMutedOnStart,
+                onClick = { handleIntent(SetVideosMutedOnStart(!state.isVideosMutedOnStart)) },
             )
         }
     }

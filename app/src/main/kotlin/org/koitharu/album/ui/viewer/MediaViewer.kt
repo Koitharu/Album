@@ -139,6 +139,7 @@ fun ViewerScreen(
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
             isRotationGestureEnabled = state.isRotationGestureEnabled,
+            isVideosMutedOnStart = state.isVideosMutedOnStart,
             handleIntent = viewModel,
             onClose = { albumViewModel.handleIntent(CloseMedia) }
         )
@@ -157,6 +158,7 @@ private fun PagerMediaViewer(
     pagingData: Flow<PagingData<AlbumItem.Media>>,
     media: AlbumItem.Media,
     isRotationGestureEnabled: Boolean,
+    isVideosMutedOnStart: Boolean,
     snackbarHostState: SnackbarHostState,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
@@ -191,7 +193,7 @@ private fun PagerMediaViewer(
                     modifier = Modifier.background(
                         brush = Brush.verticalGradient(
                             listOf(
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
+                                MaterialTheme.colorScheme.background.copy(alpha = 0.8f),
                                 Color.Transparent,
                             )
                         )
@@ -256,7 +258,8 @@ private fun PagerMediaViewer(
                 animatedVisibilityScope = animatedVisibilityScope,
                 handleIntent = handleIntent,
                 isRotationGestureEnabled = isRotationGestureEnabled,
-                onClick = { isUiVisible = !isUiVisible },
+                isVideosMutedOnStart = isVideosMutedOnStart,
+                setUiVisible = { isUiVisible = it },
                 isUiVisible = isUiVisible,
                 isActive = true,
             )
@@ -273,7 +276,8 @@ private fun PagerMediaViewer(
                 handleIntent = handleIntent,
                 isRotationGestureEnabled = isRotationGestureEnabled,
                 isUiVisible = isUiVisible,
-                onClick = { isUiVisible = !isUiVisible },
+                setUiVisible = { isUiVisible = it },
+                isVideosMutedOnStart = isVideosMutedOnStart,
             )
         }
     }
@@ -285,12 +289,13 @@ fun ViewerPager(
     images: LazyPagingItems<AlbumItem.Media>,
     initialIndex: Int,
     isRotationGestureEnabled: Boolean,
+    isVideosMutedOnStart: Boolean,
     contentPadding: PaddingValues,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     handleIntent: MviIntentHandler<ViewerIntent>,
     isUiVisible: Boolean,
-    onClick: () -> Unit,
+    setUiVisible: (Boolean) -> Unit,
 ) {
     val pagerState = rememberPagerState(
         initialPage = initialIndex,
@@ -321,7 +326,8 @@ fun ViewerPager(
             isActive = page == pagerState.currentPage,
             isUiVisible = isUiVisible,
             isRotationGestureEnabled = isRotationGestureEnabled,
-            onClick = onClick,
+            isVideosMutedOnStart = isVideosMutedOnStart,
+            setUiVisible = setUiVisible,
         )
     }
 }
@@ -332,12 +338,13 @@ fun SingleViewer(
     contentPadding: PaddingValues,
     media: AlbumItem.Media?,
     isRotationGestureEnabled: Boolean,
+    isVideosMutedOnStart: Boolean,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     handleIntent: MviIntentHandler<ViewerIntent>,
     isActive: Boolean,
     isUiVisible: Boolean,
-    onClick: () -> Unit,
+    setUiVisible: (Boolean) -> Unit,
 ) {
     with(sharedTransitionScope) {
         val modifier = if (isActive && media is AlbumItem.Media) {
@@ -354,7 +361,7 @@ fun SingleViewer(
                 image = media,
                 onRotated = { angle -> handleIntent(ViewerIntent.Rotate(media, angle)) },
                 isRotationGestureEnabled = isRotationGestureEnabled,
-                onClick = onClick,
+                onClick = { setUiVisible(!isUiVisible) },
             )
 
             is AlbumItem.Video -> VideoViewer(
@@ -362,7 +369,8 @@ fun SingleViewer(
                 video = media,
                 contentPadding = contentPadding,
                 isUiVisible = isUiVisible,
-                onClick = onClick,
+                setUiVisible = setUiVisible,
+                startMuted = isVideosMutedOnStart,
             )
 
             null -> EmptyPage()
@@ -390,7 +398,7 @@ private fun BottomBar(
             brush = Brush.verticalGradient(
                 listOf(
                     Color.Transparent,
-                    MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
+                    MaterialTheme.colorScheme.background.copy(alpha = 0.8f),
                 )
             )
         )

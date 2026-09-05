@@ -44,6 +44,11 @@ class SettingsRepository @Inject constructor(
             prefs[Keys.allowRotationGesture] ?: false
         }.distinctUntilChanged()
 
+    val isVideMutedOnStart: Flow<Boolean>
+        get() = context.dataStore.data.map { prefs ->
+            prefs[Keys.muteVideoOnStart] ?: false
+        }.distinctUntilChanged()
+
     val useRecycleBin: Flow<Boolean>
         get() = context.dataStore.data.map { prefs ->
             prefs[Keys.useRecycleBin] ?: Features.isRecycleBinSupported
@@ -118,6 +123,12 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    suspend fun setVideosMutedOnStart(value: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.muteVideoOnStart] = value
+        }
+    }
+
     suspend fun setEditorColor(value: Color) {
         context.dataStore.edit { prefs ->
             prefs[Keys.editorColor] = value.toArgb()
@@ -134,6 +145,7 @@ class SettingsRepository @Inject constructor(
 
         val useRecycleBin = booleanPreferencesKey("recycle_bin")
         val allowRotationGesture = booleanPreferencesKey("rotation_gesture")
+        val muteVideoOnStart = booleanPreferencesKey("video_muted")
         val gridScale = floatPreferencesKey("grid_scale")
         val appTheme = stringPreferencesKey("app_theme")
         val viewerTheme = stringPreferencesKey("viewer_theme")

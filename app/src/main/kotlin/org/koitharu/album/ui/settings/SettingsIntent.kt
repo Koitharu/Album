@@ -16,4 +16,6 @@ sealed interface SettingsIntent {
     data class SetHomeBanner(val value: HomeBannerSource) : SettingsIntent
 
     data class SetUseExternalEditor(val value: Boolean) : SettingsIntent
+
+    data class SetVideosMutedOnStart(val value: Boolean) : SettingsIntent
 }

@@ -70,6 +70,11 @@ class ViewerViewModel @AssistedInject constructor(
                 state.update { it.copy(isRotationGestureEnabled = allowRotation) }
             }
         }
+        viewModelScope.launch(Dispatchers.Default) {
+            settingsRepository.isVideMutedOnStart.collect { muted ->
+                state.update { it.copy(isVideosMutedOnStart = muted) }
+            }
+        }
     }
 
     override fun handleIntent(intent: ViewerIntent) {
