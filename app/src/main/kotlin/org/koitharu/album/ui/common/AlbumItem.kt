@@ -2,6 +2,7 @@ package org.koitharu.album.ui.common
 
 import android.net.Uri
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import org.koitharu.album.model.ImmutableDateTime
 import org.koitharu.album.model.MediaItem
 import org.koitharu.album.repository.ThumbnailFetcher.Companion.thumbnailUri
@@ -34,8 +35,13 @@ sealed interface AlbumItem {
         val isFavorite: Boolean
         val isTrashed: Boolean
 
+        @Stable
         val memoryCacheKey: String
             get() = "thumb_$id"
+
+        @Stable
+        val sharedContentKey: String
+            get() = "se_$id"
 
         fun copyWithFavoriteState(isFavorite: Boolean): Media
 
@@ -76,6 +82,7 @@ sealed interface AlbumItem {
         }
     }
 
+    @Immutable
     data class Image(
         override val index: Int,
         override val id: Long,
@@ -93,6 +100,7 @@ sealed interface AlbumItem {
         )
     }
 
+    @Immutable
     data class Video(
         override val index: Int,
         override val id: Long,

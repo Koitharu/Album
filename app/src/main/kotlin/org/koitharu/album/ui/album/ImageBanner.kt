@@ -26,7 +26,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.stringResource
@@ -35,7 +34,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
 import org.koitharu.album.R
 import org.koitharu.album.ui.album.AlbumIntent.HandleClick
 import org.koitharu.album.ui.common.AlbumItem
@@ -128,11 +126,13 @@ private fun ImageBanner(
             AnimatedContent(
                 targetState = image,
                 contentAlignment = Alignment.Center,
+                contentKey = { it.id },
                 transitionSpec = {
                     fadeIn(tween(transitionDuration)) togetherWith fadeOut(tween(transitionDuration))
                 },
             ) { targetImage ->
                 AsyncImage(
+                    model = targetImage.uri,
                     modifier = Modifier
                         .fillMaxWidth()
                         .graphicsLayer {
@@ -140,9 +140,6 @@ private fun ImageBanner(
                         }
                         .height(height),
                     contentScale = ContentScale.Crop,
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(targetImage.uri)
-                        .build(),
                     contentDescription = targetImage.name,
                 )
             }

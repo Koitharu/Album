@@ -1,6 +1,8 @@
 package org.koitharu.album.ui.viewer
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -70,6 +72,8 @@ fun ImageViewer(
             .padding(24.dp)
             .align(Alignment.Center),
         visible = error != null,
+        enter = fadeIn(),
+        exit = fadeOut(),
     ) {
         Text(
             text = error?.message ?: stringResource(R.string.error_message_generic),

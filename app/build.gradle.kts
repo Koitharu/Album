@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.dagger.hilt)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.stability.analyzer)
 }
 
 android {

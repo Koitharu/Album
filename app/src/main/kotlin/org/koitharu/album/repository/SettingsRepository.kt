@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.plus
@@ -36,32 +37,32 @@ class SettingsRepository @Inject constructor(
     val gridScale: Flow<Float>
         get() = context.dataStore.data.map { prefs ->
             prefs[Keys.gridScale] ?: GRID_SCALE_DEFAULT
-        }
+        }.distinctUntilChanged()
 
     val isRotationGestureEnabled: Flow<Boolean>
         get() = context.dataStore.data.map { prefs ->
             prefs[Keys.allowRotationGesture] ?: false
-        }
+        }.distinctUntilChanged()
 
     val useRecycleBin: Flow<Boolean>
         get() = context.dataStore.data.map { prefs ->
             prefs[Keys.useRecycleBin] ?: Features.isRecycleBinSupported
-        }
+        }.distinctUntilChanged()
 
     val useExternalEditor: Flow<Boolean>
         get() = context.dataStore.data.map { prefs ->
             prefs[Keys.useExternalEditor] ?: false
-        }
+        }.distinctUntilChanged()
 
     val editorLineThickness: Flow<Dp>
         get() = context.dataStore.data.map { prefs ->
             (prefs[Keys.editorLineThickness] ?: 2).dp
-        }
+        }.distinctUntilChanged()
 
     val editorColor: Flow<Color>
         get() = context.dataStore.data.map { prefs ->
             prefs[Keys.editorColor]?.let { Color(it) } ?: Color.Red
-        }
+        }.distinctUntilChanged()
 
     val appTheme: StateFlow<ThemeVariant> = context.dataStore.data.map { prefs ->
         prefs[Keys.appTheme, ThemeVariant.SYSTEM]
@@ -73,7 +74,7 @@ class SettingsRepository @Inject constructor(
 
     val homeBannerSource = context.dataStore.data.map { prefs ->
         prefs[Keys.homeBanner, HomeBannerSource.RANDOM]
-    }
+    }.distinctUntilChanged()
 
     suspend fun setGridScale(scale: Float) {
         context.dataStore.edit { prefs ->
