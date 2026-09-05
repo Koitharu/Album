@@ -26,6 +26,7 @@ import org.koitharu.album.ui.viewer.ViewerIntent.Delete
 import org.koitharu.album.ui.viewer.ViewerIntent.Edit
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
+import org.koitharu.album.ui.viewer.ViewerIntent.OpenInExternalApp
 import org.koitharu.album.ui.viewer.ViewerIntent.OpenInfo
 import org.koitharu.album.ui.viewer.ViewerIntent.Print
 import org.koitharu.album.ui.viewer.ViewerIntent.Recover
@@ -119,6 +120,10 @@ class ViewerViewModel @AssistedInject constructor(
                 it.copy(
                     infoBottomSheetImage = intent.image,
                 )
+            }
+
+            is OpenInExternalApp -> viewModelScope.launch {
+                shellIntegrationHelper.openInExternalApp(intent.media)
             }
         }
     }

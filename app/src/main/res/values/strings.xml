@@ -96,6 +96,7 @@
     <string name="height">Height</string>
     <string name="resolution">Resolution</string>
     <string name="size_megapixels_template">%.1f MP</string>
+    <string name="open_with">Open with</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

@@ -83,6 +83,7 @@ import org.koitharu.album.ui.viewer.ViewerIntent.Delete
 import org.koitharu.album.ui.viewer.ViewerIntent.Edit
 import org.koitharu.album.ui.viewer.ViewerIntent.Favorite
 import org.koitharu.album.ui.viewer.ViewerIntent.OnMediaChanged
+import org.koitharu.album.ui.viewer.ViewerIntent.OpenInExternalApp
 import org.koitharu.album.ui.viewer.ViewerIntent.OpenInfo
 import org.koitharu.album.ui.viewer.ViewerIntent.Print
 import org.koitharu.album.ui.viewer.ViewerIntent.Recover
@@ -472,6 +473,15 @@ private fun OptionMenu(
     media: AlbumItem.Media,
     handleIntent: MviIntentHandler<ViewerIntent>,
 ) = OptionsMenu { dismiss ->
+    DropdownMenuItem(
+        text = {
+            Text(stringResource(R.string.open_with))
+        },
+        onClick = {
+            handleIntent(OpenInExternalApp(media))
+            dismiss()
+        }
+    )
     if (media is AlbumItem.Image) {
         DropdownMenuItem(
             text = {

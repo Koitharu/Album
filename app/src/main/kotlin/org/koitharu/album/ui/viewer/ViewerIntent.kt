@@ -30,6 +30,10 @@ sealed interface ViewerIntent {
         val media: AlbumItem.Media,
     ) : ViewerIntent
 
+    data class OpenInExternalApp(
+        val media: AlbumItem.Media,
+    ) : ViewerIntent
+
     data class Print(
         val image: AlbumItem.Image,
     ) : ViewerIntent

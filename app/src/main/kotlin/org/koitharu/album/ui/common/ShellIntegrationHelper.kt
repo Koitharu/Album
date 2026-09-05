@@ -1,5 +1,6 @@
 package org.koitharu.album.ui.common
 
+import android.content.ComponentName
 import android.content.Intent
 import android.util.ArraySet
 import androidx.core.app.ShareCompat
@@ -7,6 +8,7 @@ import androidx.core.net.toUri
 import androidx.print.PrintHelper
 import dagger.Reusable
 import org.koitharu.album.R
+import org.koitharu.album.ui.single.SingleViewerActivity
 import org.koitharu.album.util.ActivityContextProvider
 import javax.inject.Inject
 import kotlin.coroutines.resume
@@ -57,6 +59,20 @@ class ShellIntegrationHelper @Inject constructor(
             putExtra("mimeType", image.mimeType)
         }
         val chooserIntent = Intent.createChooser(intent, context.getString(R.string.use_as))
+        context.startActivity(chooserIntent)
+    }
+
+    suspend fun openInExternalApp(media: AlbumItem.Media) {
+        val context = activityContextProvider.get()
+        val targetIntent = Intent(Intent.ACTION_VIEW)
+        targetIntent.setDataAndType(media.uri, media.mimeType)
+        val chooserIntent =
+            Intent.createChooser(targetIntent, context.getString(R.string.open_with))
+        chooserIntent.putExtra(
+            Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(
+                ComponentName(context, SingleViewerActivity::class.java)
+            )
+        )
         context.startActivity(chooserIntent)
     }
 
