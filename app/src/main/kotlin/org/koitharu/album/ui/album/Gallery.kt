@@ -36,7 +36,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
@@ -54,6 +53,7 @@ import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.ErrorImageFactory
 import org.koitharu.album.ui.common.MviIntentHandler
+import org.koitharu.album.util.isLoadFinished
 import org.koitharu.album.util.toTitleCase
 
 @Composable
@@ -68,11 +68,7 @@ fun BoxScope.Gallery(
 ) {
     val size = 42.dp
     val images = pagingData.collectAsLazyPagingItems()
-    val isLoadFinished = images.loadState.run {
-        refresh is LoadState.NotLoading && append.endOfPaginationReached
-    }
-
-    if (images.itemCount == 0 && isLoadFinished) {
+    if (images.itemCount == 0 && images.isLoadFinished()) {
         emptyContent()
         return
     }
@@ -219,7 +215,7 @@ private fun AlbumScope.GalleryVideoItem(
 }
 
 @Composable
-private fun GalleryItemPlaceholder() = Box(
+fun GalleryItemPlaceholder() = Box(
     modifier = Modifier.gridCell(isSelected = false)
         .background(MaterialTheme.colorScheme.surfaceContainer)
 ) {
@@ -227,7 +223,7 @@ private fun GalleryItemPlaceholder() = Box(
 }
 
 @Composable
-private fun Modifier.gridCell(isSelected: Boolean): Modifier {
+fun Modifier.gridCell(isSelected: Boolean): Modifier {
     val factor by animateFloatAsState(
         targetValue = if (isSelected) 1f else 0f,
         animationSpec = spring(),
@@ -266,7 +262,7 @@ private fun Modifier.gridCell(isSelected: Boolean): Modifier {
 }
 
 @Composable
-private fun DateHeader(
+fun DateHeader(
     date: String,
 ) {
     Text(

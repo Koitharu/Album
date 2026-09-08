@@ -80,23 +80,16 @@ class MainActivity : ComposeActivity() {
             } else {
                 EmptyState(
                     modifier = Modifier.fillMaxSize(),
-                    iconResId = R.drawable.ic_photo_camera,
+                    iconResId = R.drawable.ic_folder_alert,
                     title = stringResource(R.string.no_permissions),
                     message = stringResource(R.string.no_permissions_message),
                 ) {
-                    EmptyState(
-                        modifier = Modifier.fillMaxSize(),
-                        iconResId = R.drawable.ic_folder_alert,
-                        title = stringResource(R.string.no_permissions),
-                        message = stringResource(R.string.no_permissions_message),
+                    Button(
+                        onClick = { openAppSettings() }
                     ) {
-                        Button(
-                            onClick = { openAppSettings() }
-                        ) {
-                            Text(
-                                text = stringResource(R.string.settings)
-                            )
-                        }
+                        Text(
+                            text = stringResource(R.string.settings)
+                        )
                     }
                 }
             }

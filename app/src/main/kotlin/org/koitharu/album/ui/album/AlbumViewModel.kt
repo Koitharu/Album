@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import androidx.paging.asItemSnapshotListFlow
 import androidx.paging.cachedIn
 import androidx.paging.insertSeparators
 import androidx.paging.map
@@ -17,7 +16,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -51,6 +49,7 @@ import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.common.ShellIntegrationHelper
 import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.info.BitmapAnalyzer
+import org.koitharu.album.util.getSelectedItems
 import org.koitharu.album.util.runCatchingCancellable
 import org.koitharu.album.util.tickerFlow
 import org.koitharu.album.util.toggling
@@ -191,10 +190,9 @@ class AlbumViewModel @AssistedInject constructor(
             }
 
             is AlbumIntent.SelectionAlbumIntent -> viewModelScope.launch(Dispatchers.Default) {
-                val snapshot = gridContent.asItemSnapshotListFlow().first()
-                val selectedItems = state.value.selectedItems.mapNotNull {
-                    snapshot.find { x -> x?.id == it } as? AlbumItem.Media
-                }
+                val selectedItems = gridContent.getSelectedItems(
+                    ids = state.value.selectedItems
+                )
                 if (handleSelectionIntent(selectedItems = selectedItems, intent = intent)) {
                     handleIntent(CancelSelectionMode)
                 }
