@@ -71,6 +71,7 @@
     <string name="no_permissions_message">The app requires permissions to access media content on the device.</string>
     <string name="no_media">No media</string>
     <string name="no_media_message">Looks like you have no any media on your device yet</string>
+    <string name="no_media_filtered_message">Looks like you have no media on your device matches current filters</string>
     <string name="empty_folder_message">You have no any media in this folder</string>
     <string name="empty_favorites">No favorites yet</string>
     <string name="empty_hidden">No hidden items</string>
@@ -107,6 +108,8 @@
     <string name="pick_videos">Pick videos</string>
     <string name="pick_image">Pick image</string>
     <string name="pick_video">Pick video</string>
+    <string name="images">Images</string>
+    <string name="all_folders">All folders</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

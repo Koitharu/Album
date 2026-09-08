@@ -120,6 +120,6 @@ sealed interface FolderItem : Parcelable {
 
         @Stable
         override val iconId: Int
-            get() = R.drawable.ic_folders
+            get() = R.drawable.ic_folder
     }
 }
