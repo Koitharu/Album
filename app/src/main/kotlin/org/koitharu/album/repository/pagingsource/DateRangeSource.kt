@@ -15,13 +15,20 @@ import java.util.concurrent.TimeUnit
 class DateRangeSource @AssistedInject constructor(
     @Assisted("from") dateFrom: Long,
     @Assisted("to") dateTo: Long,
+    @Assisted excludeHidden: Boolean,
     contentResolver: ContentResolver,
     legacyFavoritesRepository: LegacyFavoritesRepository,
-    private val hiddenMediaRepository: HiddenMediaRepository,
+    hiddenMediaRepository: HiddenMediaRepository,
 ) : GallerySource(
     contentResolver = contentResolver,
     legacyFavoritesRepository = legacyFavoritesRepository,
 ) {
+
+    private val hiddenIds = if (excludeHidden) {
+        hiddenMediaRepository.getHiddenIds()
+    } else {
+        emptySet()
+    }
 
     override val selection = buildString {
         append('(')
@@ -51,6 +58,13 @@ class DateRangeSource @AssistedInject constructor(
                 append(" <= ?")
             }
         }
+        if (hiddenIds.isNotEmpty()) {
+            append(" AND ")
+            append(FileColumns._ID)
+            append(" NOT IN (")
+            hiddenIds.joinTo(this, ",") { "?" }
+            append(")")
+        }
     }
 
     override val selectionArgs = buildList {
@@ -64,15 +78,22 @@ class DateRangeSource @AssistedInject constructor(
         if (dateTo != 0L) {
             add(TimeUnit.MILLISECONDS.toSeconds(dateTo).toString())
         }
+        if (hiddenIds.isNotEmpty()) {
+            hiddenIds.mapTo(this) {
+                it.toString()
+            }
+        }
     }.toTypedArray()
 
     init {
-        sourceScope.launch {
-            hiddenMediaRepository.observeHiddenCount()
-                .drop(1)
-                .collect {
-                    invalidate()
-                }
+        if (excludeHidden) {
+            sourceScope.launch {
+                hiddenMediaRepository.observeHiddenCount()
+                    .drop(1)
+                    .collect {
+                        invalidate()
+                    }
+            }
         }
     }
 
@@ -82,6 +103,7 @@ class DateRangeSource @AssistedInject constructor(
         fun create(
             @Assisted("from") dateFrom: Long,
             @Assisted("to") dateTo: Long,
+            excludeHidden: Boolean,
         ): DateRangeSource
     }
 }

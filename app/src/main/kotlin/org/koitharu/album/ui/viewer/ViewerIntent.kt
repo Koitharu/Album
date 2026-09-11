@@ -5,7 +5,7 @@ import org.koitharu.album.ui.common.AlbumItem
 sealed interface ViewerIntent {
 
     data class OnMediaChanged(
-        val media: AlbumItem.Media,
+        val media: AlbumItem.Media?,
     ) : ViewerIntent
 
     data class Favorite(

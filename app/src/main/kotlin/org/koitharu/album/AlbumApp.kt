@@ -4,6 +4,7 @@ import android.app.Application
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.request.CachePolicy
 import coil3.request.crossfade
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.Dispatchers
@@ -27,9 +28,15 @@ class AlbumApp : Application(), SingletonImageLoader.Factory {
         context: PlatformContext,
     ): ImageLoader = ImageLoader.Builder(applicationContext)
         .crossfade(true)
+        .diskCachePolicy(CachePolicy.DISABLED)
         .fetcherCoroutineContext(Dispatchers.Default)
         .interceptorCoroutineContext(Dispatchers.Default)
         .components {
             add(ThumbnailFetcher.Factory())
         }.build()
+
+    companion object {
+
+        const val GITHUB_URL = "https://github.com/koitharu/album"
+    }
 }

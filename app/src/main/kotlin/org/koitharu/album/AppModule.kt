@@ -12,6 +12,7 @@ import dagger.Reusable
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.MediaStoreConfirmationDialogs
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
@@ -41,6 +42,7 @@ class AppModule {
         legacyFavoritesRepository: LegacyFavoritesRepository,
         confirmationDialogs: MediaStoreConfirmationDialogs,
         dateRangeSourceFactory: DateRangeSource.Factory,
+        hiddenMediaRepository: HiddenMediaRepository,
     ): MediaStoreRepository = when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> MediaStoreRepository30Impl(
             activityContextProvider = activityContextProvider,
@@ -48,6 +50,7 @@ class AppModule {
             legacyFavoritesRepository = legacyFavoritesRepository,
             confirmationDialogs = confirmationDialogs,
             dateRangeSourceFactory = dateRangeSourceFactory,
+            hiddenMediaRepository = hiddenMediaRepository,
         )
 
         else -> MediaStoreRepositoryLegacyImpl(
@@ -56,6 +59,7 @@ class AppModule {
             legacyFavoritesRepository = legacyFavoritesRepository,
             confirmationDialogs = confirmationDialogs,
             dateRangeSourceFactory = dateRangeSourceFactory,
+            hiddenMediaRepository = hiddenMediaRepository,
         )
     }
 }

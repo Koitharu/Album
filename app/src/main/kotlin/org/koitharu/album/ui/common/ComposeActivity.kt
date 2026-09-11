@@ -2,8 +2,10 @@ package org.koitharu.album.ui.common
 
 import android.content.Intent
 import android.content.IntentSender
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
@@ -16,7 +18,9 @@ abstract class ComposeActivity : ComponentActivity(), IntentSenderLauncher {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
+        )
         setContent {
             Content()
         }

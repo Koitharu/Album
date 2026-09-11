@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import org.koitharu.album.model.DrawPrimitive
+import org.koitharu.album.model.ImmutableError
 import org.koitharu.album.repository.editor.ImageEditOperation
 import org.koitharu.album.ui.common.Fraction
 
@@ -24,6 +25,7 @@ data class ImageEditorState(
     val currentColor: Color,
     val lineThickness: Dp,
     val isSaving: Boolean,
+    val error: ImmutableError?,
 ) {
 
     constructor(
@@ -42,6 +44,7 @@ data class ImageEditorState(
         lineThickness = 2.dp,
         currentColor = Color.Red,
         isSaving = false,
+        error = null,
     )
 
     val canApply = when (mode) {

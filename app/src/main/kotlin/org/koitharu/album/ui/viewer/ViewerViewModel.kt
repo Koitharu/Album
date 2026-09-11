@@ -15,11 +15,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koitharu.album.repository.ExifEditor
+import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.common.ShellIntegrationHelper
+import org.koitharu.album.ui.viewer.ViewerEffect.CloseViewer
 import org.koitharu.album.ui.viewer.ViewerEffect.OnError
 import org.koitharu.album.ui.viewer.ViewerIntent.CloseInfo
 import org.koitharu.album.ui.viewer.ViewerIntent.Delete
@@ -33,6 +35,7 @@ import org.koitharu.album.ui.viewer.ViewerIntent.Recover
 import org.koitharu.album.ui.viewer.ViewerIntent.Rotate
 import org.koitharu.album.ui.viewer.ViewerIntent.Share
 import org.koitharu.album.ui.viewer.ViewerIntent.UseAs
+import org.koitharu.album.util.printStackTraceDebug
 import org.koitharu.album.util.runCatchingCancellable
 
 @HiltViewModel(assistedFactory = ViewerViewModel.Factory::class)
@@ -52,7 +55,10 @@ class ViewerViewModel @AssistedInject constructor(
                 .flatMapLatest { currentMedia ->
                     repository.observeIsFavorite(currentMedia.id)
                         .map { currentMedia.copyWithFavoriteState(it) }
-                        .catch { sendEffect(OnError(it)) }
+                        .catch { e ->
+                            e.printStackTraceDebug()
+                            sendEffect(OnError(e))
+                        }
                 }.collectLatest { updatedMedia ->
                     state.update { prevState ->
                         if (prevState.currentMedia.id == updatedMedia.id) {
@@ -80,8 +86,12 @@ class ViewerViewModel @AssistedInject constructor(
     override fun handleIntent(intent: ViewerIntent) {
         when (intent) {
             is OnMediaChanged -> viewModelScope.launch(Dispatchers.Default) {
-                state.update {
-                    it.copy(currentMedia = intent.media)
+                if (intent.media == null) {
+                    sendEffect(CloseViewer)
+                } else {
+                    state.update {
+                        it.copy(currentMedia = intent.media)
+                    }
                 }
             }
 
@@ -98,6 +108,7 @@ class ViewerViewModel @AssistedInject constructor(
                         .rotate(intent.angle)
                         .commit()
                 }.onFailure { e ->
+                    e.printStackTraceDebug()
                     sendEffect(OnError(e))
                 }
             }
@@ -161,9 +172,12 @@ class ViewerViewModel @AssistedInject constructor(
     ) {
         viewModelScope.launch(Dispatchers.Default) {
             runCatchingCancellable {
-                val useRecycleBin = settingsRepository.useRecycleBin.first()
+                val useRecycleBin = !media.isTrashed &&
+                        Features.isRecycleBinSupported &&
+                        settingsRepository.useRecycleBin.first()
                 repository.deleteMedia(listOf(media.uri), useRecycleBin)
             }.onFailure {
+                it.printStackTraceDebug()
                 sendEffect(OnError(it))
             }
         }
@@ -176,6 +190,7 @@ class ViewerViewModel @AssistedInject constructor(
             runCatchingCancellable {
                 repository.recoverMedia(listOf(media.uri))
             }.onFailure {
+                it.printStackTraceDebug()
                 sendEffect(OnError(it))
             }
         }

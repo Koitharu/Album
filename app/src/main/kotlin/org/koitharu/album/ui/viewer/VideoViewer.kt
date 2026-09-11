@@ -1,8 +1,8 @@
 package org.koitharu.album.ui.viewer
 
 import android.widget.VideoView
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -257,11 +257,10 @@ private fun VideoControls(
             .align(Alignment.Center),
         onClick = onPlayPauseClick,
     ) {
-        AnimatedContent(
+        Crossfade(
             modifier = Modifier
                 .padding(12.dp),
             targetState = isPlaying,
-            contentAlignment = Alignment.Center,
         ) { playing ->
             if (playing) {
                 Icon(
@@ -311,12 +310,11 @@ private fun VideoControls(
             IconButton(
                 onClick = onMuteUnmuteClick,
             ) {
-                AnimatedContent(
+                Crossfade(
                     modifier = Modifier
                         .padding(6.dp)
                         .size(24.dp),
                     targetState = volume <= VolumeController.MUTE_THRESHOLD,
-                    contentAlignment = Alignment.Center,
                 ) { isMuted ->
                     if (isMuted) {
                         Icon(

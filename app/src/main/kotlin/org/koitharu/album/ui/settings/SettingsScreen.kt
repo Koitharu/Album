@@ -18,12 +18,14 @@ import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
+import org.koitharu.album.AlbumApp.Companion.GITHUB_URL
 import org.koitharu.album.R
 import org.koitharu.album.model.HomeBannerSource
 import org.koitharu.album.model.ThemeVariant
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.SettingsRepository.Keys
 import org.koitharu.album.ui.common.MviIntentHandler
+import org.koitharu.album.ui.settings.SettingsIntent.OpenUrl
 import org.koitharu.album.ui.settings.SettingsIntent.SetAppTheme
 import org.koitharu.album.ui.settings.SettingsIntent.SetHomeBanner
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRecycleBinEnabled
@@ -32,6 +34,7 @@ import org.koitharu.album.ui.settings.SettingsIntent.SetUseExternalEditor
 import org.koitharu.album.ui.settings.SettingsIntent.SetVideosMutedOnStart
 import org.koitharu.album.ui.settings.SettingsIntent.SetViewerTheme
 import org.koitharu.album.ui.settings.preferences.ListPreference
+import org.koitharu.album.ui.settings.preferences.Preference
 import org.koitharu.album.ui.settings.preferences.PreferenceCategory
 import org.koitharu.album.ui.settings.preferences.SwitchPreference
 import org.koitharu.album.ui.theme.AlbumTheme
@@ -141,6 +144,24 @@ fun SettingsScreen(
                 isChecked = state.isVideosMutedOnStart,
                 onClick = { handleIntent(SetVideosMutedOnStart(!state.isVideosMutedOnStart)) },
             )
+        }
+        item(key = R.string.about_app) {
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+            )
+            PreferenceCategory(stringResource(R.string.about_app))
+        }
+        item(key = R.string.source_code) {
+            Preference(
+                title = stringResource(R.string.source_code),
+                summary = GITHUB_URL,
+                onClick = { handleIntent(OpenUrl(GITHUB_URL)) },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_open_in),
+                    contentDescription = null,
+                )
+            }
         }
     }
 }

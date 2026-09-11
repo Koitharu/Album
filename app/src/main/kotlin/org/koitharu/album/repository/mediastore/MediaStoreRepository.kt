@@ -35,6 +35,7 @@ interface MediaStoreRepository {
         dateFrom: Long,
         dateTo: Long,
         limit: Int,
+        excludeHidden: Boolean,
     ): List<MediaItem>
 
     suspend fun getMedia(id: Long): MediaItem
@@ -44,5 +45,6 @@ interface MediaStoreRepository {
     suspend fun getRandomMedia(
         isImageOnly: Boolean,
         isFavoriteOnly: Boolean,
+        excludeHidden: Boolean,
     ): MediaItem?
 }

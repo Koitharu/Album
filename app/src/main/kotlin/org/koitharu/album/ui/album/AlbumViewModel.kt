@@ -50,6 +50,7 @@ import org.koitharu.album.ui.common.ShellIntegrationHelper
 import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.info.BitmapAnalyzer
 import org.koitharu.album.util.getSelectedItems
+import org.koitharu.album.util.printStackTraceDebug
 import org.koitharu.album.util.runCatchingCancellable
 import org.koitharu.album.util.tickerFlow
 import org.koitharu.album.util.toggling
@@ -129,19 +130,21 @@ class AlbumViewModel @AssistedInject constructor(
                             when (bannerSource) {
                                 RANDOM -> repository.getRandomMedia(
                                     isImageOnly = true,
-                                    isFavoriteOnly = false
+                                    isFavoriteOnly = false,
+                                    excludeHidden = true,
                                 )
 
                                 YEAR_AGO -> repository.findByDate(
                                     dateTo = yearAgo(minusDays = 0),
                                     dateFrom = yearAgo(minusDays = 30),
                                     limit = 40,
+                                    excludeHidden = true,
                                 ).randomOrNull()
 
                                 NONE -> null
                             }
                         }.onFailure {
-                            it.printStackTrace()
+                            it.printStackTraceDebug()
                         }.getOrNull()
                     }
                 }

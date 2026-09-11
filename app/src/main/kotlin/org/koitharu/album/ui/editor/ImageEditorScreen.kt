@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import coil3.compose.useExistingImageAsPlaceholder
+import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.transformations
 import kotlinx.collections.immutable.persistentListOf
@@ -248,6 +249,8 @@ fun ImageEditorScreen(
                     .padding(imagePadding),
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(state.imageUri)
+                    .diskCachePolicy(CachePolicy.DISABLED)
+                    .memoryCachePolicy(CachePolicy.DISABLED)
                     .transformations(state.operations)
                     .useExistingImageAsPlaceholder(true)
                     .build(),
@@ -651,6 +654,7 @@ private fun PreviewImageEditorScreen() = AlbumTheme {
             currentColor = Color.Red,
             lineThickness = 2.dp,
             isSaving = false,
+            error = null,
         ),
         handleIntent = MviIntentHandler.NoOp,
         onClose = { /* no-op */ },

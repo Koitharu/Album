@@ -2,7 +2,9 @@ package org.koitharu.album.repository
 
 import android.app.AlertDialog
 import android.net.Uri
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import org.koitharu.album.R
 import org.koitharu.album.util.ActivityContextProvider
 import javax.inject.Inject
@@ -12,15 +14,21 @@ class MediaStoreConfirmationDialogs @Inject constructor(
     private val activityContextProvider: ActivityContextProvider,
 ) {
 
-    suspend fun confirmDeletion(media: Collection<Uri>): Boolean {
+    suspend fun confirmDeletion(
+        media: Collection<Uri>
+    ): Boolean = withContext(Dispatchers.Main.immediate) {
         val context = activityContextProvider.get()
-        return suspendCancellableCoroutine { cont ->
+        suspendCancellableCoroutine { cont ->
             val dialog = AlertDialog.Builder(context)
                 .setTitle(R.string.delete)
                 .setMessage(
                     context.getString(
                         R.string.delete_confirmation,
-                        context.resources.getQuantityString(R.plurals.items, media.size, media.size)
+                        context.resources.getQuantityString(
+                            R.plurals.items,
+                            media.size,
+                            media.size
+                        )
                     )
                 ).setPositiveButton(R.string.delete) { _, _ ->
                     cont.resume(true)

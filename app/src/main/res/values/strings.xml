@@ -110,6 +110,9 @@
     <string name="pick_video">Pick video</string>
     <string name="images">Images</string>
     <string name="all_folders">All folders</string>
+    <string name="error">Error</string>
+    <string name="about_app">About</string>
+    <string name="source_code">Source code</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

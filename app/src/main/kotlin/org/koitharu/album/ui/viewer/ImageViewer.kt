@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,12 +35,14 @@ fun ImageViewer(
     image: AlbumItem.Image,
     isRotationGestureEnabled: Boolean,
     onRotated: (Int) -> Unit,
-    onClick: () -> Unit,
+    isUiVisible: Boolean,
+    setUiVisible: (Boolean) -> Unit,
 ) = Box(
     modifier = Modifier.fillMaxSize(),
 ) {
     var error by remember { mutableStateOf<Throwable?>(null) }
     val zoomableState = rememberZoomableState()
+    val targetUiVisibility by rememberUpdatedState(!isUiVisible)
     ZoomableAsyncImage(
         modifier = Modifier
             .fillMaxSize()
@@ -58,6 +61,7 @@ fun ImageViewer(
         state = rememberZoomableImageState(zoomableState),
         model = ImageRequest.Builder(LocalContext.current).data(image.uri)
             .memoryCachePolicy(CachePolicy.DISABLED)
+            .diskCachePolicy(CachePolicy.DISABLED)
             .placeholderMemoryCacheKey(image.memoryCacheKey)
             .listener(
                 onError = { _, result -> error = result.throwable },
@@ -65,7 +69,7 @@ fun ImageViewer(
             )
             .build(),
         contentDescription = null,
-        onClick = { onClick() },
+        onClick = { setUiVisible(targetUiVisibility) },
     )
     AnimatedVisibility(
         modifier = Modifier

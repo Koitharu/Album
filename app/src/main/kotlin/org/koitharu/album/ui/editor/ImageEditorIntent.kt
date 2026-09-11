@@ -57,4 +57,6 @@ sealed interface ImageEditorIntent {
     data class SetCropAspectRatio(
         val fraction: Fraction
     ) : ImageEditorIntent
+
+    data object ClearError: ImageEditorIntent
 }

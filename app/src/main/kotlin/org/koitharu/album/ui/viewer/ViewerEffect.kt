@@ -12,4 +12,6 @@ sealed interface ViewerEffect {
         val uri: Uri,
         val name: String?,
     ): ViewerEffect
+
+    data object CloseViewer : ViewerEffect
 }

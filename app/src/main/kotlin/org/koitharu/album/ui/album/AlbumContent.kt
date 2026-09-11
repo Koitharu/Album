@@ -8,13 +8,19 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import org.koitharu.album.R
@@ -37,13 +43,20 @@ fun AlbumContent(
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
+        val statusBarHeight = with(LocalDensity.current) {
+            WindowInsets.statusBars.getTop(this).toDp()
+        }
+        val navBarHeight = with(LocalDensity.current) {
+            WindowInsets.navigationBars.getTop(this).toDp()
+        }
         Gallery(
             pagingData = viewModel.gridContent,
             state = state,
             contentPadding = innerPadding,
             scrollerPadding = PaddingValues(
-                top = innerPadding.calculateTopPadding(),
-                bottom = innerPadding.calculateBottomPadding(),
+                top = (innerPadding.calculateTopPadding() - albumScope.headerOffset.value)
+                    .coerceAtLeast(statusBarHeight),
+                bottom = innerPadding.calculateBottomPadding().coerceAtLeast(navBarHeight),
             ),
             albumScope = albumScope,
             handleIntent = viewModel,
@@ -64,6 +77,7 @@ fun AlbumContent(
         AnimatedVisibility(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
                 .padding(24.dp),
             visible = state.selectedItems.isNotEmpty(),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),

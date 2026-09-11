@@ -7,6 +7,8 @@ import androidx.core.app.ShareCompat
 import androidx.core.net.toUri
 import androidx.print.PrintHelper
 import dagger.Reusable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.koitharu.album.R
 import org.koitharu.album.ui.single.SingleViewerActivity
 import org.koitharu.album.util.ActivityContextProvider
@@ -19,7 +21,7 @@ class ShellIntegrationHelper @Inject constructor(
     private val activityContextProvider: ActivityContextProvider,
 ) {
 
-    suspend fun shareMedia(media: AlbumItem.Media) {
+    suspend fun shareMedia(media: AlbumItem.Media) = withContext(Dispatchers.Main.immediate) {
         val context = activityContextProvider.get()
         ShareCompat.IntentBuilder(context)
             .addStream(media.uri)
@@ -27,23 +29,24 @@ class ShellIntegrationHelper @Inject constructor(
             .startChooser()
     }
 
-    suspend fun shareMedia(media: Collection<AlbumItem.Media>) {
-        media.singleOrNull()?.let {
-            return shareMedia(it)
+    suspend fun shareMedia(media: Collection<AlbumItem.Media>) =
+        withContext(Dispatchers.Main.immediate) {
+            media.singleOrNull()?.let {
+                return@withContext shareMedia(it)
+            }
+            val context = activityContextProvider.get()
+            ShareCompat.IntentBuilder(context)
+                .apply {
+                    val types = ArraySet<String>(media.size)
+                    for (m in media) {
+                        addStream(m.uri)
+                        types.add(m.mimeType)
+                    }
+                    setType(aggregateMimeType(types))
+                }.startChooser()
         }
-        val context = activityContextProvider.get()
-        ShareCompat.IntentBuilder(context)
-            .apply {
-                val types = ArraySet<String>(media.size)
-                for (m in media) {
-                    addStream(m.uri)
-                    types.add(m.mimeType)
-                }
-                setType(aggregateMimeType(types))
-            }.startChooser()
-    }
 
-    suspend fun shareImage(uri: String) {
+    suspend fun shareImage(uri: String) = withContext(Dispatchers.Main.immediate) {
         val context = activityContextProvider.get()
         ShareCompat.IntentBuilder(context)
             .addStream(uri.toUri())
@@ -51,7 +54,7 @@ class ShellIntegrationHelper @Inject constructor(
             .startChooser()
     }
 
-    suspend fun openUseAs(image: AlbumItem.Image) {
+    suspend fun openUseAs(image: AlbumItem.Image) = withContext(Dispatchers.Main.immediate) {
         val context = activityContextProvider.get()
         val intent = Intent(Intent.ACTION_ATTACH_DATA).apply {
             setDataAndType(image.uri, image.mimeType)
@@ -62,25 +65,33 @@ class ShellIntegrationHelper @Inject constructor(
         context.startActivity(chooserIntent)
     }
 
-    suspend fun openInExternalApp(media: AlbumItem.Media) {
-        val context = activityContextProvider.get()
-        val targetIntent = Intent(Intent.ACTION_VIEW)
-        targetIntent.setDataAndType(media.uri, media.mimeType)
-        val chooserIntent =
-            Intent.createChooser(targetIntent, context.getString(R.string.open_with))
-        chooserIntent.putExtra(
-            Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(
-                ComponentName(context, SingleViewerActivity::class.java)
+    suspend fun openInExternalApp(media: AlbumItem.Media) =
+        withContext(Dispatchers.Main.immediate) {
+            val context = activityContextProvider.get()
+            val targetIntent = Intent(Intent.ACTION_VIEW)
+            targetIntent.setDataAndType(media.uri, media.mimeType)
+            val chooserIntent =
+                Intent.createChooser(targetIntent, context.getString(R.string.open_with))
+            chooserIntent.putExtra(
+                Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(
+                    ComponentName(context, SingleViewerActivity::class.java)
+                )
             )
-        )
-        context.startActivity(chooserIntent)
-    }
+            context.startActivity(chooserIntent)
+        }
 
-    suspend fun openImageEditor(image: AlbumItem.Image) {
+    suspend fun openImageEditor(image: AlbumItem.Image) = withContext(Dispatchers.Main.immediate) {
         val context = activityContextProvider.get()
         val intent = Intent(Intent.ACTION_EDIT)
             .setDataAndType(image.uri, image.mimeType)
         val chooserIntent = Intent.createChooser(intent, context.getString(R.string.edit))
+        context.startActivity(chooserIntent)
+    }
+
+    suspend fun openLink(link: String) = withContext(Dispatchers.Main.immediate) {
+        val context = activityContextProvider.get()
+        val intent = Intent(Intent.ACTION_VIEW, link.toUri())
+        val chooserIntent = Intent.createChooser(intent, context.getString(R.string.open_with))
         context.startActivity(chooserIntent)
     }
 

@@ -9,6 +9,7 @@ import org.koitharu.album.model.HomeBannerSource
 import org.koitharu.album.model.ThemeVariant
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.ui.common.MviViewModel
+import org.koitharu.album.ui.common.ShellIntegrationHelper
 import org.koitharu.album.ui.settings.SettingsIntent.SetAppTheme
 import org.koitharu.album.ui.settings.SettingsIntent.SetHomeBanner
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRecycleBinEnabled
@@ -16,11 +17,14 @@ import org.koitharu.album.ui.settings.SettingsIntent.SetIsRotationGestureEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetUseExternalEditor
 import org.koitharu.album.ui.settings.SettingsIntent.SetVideosMutedOnStart
 import org.koitharu.album.ui.settings.SettingsIntent.SetViewerTheme
+import org.koitharu.album.util.printStackTraceDebug
+import org.koitharu.album.util.runCatchingCancellable
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val repository: SettingsRepository,
+    private val shellIntegrationHelper: ShellIntegrationHelper,
 ) : MviViewModel<SettingsState, SettingsIntent, Nothing>(SettingsState()) {
 
     init {
@@ -51,14 +55,19 @@ class SettingsViewModel @Inject constructor(
 
     override fun handleIntent(intent: SettingsIntent) {
         viewModelScope.launch(Dispatchers.Default) {
-            when (intent) {
-                is SetAppTheme -> repository.setAppTheme(intent.value)
-                is SetIsRecycleBinEnabled -> repository.setUseRecycleBin(intent.value)
-                is SetIsRotationGestureEnabled -> repository.setRotationGestureEnabled(intent.value)
-                is SetViewerTheme -> repository.setViewerTheme(intent.value)
-                is SetHomeBanner -> repository.setHomeBannerSource(intent.value)
-                is SetUseExternalEditor -> repository.setUseExternalEditor(intent.value)
-                is SetVideosMutedOnStart -> repository.setVideosMutedOnStart(intent.value)
+            runCatchingCancellable {
+                when (intent) {
+                    is SetAppTheme -> repository.setAppTheme(intent.value)
+                    is SetIsRecycleBinEnabled -> repository.setUseRecycleBin(intent.value)
+                    is SetIsRotationGestureEnabled -> repository.setRotationGestureEnabled(intent.value)
+                    is SetViewerTheme -> repository.setViewerTheme(intent.value)
+                    is SetHomeBanner -> repository.setHomeBannerSource(intent.value)
+                    is SetUseExternalEditor -> repository.setUseExternalEditor(intent.value)
+                    is SetVideosMutedOnStart -> repository.setVideosMutedOnStart(intent.value)
+                    is SettingsIntent.OpenUrl -> shellIntegrationHelper.openLink(intent.url)
+                }
+            }.onFailure { e ->
+                e.printStackTraceDebug()
             }
         }
     }

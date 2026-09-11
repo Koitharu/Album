@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
 import org.koitharu.album.repository.Features
+import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.MediaStoreConfirmationDialogs
 import org.koitharu.album.repository.observeChanges
@@ -26,12 +27,14 @@ class MediaStoreRepository30Impl(
     legacyFavoritesRepository: LegacyFavoritesRepository,
     confirmationDialogs: MediaStoreConfirmationDialogs,
     dateRangeSourceFactory: DateRangeSource.Factory,
+    hiddenMediaRepository: HiddenMediaRepository,
 ) : MediaStoreRepositoryLegacyImpl(
     activityContextProvider = activityContextProvider,
     contentResolver = contentResolver,
     legacyFavoritesRepository = legacyFavoritesRepository,
     confirmationDialogs = confirmationDialogs,
     dateRangeSourceFactory = dateRangeSourceFactory,
+    hiddenMediaRepository = hiddenMediaRepository,
 ) {
 
     override suspend fun deleteMedia(media: Collection<Uri>, useRecycleBin: Boolean) {
@@ -65,18 +68,14 @@ class MediaStoreRepository30Impl(
         projection = arrayOf(FileColumns.IS_FAVORITE),
         selection = "${FileColumns._ID} = ?",
         selectionArgs = arrayOf(id.toString()),
-    )?.use { cursor ->
+    ).use { cursor ->
         if (cursor.moveToFirst()) {
             val column = cursor.getColumnIndex(FileColumns.IS_FAVORITE)
-            if (column < 0) {
-                false
-            } else {
-                cursor.getInt(column) > 0
-            }
+            column >= 0 && cursor.getInt(column) > 0
         } else {
             false
         }
-    } ?: false
+    }
 
     override suspend fun setIsFavorite(media: Collection<Uri>, isFavorite: Boolean) {
         val intent = MediaStore.createFavoriteRequest(contentResolver, media, isFavorite)
@@ -120,9 +119,9 @@ class MediaStoreRepository30Impl(
                 "%DCIM%",
                 "0",
             )
-        )?.use {
+        ).use {
             it.count
-        } ?: 0
+        }
     }
 
     override suspend fun getVideosCount(): Int {
@@ -134,9 +133,9 @@ class MediaStoreRepository30Impl(
                 FileColumns.MEDIA_TYPE_VIDEO.toString(),
                 "0",
             )
-        )?.use {
+        ).use {
             it.count
-        } ?: 0
+        }
     }
 
     override suspend fun getRecycleBinSize() = withContext(Dispatchers.IO) {
@@ -149,9 +148,9 @@ class MediaStoreRepository30Impl(
                 FileColumns.MEDIA_TYPE_VIDEO.toString(),
                 "1"
             )
-        )?.use {
+        ).use {
             it.count
-        } ?: 0
+        }
     }
 
     override fun observeIsFavorite(id: Long): Flow<Boolean> = contentResolver.observeChanges(

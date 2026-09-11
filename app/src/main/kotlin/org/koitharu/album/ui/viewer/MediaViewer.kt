@@ -32,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -62,6 +63,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import org.koitharu.album.R
@@ -76,6 +78,7 @@ import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.info.MediaInfoBottomSheet
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.theme.resolveThemeVariant
+import org.koitharu.album.ui.viewer.ViewerEffect.CloseViewer
 import org.koitharu.album.ui.viewer.ViewerEffect.OnError
 import org.koitharu.album.ui.viewer.ViewerEffect.OpenImageEditor
 import org.koitharu.album.ui.viewer.ViewerIntent.CloseInfo
@@ -91,6 +94,7 @@ import org.koitharu.album.ui.viewer.ViewerIntent.Share
 import org.koitharu.album.ui.viewer.ViewerIntent.UseAs
 import org.koitharu.album.util.IconButtonWithTooltip
 import org.koitharu.album.util.formattedDateTime
+import org.koitharu.album.util.printStackTraceDebug
 import org.koitharu.album.util.rememberWindowInsetsController
 import org.koitharu.album.util.slideUpToClose
 
@@ -129,6 +133,8 @@ fun ViewerScreen(
                         ).setData(effect.uri)
                             .putExtra(ImageEditorActivity.EXTRA_NAME, effect.name)
                     )
+
+                    CloseViewer -> albumViewModel.handleIntent(CloseMedia)
                 }
             }
         }
@@ -306,7 +312,11 @@ fun ViewerPager(
             .flatMapLatest { index ->
                 snapshotFlow { images.peek(index) }
             }.filterNotNull()
-            .collect {
+            .catch<AlbumItem.Media?> { e ->
+                e.printStackTraceDebug()
+                // Probably last item was deleted
+                emit(null)
+            }.collect {
                 handleIntent(OnMediaChanged(it))
             }
     }
@@ -361,7 +371,8 @@ fun SingleViewer(
                 image = media,
                 onRotated = { angle -> handleIntent(ViewerIntent.Rotate(media, angle)) },
                 isRotationGestureEnabled = isRotationGestureEnabled,
-                onClick = { setUiVisible(!isUiVisible) },
+                isUiVisible = isUiVisible,
+                setUiVisible = setUiVisible,
             )
 
             is AlbumItem.Video -> VideoViewer(
@@ -421,6 +432,7 @@ private fun BottomBar(
     ) {
         IconButtonWithTooltip(
             tooltip = stringResource(R.string.share),
+            tooltipAnchorPosition = TooltipAnchorPosition.Above,
             onClick = { handleIntent(Share(media)) },
         ) {
             Icon(
@@ -428,33 +440,47 @@ private fun BottomBar(
                 contentDescription = stringResource(R.string.share)
             )
         }
-        IconButtonWithTooltip(
-            tooltip = stringResource(R.string.favorite),
-            onClick = { handleIntent(Favorite(media, !media.isFavorite)) },
-        ) {
-            Crossfade(
-                targetState = media.isFavorite,
-            ) { fav ->
-                Icon(
-                    painter = painterResource(if (fav) R.drawable.ic_star_filled else R.drawable.ic_star_outline),
-                    contentDescription = stringResource(R.string.favorite)
-                )
-            }
-        }
-        if (media is AlbumItem.Image) {
+        if (!media.isTrashed) {
             IconButtonWithTooltip(
-                tooltip = stringResource(R.string.edit),
-                onClick = { handleIntent(Edit(media)) },
+                tooltip = stringResource(R.string.favorite),
+                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                onClick = { handleIntent(Favorite(media, !media.isFavorite)) },
+            ) {
+                Crossfade(
+                    targetState = media.isFavorite,
+                ) { fav ->
+                    Icon(
+                        painter = painterResource(if (fav) R.drawable.ic_star_filled else R.drawable.ic_star_outline),
+                        contentDescription = stringResource(R.string.favorite)
+                    )
+                }
+            }
+            if (media is AlbumItem.Image) {
+                IconButtonWithTooltip(
+                    tooltip = stringResource(R.string.edit),
+                    tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                    onClick = { handleIntent(Edit(media)) },
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_edit_image),
+                        contentDescription = stringResource(R.string.edit)
+                    )
+                }
+            }
+            IconButtonWithTooltip(
+                tooltip = stringResource(R.string.delete),
+                tooltipAnchorPosition = TooltipAnchorPosition.Above,
+                onClick = { handleIntent(Delete(media)) },
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_edit_image),
-                    contentDescription = stringResource(R.string.edit)
+                    painter = painterResource(R.drawable.ic_delete),
+                    contentDescription = stringResource(R.string.delete)
                 )
             }
-        }
-        if (media.isTrashed) {
+        } else {
             IconButtonWithTooltip(
                 tooltip = stringResource(R.string.restore),
+                tooltipAnchorPosition = TooltipAnchorPosition.Above,
                 onClick = { handleIntent(Recover(media)) },
             ) {
                 Icon(
@@ -462,14 +488,14 @@ private fun BottomBar(
                     contentDescription = stringResource(R.string.restore)
                 )
             }
-        } else {
             IconButtonWithTooltip(
-                tooltip = stringResource(R.string.delete),
+                tooltip = stringResource(R.string.delete_permanently),
+                tooltipAnchorPosition = TooltipAnchorPosition.Above,
                 onClick = { handleIntent(Delete(media)) },
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_delete),
-                    contentDescription = stringResource(R.string.delete)
+                    painter = painterResource(R.drawable.ic_delete_forever),
+                    contentDescription = stringResource(R.string.delete_permanently)
                 )
             }
         }

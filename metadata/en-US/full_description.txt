@@ -1,0 +1,10 @@
+Simple but functional Android gallery app
+
+- Lightweight, not bloated, no internet permission.
+- Modern Material You UI.
+- All media gallery and grouped by folders.
+- Hidden media, favorites, recycle bin (if supported by OS).
+- Built-in image editor.
+- Wallpaper cropper.
+- Image picker.
+- Made by human, not AI.

@@ -10,7 +10,9 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -20,6 +22,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -56,7 +60,7 @@ fun FolderContentScreen(
         val gridState = rememberLazyGridState()
         val state by viewModel.collectState()
         BackHandler(onBack = onClose)
-        val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+        val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         SharedTransitionLayout {
             AnimatedContent(state.openedItem) { openedItem ->
                 when (openedItem) {
@@ -72,6 +76,7 @@ fun FolderContentScreen(
                             .nestedScroll(scrollBehavior.nestedScrollConnection),
                         topBar = {
                             TopAppBar(
+                                modifier = Modifier.statusBarsPadding(),
                                 title = {
                                     Text(text = folder.title())
                                 },
@@ -102,6 +107,7 @@ fun FolderContentScreen(
                                     gridState = gridState,
                                     sharedTransitionScope = this@SharedTransitionLayout,
                                     animatedVisibilityScope = this@AnimatedContent,
+                                    headerOffset = remember { mutableStateOf(0.dp) },
                                 ),
                                 handleIntent = viewModel,
                                 emptyContent = {
@@ -139,6 +145,7 @@ fun FolderContentScreen(
                             AnimatedVisibility(
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
+                                    .navigationBarsPadding()
                                     .padding(24.dp),
                                 visible = state.selectedItems.isNotEmpty(),
                                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),

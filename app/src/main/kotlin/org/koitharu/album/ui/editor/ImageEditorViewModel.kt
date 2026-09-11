@@ -14,13 +14,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koitharu.album.model.DrawPrimitive
+import org.koitharu.album.model.ImmutableError
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.editor.ImageEditOperation
 import org.koitharu.album.repository.editor.ImageEditor
 import org.koitharu.album.ui.common.MviViewModel
-import org.koitharu.album.ui.editor.ImageEditorEffect.OnError
 import org.koitharu.album.ui.editor.ImageEditorEffect.OnImageSaved
 import org.koitharu.album.ui.editor.ImageEditorIntent.Apply
+import org.koitharu.album.ui.editor.ImageEditorIntent.ClearError
 import org.koitharu.album.ui.editor.ImageEditorIntent.Crop
 import org.koitharu.album.ui.editor.ImageEditorIntent.Draw
 import org.koitharu.album.ui.editor.ImageEditorIntent.FlipHorizontal
@@ -37,6 +38,7 @@ import org.koitharu.album.ui.editor.ImageEditorIntent.SetLineThickness
 import org.koitharu.album.ui.editor.ImageEditorIntent.SetMode
 import org.koitharu.album.ui.editor.ImageEditorIntent.Share
 import org.koitharu.album.ui.editor.ImageEditorIntent.Undo
+import org.koitharu.album.util.printStackTraceDebug
 import org.koitharu.album.util.runCatchingCancellable
 
 @HiltViewModel(assistedFactory = ImageEditorViewModel.Factory::class)
@@ -121,8 +123,9 @@ class ImageEditorViewModel @AssistedInject constructor(
                             sourceUri = snapshot.imageUri.toUri(),
                             operations = snapshot.operations,
                         )
-                }.onFailure {
-                    sendEffect(OnError(it))
+                }.onFailure { e ->
+                    e.printStackTraceDebug()
+                    state.update { it.copy(error = ImmutableError(e)) }
                 }.onSuccess {
                     sendEffect(OnImageSaved)
                 }
@@ -135,8 +138,9 @@ class ImageEditorViewModel @AssistedInject constructor(
                             operations = snapshot.operations,
                             targetUri = snapshot.imageUri.toUri(),
                         )
-                }.onFailure {
-                    sendEffect(OnError(it))
+                }.onFailure { e ->
+                    e.printStackTraceDebug()
+                    state.update { it.copy(error = ImmutableError(e)) }
                 }.onSuccess {
                     sendEffect(OnImageSaved)
                 }
@@ -148,11 +152,15 @@ class ImageEditorViewModel @AssistedInject constructor(
                             sourceUri = snapshot.imageUri.toUri(),
                             operations = snapshot.operations,
                         )
-                }.onFailure {
-                    sendEffect(OnError(it))
+                }.onFailure { e ->
+                    e.printStackTraceDebug()
+                    state.update { it.copy(error = ImmutableError(e)) }
                 }
 
-                is ImageLoadFailed -> sendEffect(OnError(intent.error))
+                is ImageLoadFailed -> state.update {
+                    it.copy(error = ImmutableError(intent.error))
+                }
+
                 is SetColor -> {
                     state.update {
                         it.copy(
@@ -199,6 +207,8 @@ class ImageEditorViewModel @AssistedInject constructor(
                     }
                     settingsRepository.setEditorLineThickness(intent.thickness)
                 }
+
+                ClearError -> state.update { it.copy(error = null) }
             }
         }
     }

@@ -1,21 +1,21 @@
 package org.koitharu.album.ui.album
 
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -43,6 +43,7 @@ import kotlin.math.min
 fun HomeScreenBanner(
     isExpanded: Boolean,
     albumScope: AlbumScope,
+    scrollBehavior: TopAppBarScrollBehavior,
     overlayContent: @Composable (Modifier, Color) -> Unit,
 ) = with(albumScope.sharedTransitionScope) {
     val viewModel = hiltViewModel<AlbumViewModel, AlbumViewModel.Factory>(
@@ -54,8 +55,10 @@ fun HomeScreenBanner(
     val banner = state.banner
     if (banner == null || !isExpanded) {
         TopAppBar(
+            modifier = Modifier.statusBarsPadding(),
             title = { Text(stringResource(R.string.app_name)) },
             actions = { overlayContent(Modifier, LocalContentColor.current) },
+            scrollBehavior = scrollBehavior,
         )
     } else {
         ImageBanner(
@@ -69,7 +72,8 @@ fun HomeScreenBanner(
             gridState = albumScope.gridState,
             height = 240.dp,
             overlayContent = overlayContent,
-            onClick = { viewModel.handleIntent(HandleClick(banner)) }
+            onOffsetChanged = { albumScope.headerOffset.value = it },
+            onClick = { viewModel.handleIntent(HandleClick(banner)) },
         )
     }
 }
@@ -81,6 +85,7 @@ private fun ImageBanner(
     height: Dp,
     modifier: Modifier = Modifier,
     overlayContent: @Composable (Modifier, Color) -> Unit,
+    onOffsetChanged: (Dp) -> Unit,
     onClick: () -> Unit,
 ) {
     val density = LocalDensity.current
@@ -96,65 +101,63 @@ private fun ImageBanner(
         }
     }
     val currentHeaderHeight = with(density) { (maxHeightPx - scrollOffset).toDp() }
+    LaunchedEffect(currentHeaderHeight) {
+        onOffsetChanged(height - currentHeaderHeight)
+    }
     val collapseFraction = (maxHeightPx - scrollOffset) / maxHeightPx
     val brush =
         Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent))
-    if (currentHeaderHeight > 0.dp) {
-        Box(
+    Box(
+        modifier = Modifier
+            .graphicsLayer {
+                clip = true
+                alpha = collapseFraction * collapseFraction
+                shape = GenericShape { size, _ ->
+                    addRect(
+                        Rect(
+                            top = 0f,
+                            left = 0f,
+                            right = size.width,
+                            bottom = maxHeightPx - scrollOffset
+                        )
+                    )
+                }
+            }
+            .then(modifier),
+    ) {
+        val transitionDuration = integerResource(android.R.integer.config_longAnimTime)
+        Crossfade(
             modifier = Modifier
                 .clickable(
                     role = Role.Image,
                     onClick = onClick,
-                )
-                .graphicsLayer {
-                    clip = true
-                    alpha = collapseFraction * collapseFraction
-                    shape = GenericShape { size, _ ->
-                        addRect(
-                            Rect(
-                                top = 0f,
-                                left = 0f,
-                                right = size.width,
-                                bottom = maxHeightPx - scrollOffset
-                            )
-                        )
-                    }
-                }
-                .then(modifier),
-        ) {
-            val transitionDuration = integerResource(android.R.integer.config_longAnimTime)
-            AnimatedContent(
-                targetState = image,
-                contentAlignment = Alignment.Center,
-                contentKey = { it.id },
-                transitionSpec = {
-                    fadeIn(tween(transitionDuration)) togetherWith fadeOut(tween(transitionDuration))
-                },
-            ) { targetImage ->
-                AsyncImage(
-                    model = targetImage.uri,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .graphicsLayer {
-                            translationY = scrollOffset / -2f
-                        }
-                        .height(height),
-                    contentScale = ContentScale.Crop,
-                    contentDescription = targetImage.name,
-                )
-            }
-            Canvas(
+                ),
+            targetState = image,
+            animationSpec = tween(transitionDuration),
+        ) { targetImage ->
+            AsyncImage(
+                model = targetImage.uri,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(46.dp.coerceAtMost(currentHeaderHeight)),
-                onDraw = {
-                    drawRect(brush)
-                }
-            )
-            overlayContent(
-                Modifier.align(Alignment.TopEnd),
-                Color.White,
+                    .graphicsLayer {
+                        translationY = scrollOffset / -2f
+                    }
+                    .height(height),
+                contentScale = ContentScale.Crop,
+                contentDescription = targetImage.name,
             )
         }
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(46.dp.coerceAtMost(currentHeaderHeight)),
+            onDraw = {
+                drawRect(brush)
+            }
+        )
+        overlayContent(
+            Modifier.align(Alignment.TopEnd),
+            Color.White,
+        )
     }
 }

@@ -32,6 +32,7 @@ import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.ActivityContextProvider
 import org.koitharu.album.util.IntentSenderLauncher
 import java.io.File
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class ImageEditor @Inject constructor(
@@ -42,6 +43,8 @@ class ImageEditor @Inject constructor(
 
     private val imageLoader: ImageLoader
         get() = SingletonImageLoader.get(context)
+
+    private val fileIndexRegex = Regex("\\(([0-9]+)\\)$")
 
     suspend fun editAndReplace(
         sourceUri: Uri,
@@ -59,6 +62,13 @@ class ImageEditor @Inject constructor(
             }.use { output ->
                 image.compress(type.compressFormat, 100, output)
             }
+
+            val timestamp = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Images.Media.DATE_MODIFIED, timestamp)
+            }
+            contentResolver.update(targetUri, contentValues, null, null)
+            contentResolver.notifyChange(targetUri, null)
         } finally {
             image.recycle()
         }
@@ -93,23 +103,25 @@ class ImageEditor @Inject constructor(
         sourceUri: Uri,
         operations: List<ImageEditOperation>,
     ) {
-        val sourceDir = findPath(sourceUri)
+        val targetDir = findPath(sourceUri)
             ?: Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath
         val name =
             getImageName(sourceUri) ?: sourceUri.lastPathSegment ?: sourceUri.hashCode().toString()
         val image = prepareImage(sourceUri, operations)
         val type = getImageType(sourceUri) ?: ImageType.PNG
+        val targetName = if (name.endsWith(type.extension, ignoreCase = true)) {
+            name
+        } else {
+            name + "." + type.extension
+        }.nextFileName()
         try {
-            writeNewImage(
-                targetDir = sourceDir,
-                name = if (name.endsWith(type.extension, ignoreCase = true)) {
-                    name
-                } else {
-                    name + "." + type.extension
-                },
+            val newUri = writeNewImage(
+                targetDir = targetDir,
+                name = targetName,
                 type = type,
                 bitmap = image,
             )
+            contentResolver.notifyChange(newUri, null)
         } finally {
             image.recycle()
         }
@@ -137,9 +149,12 @@ class ImageEditor @Inject constructor(
         name: String,
         type: ImageType,
         bitmap: Bitmap,
-    ) = runInterruptible(Dispatchers.IO) {
+    ): Uri = runInterruptible(Dispatchers.IO) {
+        val timestamp = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
         val contentValues = ContentValues().apply {
             put(MediaStore.Images.Media.MIME_TYPE, type.mimeType)
+            put(MediaStore.Images.Media.DATE_ADDED, timestamp)
+            put(MediaStore.Images.Media.DATE_MODIFIED, timestamp)
 
             if (Features.isPathColumnSupported) {
                 put(MediaStore.Images.Media.DISPLAY_NAME, name)
@@ -155,7 +170,7 @@ class ImageEditor @Inject constructor(
         // Insert entry and write bytes
         val targetUri =
             contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-                ?: error("Cannot create a new MediaStore entry")
+                ?: error("Cannot create a new MediaStore entry for $targetDir/$name")
         try {
             contentResolver.openOutputStream(targetUri)?.use { stream ->
                 bitmap.compress(type.compressFormat, 100, stream)
@@ -165,6 +180,7 @@ class ImageEditor @Inject constructor(
                 contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
                 contentResolver.update(targetUri, contentValues, null, null)
             }
+            targetUri
         } catch (e: Exception) {
             contentResolver.delete(targetUri, null, null)
             throw e
@@ -172,12 +188,12 @@ class ImageEditor @Inject constructor(
     }
 
     private suspend fun findPath(sourceUri: Uri): String? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        return if (Features.isPathColumnSupported) {
             val projection = arrayOf(MediaStore.Images.Media.RELATIVE_PATH)
             contentResolver.queryCompat(
                 uri = sourceUri,
                 projection = projection,
-            )?.use { cursor ->
+            ).use { cursor ->
                 if (cursor.moveToFirst()) {
                     val index = cursor.getColumnIndex(MediaStore.Images.Media.RELATIVE_PATH)
                     if (index != -1) {
@@ -194,13 +210,13 @@ class ImageEditor @Inject constructor(
             contentResolver.queryCompat(
                 uri = sourceUri,
                 projection = projection,
-            )?.use { cursor ->
+            ).use { cursor ->
                 if (cursor.moveToFirst()) {
                     val index = cursor.getColumnIndex(MediaStore.Images.Media.DATA)
                     if (index != -1) {
                         val absolutePath = cursor.getString(index)
                         val sourceFile = File(absolutePath)
-                        sourceFile.parentFile?.parent
+                        sourceFile.parentFile?.absolutePath
                     } else {
                         null
                     }
@@ -221,7 +237,7 @@ class ImageEditor @Inject constructor(
     private suspend fun getImageType(uri: Uri) = contentResolver.queryCompat(
         uri = uri,
         projection = arrayOf(FileColumns.MIME_TYPE),
-    )?.let { cursor ->
+    ).let { cursor ->
         if (cursor.moveToFirst()) {
             val column = cursor.getColumnIndex(FileColumns.MIME_TYPE)
             if (column >= 0) {
@@ -239,7 +255,7 @@ class ImageEditor @Inject constructor(
     private suspend fun getImageName(uri: Uri) = contentResolver.queryCompat(
         uri = uri,
         projection = arrayOf(FileColumns.DISPLAY_NAME),
-    )?.let { cursor ->
+    ).let { cursor ->
         if (cursor.moveToFirst()) {
             val column = cursor.getColumnIndex(FileColumns.DISPLAY_NAME)
             if (column >= 0) {
@@ -267,6 +283,22 @@ class ImageEditor @Inject constructor(
             compressFormat = CompressFormat.PNG,
             extension = "png",
         ),
+    }
 
+    private fun String.nextFileName(): String {
+        val baseName = substringBeforeLast('.')
+        val ext = substringBeforeLast('.', "")
+        val newName = if (baseName.contains(fileIndexRegex)) {
+            runCatching {
+                baseName.replace(fileIndexRegex) {
+                    it.value.toInt().plus(1).toString()
+                }
+            }.getOrElse {
+                "$baseName(0)"
+            }
+        } else {
+            "$baseName(0)"
+        }
+        return "$newName.$ext"
     }
 }

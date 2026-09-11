@@ -23,10 +23,12 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -139,7 +141,8 @@ fun HomeScreen() {
                         albumScope = AlbumScope(
                             gridState = gridState,
                             sharedTransitionScope = this@SharedTransitionLayout,
-                            animatedVisibilityScope = this@AnimatedContent
+                            animatedVisibilityScope = this@AnimatedContent,
+                            headerOffset = remember { mutableStateOf(0.dp) },
                         ),
                         onFolderClick = { selectedFolder = it },
                         onNavigationClick = { selectedTab = it }
@@ -163,14 +166,17 @@ private fun HomeContent(
 ) {
     val scrollConnection = rememberNestedScrollDirectionConnection(4.dp)
     val scrollDirection by scrollConnection.direction
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
         modifier = Modifier
             .nestedScroll(scrollConnection)
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
             HomeScreenBanner(
                 isExpanded = selectedTab == 0,
                 albumScope = albumScope,
+                scrollBehavior = scrollBehavior,
                 overlayContent = { modifier, color ->
                     OptionsMenu(
                         modifier = modifier.statusBarsPadding(),

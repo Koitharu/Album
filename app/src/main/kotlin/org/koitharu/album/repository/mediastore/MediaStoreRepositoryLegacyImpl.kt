@@ -20,6 +20,7 @@ import kotlinx.coroutines.withContext
 import org.koitharu.album.model.MediaFolder
 import org.koitharu.album.model.MediaItem
 import org.koitharu.album.repository.Features
+import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.MediaStoreConfirmationDialogs
 import org.koitharu.album.repository.OrderDirection.DESC
@@ -33,6 +34,7 @@ import org.koitharu.album.util.resolve
 open class MediaStoreRepositoryLegacyImpl(
     protected val activityContextProvider: ActivityContextProvider,
     protected val contentResolver: ContentResolver,
+    protected val hiddenMediaRepository: HiddenMediaRepository,
     private val legacyFavoritesRepository: LegacyFavoritesRepository,
     private val confirmationDialogs: MediaStoreConfirmationDialogs,
     private val dateRangeSourceFactory: DateRangeSource.Factory,
@@ -197,11 +199,13 @@ open class MediaStoreRepositoryLegacyImpl(
     override suspend fun findByDate(
         dateFrom: Long,
         dateTo: Long,
-        limit: Int
+        limit: Int,
+        excludeHidden: Boolean,
     ): List<MediaItem> {
         val source = dateRangeSourceFactory.create(
             dateFrom = dateFrom,
             dateTo = dateTo,
+            excludeHidden = excludeHidden,
         )
         val params = Refresh(
             key = 0,
@@ -254,81 +258,97 @@ open class MediaStoreRepositoryLegacyImpl(
 
     override suspend fun getRandomMedia(
         isImageOnly: Boolean,
-        isFavoriteOnly: Boolean
-    ): MediaItem? = contentResolver.queryCompat(
-        uri = baseUri,
-        projection = buildList(10) {
-            add(FileColumns._ID)
-            add(FileColumns.DISPLAY_NAME)
-            add(FileColumns.MIME_TYPE)
-            add(FileColumns.DATE_ADDED)
-            add(FileColumns.DATE_MODIFIED)
-            add(FileColumns.MEDIA_TYPE)
-            if (Features.isNativeFavoritesSupported) {
-                add(FileColumns.IS_FAVORITE)
-            }
-            if (Features.isPathColumnSupported) {
-                add(FileColumns.RELATIVE_PATH)
-            } else {
-                add(FileColumns.DATA)
-            }
-        }.toTypedArray(),
-        selection = buildString {
-            if (Features.isRecycleBinSupported) {
-                append(FileColumns.IS_TRASHED)
-                append(" = ? AND (")
-            } else {
-                append('(')
-            }
-            append(FileColumns.MEDIA_TYPE)
-            append(" = ?")
-            if (!isImageOnly) {
-                append(" OR ")
-                append(FileColumns.MEDIA_TYPE)
-                append(" = ?)")
-            } else {
-                append(")")
-            }
-            if (isFavoriteOnly) {
-                append(" AND ")
+        isFavoriteOnly: Boolean,
+        excludeHidden: Boolean,
+    ): MediaItem? {
+        val hiddenIds = if (excludeHidden) {
+            hiddenMediaRepository.getHiddenIds()
+        } else {
+            emptySet()
+        }
+        return contentResolver.queryCompat(
+            uri = baseUri,
+            projection = buildList(10) {
+                add(FileColumns._ID)
+                add(FileColumns.DISPLAY_NAME)
+                add(FileColumns.MIME_TYPE)
+                add(FileColumns.DATE_ADDED)
+                add(FileColumns.DATE_MODIFIED)
+                add(FileColumns.MEDIA_TYPE)
                 if (Features.isNativeFavoritesSupported) {
-                    append(FileColumns.IS_FAVORITE)
-                    append(" = ?")
+                    add(FileColumns.IS_FAVORITE)
+                }
+                if (Features.isPathColumnSupported) {
+                    add(FileColumns.RELATIVE_PATH)
                 } else {
-                    append(FileColumns._ID)
-                    append(" IN (")
-                    repeat(legacyFavoritesRepository.getFavoritesCount()) { i ->
-                        if (i != 0) {
-                            append(",")
-                        }
-                        append("?")
-                    }
+                    add(FileColumns.DATA)
+                }
+            }.toTypedArray(),
+            selection = buildString {
+                if (Features.isRecycleBinSupported) {
+                    append(FileColumns.IS_TRASHED)
+                    append(" = ? AND (")
+                } else {
+                    append('(')
+                }
+                append(FileColumns.MEDIA_TYPE)
+                append(" = ?")
+                if (!isImageOnly) {
+                    append(" OR ")
+                    append(FileColumns.MEDIA_TYPE)
+                    append(" = ?)")
+                } else {
                     append(")")
                 }
-            }
-        },
-        selectionArgs = buildList {
-            if (Features.isRecycleBinSupported) {
-                add("0")
-            }
-            add(FileColumns.MEDIA_TYPE_IMAGE.toString())
-            if (!isImageOnly) {
-                add(FileColumns.MEDIA_TYPE_VIDEO.toString())
-            }
-            if (isFavoriteOnly) {
-                if (Features.isNativeFavoritesSupported) {
-                    add("1")
-                } else {
-                    legacyFavoritesRepository.getFavorites().mapTo(this) {
-                        it.toString()
+                if (isFavoriteOnly) {
+                    append(" AND ")
+                    if (Features.isNativeFavoritesSupported) {
+                        append(FileColumns.IS_FAVORITE)
+                        append(" = ?")
+                    } else {
+                        append(FileColumns._ID)
+                        append(" IN (")
+                        repeat(legacyFavoritesRepository.getFavoritesCount()) { i ->
+                            if (i != 0) {
+                                append(",")
+                            }
+                            append("?")
+                        }
+                        append(")")
                     }
                 }
-            }
-        }.toTypedArray(),
-        orderBy = "RANDOM()",
-        limit = 1,
-    ).use { cursor ->
-        cursor.parseMediaList(withIndices = false).firstOrNull()
+                if (hiddenIds.isNotEmpty()) {
+                    append(" AND ")
+                    append(FileColumns._ID)
+                    append(" NOT IN (")
+                    hiddenIds.joinTo(this, ",") { "?" }
+                    append(")")
+                }
+            },
+            selectionArgs = buildList {
+                if (Features.isRecycleBinSupported) {
+                    add("0")
+                }
+                add(FileColumns.MEDIA_TYPE_IMAGE.toString())
+                if (!isImageOnly) {
+                    add(FileColumns.MEDIA_TYPE_VIDEO.toString())
+                }
+                if (isFavoriteOnly) {
+                    if (Features.isNativeFavoritesSupported) {
+                        add("1")
+                    } else {
+                        legacyFavoritesRepository.getFavorites().mapTo(this) {
+                            it.toString()
+                        }
+                    }
+                }
+                hiddenIds.mapTo(this) { it.toString() }
+            }.toTypedArray(),
+            orderBy = "RANDOM()",
+            limit = 1,
+        ).use { cursor ->
+            cursor.parseMediaList(withIndices = false).firstOrNull()
+        }
     }
 
     protected fun Cursor.parseMediaList(
