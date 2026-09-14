@@ -4,6 +4,9 @@ Simple Android gallery application inspired by the abandoned Sony® Album app bu
 
 ![Android 7.0](https://img.shields.io/badge/android-7.0+-brightgreen) ![License](https://img.shields.io/github/license/Koitharu/ToadLink) ![No AI](https://img.shields.io/badge/no-ai-lightblue)
 
+| ![](https://github.com/koitharu/album/raw/master/metadata/en-US/images/phoneScreenshots/1.png) | ![](https://github.com/koitharu/album/raw/master/metadata/en-US/images/phoneScreenshots/2.png) | ![](https://github.com/koitharu/album/raw/master/metadata/en-US/images/phoneScreenshots/4.png) |
+|------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+
 - Lightweight, not bloated, no internet permission.
 - Modern Material You UI.
 - All media gallery and grouped by folders.
@@ -13,7 +16,7 @@ Simple Android gallery application inspired by the abandoned Sony® Album app bu
 - Image picker.
 - Made by human, not AI.
 
-[![badge_obtainium.png](metadata/assets/badge_obtainium.png)](obtainium://app/%7B%22id%22%3A%20%22org.koitharu.album%22%2C%20%22url%22%3A%20%22https%3A%2F%2Fgithub.com%2FKoitharu%2FAlbum%22%2C%20%22author%22%3A%20%22Koitharu%22%2C%20%22name%22%3A%20%22Album%22%7D)
+[![badge_obtainium.png](metadata/assets/badge_obtainium.png)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%20%22org.koitharu.album%22%2C%20%22url%22%3A%20%22https%3A%2F%2Fgithub.com%2FKoitharu%2FAlbum%22%2C%20%22author%22%3A%20%22Koitharu%22%2C%20%22name%22%3A%20%22Album%22%7D)
 
 ### License
 
