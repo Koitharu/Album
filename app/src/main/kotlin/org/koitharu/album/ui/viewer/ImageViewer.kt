@@ -27,6 +27,7 @@ import me.saket.telephoto.zoomable.rememberZoomableImageState
 import me.saket.telephoto.zoomable.rememberZoomableState
 import org.koitharu.album.R
 import org.koitharu.album.ui.common.AlbumItem
+import org.koitharu.album.util.ifThen
 import org.koitharu.album.util.snappedRotationGesture
 
 @Composable
@@ -46,16 +47,12 @@ fun ImageViewer(
     ZoomableAsyncImage(
         modifier = Modifier
             .fillMaxSize()
-            .run {
-                if (isRotationGestureEnabled) {
-                    snappedRotationGesture(
-                        key = image.uri.toString(),
-                        isRotationEnabled = zoomableState.zoomFraction == 0f,
-                        onRotated = onRotated,
-                    )
-                } else {
-                    this
-                }
+            .ifThen(isRotationGestureEnabled) {
+                snappedRotationGesture(
+                    key = image.uri.toString(),
+                    isRotationEnabled = zoomableState.zoomFraction == 0f,
+                    onRotated = onRotated,
+                )
             }
             .then(modifier),
         state = rememberZoomableImageState(zoomableState),

@@ -23,6 +23,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,7 +32,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -41,9 +44,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.album.R
 import org.koitharu.album.ui.album.AlbumContent
+import org.koitharu.album.ui.album.AlbumIntent.HandleClick
 import org.koitharu.album.ui.album.AlbumScope
 import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.album.HomeScreenBanner
+import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.AlbumItem.Media
 import org.koitharu.album.ui.common.ComposeActivity
 import org.koitharu.album.ui.common.EmptyState
@@ -56,6 +61,7 @@ import org.koitharu.album.ui.folders.FoldersContent
 import org.koitharu.album.ui.settings.SettingsActivity
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.viewer.ViewerScreen
+import org.koitharu.album.util.ifThen
 import org.koitharu.album.util.rememberNestedScrollDirectionConnection
 import org.koitharu.album.util.rememberPermissionCheck
 import org.koitharu.album.util.rememberPermissionsCheck
@@ -135,7 +141,7 @@ fun HomeScreen() {
                     null -> HomeContent(
                         selectedTab = selectedTab,
                         foldersListState = foldersListState,
-                        hasBanner = state.banner != null,
+                        banner = state.banner,
                         isBannerDark = state.isBannerDark,
                         isSelectionMode = state.selectedItems.isNotEmpty(),
                         albumScope = AlbumScope(
@@ -145,7 +151,8 @@ fun HomeScreen() {
                             headerOffset = remember { mutableStateOf(0.dp) },
                         ),
                         onFolderClick = { selectedFolder = it },
-                        onNavigationClick = { selectedTab = it }
+                        onNavigationClick = { selectedTab = it },
+                        onBannerClick = { viewModel.handleIntent(HandleClick(it)) },
                     )
                 }
             }
@@ -157,12 +164,13 @@ fun HomeScreen() {
 private fun HomeContent(
     selectedTab: Int,
     foldersListState: LazyListState,
-    hasBanner: Boolean,
+    banner: AlbumItem.Image?,
     isBannerDark: Boolean,
     isSelectionMode: Boolean,
     albumScope: AlbumScope,
     onNavigationClick: (Int) -> Unit,
     onFolderClick: (FolderItem) -> Unit,
+    onBannerClick: (AlbumItem.Image) -> Unit,
 ) {
     val scrollConnection = rememberNestedScrollDirectionConnection(4.dp)
     val scrollDirection by scrollConnection.direction
@@ -170,21 +178,42 @@ private fun HomeContent(
     Scaffold(
         modifier = Modifier
             .nestedScroll(scrollConnection)
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            .ifThen(banner == null || selectedTab != 0) {
+                nestedScroll(scrollBehavior.nestedScrollConnection)
+            }
             .fillMaxSize(),
         topBar = {
-            HomeScreenBanner(
-                isExpanded = selectedTab == 0,
-                albumScope = albumScope,
-                scrollBehavior = scrollBehavior,
-                overlayContent = { modifier, color ->
-                    OptionsMenu(
-                        modifier = modifier.statusBarsPadding(),
-                        iconColor = color,
-                        content = ColumnScope::OptionsMenuContent,
-                    )
-                }
-            )
+            if (banner != null && selectedTab == 0) {
+                HomeScreenBanner(
+                    banner = banner,
+                    albumScope = albumScope,
+                    onClick = { onBannerClick(banner) },
+                    overlayContent = {
+                        OptionsMenu(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .statusBarsPadding(),
+                            iconColor = if (isBannerDark) {
+                                Color.White
+                            } else {
+                                Color.Black
+                            },
+                            content = ColumnScope::OptionsMenuContent,
+                        )
+                    }
+                )
+            } else {
+                TopAppBar(
+                    modifier = Modifier.statusBarsPadding(),
+                    title = { Text(stringResource(R.string.app_name)) },
+                    actions = {
+                        OptionsMenu(
+                            content = ColumnScope::OptionsMenuContent,
+                        )
+                    },
+                    scrollBehavior = scrollBehavior,
+                )
+            }
         },
         bottomBar = {
             AnimatedVisibility(
@@ -234,7 +263,7 @@ private fun HomeContent(
         }
     }
     SetSystemBarsColorsEffect(
-        isLightStatusBar = !if (selectedTab == 0 && hasBanner) {
+        isLightStatusBar = !if (selectedTab == 0 && banner != null) {
             isBannerDark
         } else {
             LocalDarkMode.current

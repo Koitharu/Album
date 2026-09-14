@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.plus
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -54,6 +53,7 @@ import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.ErrorImageFactory
 import org.koitharu.album.ui.common.MviIntentHandler
+import org.koitharu.album.util.ifThen
 import org.koitharu.album.util.isLoadFinished
 import org.koitharu.album.util.toTitleCase
 
@@ -217,7 +217,8 @@ private fun AlbumScope.GalleryVideoItem(
 
 @Composable
 fun GalleryItemPlaceholder() = Box(
-    modifier = Modifier.gridCell(isSelected = false)
+    modifier = Modifier
+        .gridCell(isSelected = false)
         .background(MaterialTheme.colorScheme.surfaceContainer)
 ) {
 
@@ -231,35 +232,30 @@ fun Modifier.gridCell(isSelected: Boolean): Modifier {
     )
     return fillMaxWidth()
         .aspectRatio(1f)
-        .then(
-            if (factor >= 0.01f) {
-                val checkmark = painterResource(R.drawable.ic_check_circle)
-                val tint = LocalContentColor.current
-                val foreground = MaterialTheme.colorScheme.surfaceDim.copy(alpha = 0.6f * factor)
-                Modifier
-                    .border(4.dp * factor, MaterialTheme.colorScheme.outline)
-                    .drawWithContent {
-                        drawContent()
-                        drawRect(foreground)
-                        with(checkmark) {
-                            val padding = 6.dp.toPx()
-                            translate(left = padding, top = padding) {
-                                scale(
-                                    scale = factor,
-                                    pivot = intrinsicSize.center,
-                                ) {
-                                    draw(
-                                        size = intrinsicSize,
-                                        colorFilter = ColorFilter.tint(tint)
-                                    )
-                                }
+        .ifThen(factor >= 0.01f) {
+            val checkmark = painterResource(R.drawable.ic_check_circle)
+            val tint = LocalContentColor.current
+            val foreground = MaterialTheme.colorScheme.surfaceDim.copy(alpha = 0.6f * factor)
+            border(4.dp * factor, MaterialTheme.colorScheme.outline)
+                .drawWithContent {
+                    drawContent()
+                    drawRect(foreground)
+                    with(checkmark) {
+                        val padding = 6.dp.toPx()
+                        translate(left = padding, top = padding) {
+                            scale(
+                                scale = factor,
+                                pivot = intrinsicSize.center,
+                            ) {
+                                draw(
+                                    size = intrinsicSize,
+                                    colorFilter = ColorFilter.tint(tint)
+                                )
                             }
                         }
                     }
-            } else {
-                Modifier
-            }
-        )
+                }
+        }
 }
 
 @Composable
