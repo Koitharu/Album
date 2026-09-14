@@ -35,6 +35,9 @@ android {
     buildFeatures {
         compose = true
     }
+    androidResources {
+        generateLocaleConfig = true
+    }
 }
 kotlin {
     compilerOptions {
