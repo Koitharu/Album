@@ -6,11 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyListState
@@ -19,13 +15,17 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
+import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -174,105 +174,118 @@ private fun HomeContent(
 ) {
     val scrollConnection = rememberNestedScrollDirectionConnection(4.dp)
     val scrollDirection by scrollConnection.direction
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    Scaffold(
-        modifier = Modifier
-            .nestedScroll(scrollConnection)
-            .ifThen(banner == null || selectedTab != 0) {
-                nestedScroll(scrollBehavior.nestedScrollConnection)
-            }
-            .fillMaxSize(),
-        topBar = {
-            if (banner != null && selectedTab == 0) {
-                HomeScreenBanner(
-                    banner = banner,
-                    albumScope = albumScope,
-                    onClick = { onBannerClick(banner) },
-                    overlayContent = {
-                        OptionsMenu(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .statusBarsPadding(),
-                            iconColor = if (isBannerDark) {
-                                Color.White
-                            } else {
-                                Color.Black
-                            },
-                            content = ColumnScope::OptionsMenuContent,
-                        )
-                    }
-                )
-            } else {
-                TopAppBar(
-                    modifier = Modifier.statusBarsPadding(),
-                    title = { Text(stringResource(R.string.app_name)) },
-                    actions = {
-                        OptionsMenu(
-                            content = ColumnScope::OptionsMenuContent,
-                        )
-                    },
-                    scrollBehavior = scrollBehavior,
-                )
-            }
-        },
-        bottomBar = {
-            AnimatedVisibility(
-                visible = scrollDirection >= 0 && !isSelectionMode,
-                enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
-            ) {
-                NavigationBar {
-                    NavigationBarItem(
-                        selected = selectedTab == 0,
-                        onClick = { onNavigationClick(0) },
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_album),
-                                contentDescription = stringResource(R.string.app_name)
-                            )
-                        },
-                        label = { Text(stringResource(R.string.app_name)) }
-                    )
-                    NavigationBarItem(
-                        selected = selectedTab == 1,
-                        onClick = { onNavigationClick(1) },
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_folders),
-                                contentDescription = stringResource(R.string.folders)
-                            )
-                        },
-                        label = { Text(stringResource(R.string.folders)) }
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
-        when (selectedTab) {
-            0 -> AlbumContent(
-                folder = null,
-                innerPadding = innerPadding,
-                albumScope = albumScope,
-            )
-
-            1 -> FoldersContent(
-                innerPadding = innerPadding,
-                listState = foldersListState,
-                onFolderClick = onFolderClick,
-            )
+    val navState = rememberNavigationSuiteScaffoldState()
+    val layoutType =
+        NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfoV2())
+    val isNavigationVisible =
+        layoutType == NavigationSuiteType.NavigationRail || (scrollDirection >= 0 && !isSelectionMode)
+    LaunchedEffect(isNavigationVisible) {
+        if (isNavigationVisible) {
+            navState.show()
+        } else {
+            navState.hide()
         }
     }
-    SetSystemBarsColorsEffect(
-        isLightStatusBar = !if (selectedTab == 0 && banner != null) {
-            isBannerDark
-        } else {
-            LocalDarkMode.current
-        },
-    )
+    NavigationSuiteScaffold(
+        state = navState,
+        layoutType = layoutType,
+        navigationSuiteItems = {
+            item(
+                selected = selectedTab == 0,
+                enabled = !isSelectionMode,
+                onClick = { onNavigationClick(0) },
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_album),
+                        contentDescription = stringResource(R.string.app_name)
+                    )
+                },
+                label = { Text(stringResource(R.string.app_name)) }
+            )
+            item(
+                selected = selectedTab == 1,
+                enabled = !isSelectionMode,
+                onClick = { onNavigationClick(1) },
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_folders),
+                        contentDescription = stringResource(R.string.folders)
+                    )
+                },
+                label = { Text(stringResource(R.string.folders)) }
+            )
+        }
+    ) {
+        val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+        Scaffold(
+            modifier = Modifier
+                .nestedScroll(scrollConnection)
+                .ifThen(banner == null || selectedTab != 0) {
+                    nestedScroll(scrollBehavior.nestedScrollConnection)
+                }
+                .fillMaxSize(),
+            topBar = {
+                if (banner != null && selectedTab == 0) {
+                    HomeScreenBanner(
+                        banner = banner,
+                        albumScope = albumScope,
+                        onClick = { onBannerClick(banner) },
+                        overlayContent = {
+                            OptionsMenu(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .statusBarsPadding(),
+                                iconColor = if (isBannerDark) {
+                                    Color.White
+                                } else {
+                                    Color.Black
+                                },
+                                content = { onDismissRequest ->
+                                    OptionsMenuContent(onDismissRequest)
+                                },
+                            )
+                        }
+                    )
+                } else {
+                    TopAppBar(
+                        modifier = Modifier.statusBarsPadding(),
+                        title = { Text(stringResource(R.string.app_name)) },
+                        actions = {
+                            OptionsMenu { onDismissRequest ->
+                                OptionsMenuContent(onDismissRequest)
+                            }
+                        },
+                        scrollBehavior = scrollBehavior,
+                    )
+                }
+            },
+        ) { innerPadding ->
+            when (selectedTab) {
+                0 -> AlbumContent(
+                    folder = null,
+                    innerPadding = innerPadding,
+                    albumScope = albumScope,
+                )
+
+                1 -> FoldersContent(
+                    innerPadding = innerPadding,
+                    listState = foldersListState,
+                    onFolderClick = onFolderClick,
+                )
+            }
+        }
+        SetSystemBarsColorsEffect(
+            isLightStatusBar = !if (selectedTab == 0 && banner != null) {
+                isBannerDark
+            } else {
+                LocalDarkMode.current
+            },
+        )
+    }
 }
 
 @Composable
-private fun ColumnScope.OptionsMenuContent(
+private fun OptionsMenuContent(
     onDismissRequest: () -> Unit,
 ) {
     val context = LocalContext.current

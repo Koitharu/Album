@@ -67,7 +67,15 @@
 
         <activity
             android:name=".ui.settings.SettingsActivity"
-            android:label="@string/settings" />
+            android:exported="true"
+            android:label="@string/settings">
+            <intent-filter>
+                <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
+                <action android:name="com.samsung.android.intent.action.APPLICATION_PREFERENCES" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".ui.wallpaper.WallpaperActivity"
             android:exported="true"

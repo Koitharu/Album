@@ -1,18 +1,19 @@
 [versions]
 activityCompose = "1.13.0"
 agp = "9.4.0"
-coil = "3.5.0"
-collections = "0.5.1"
-compose-animation = "1.12.0"
-compose-m3 = "1.5.0-alpha26"
-composeBom = "2026.08.00"
+coil = "3.6.2"
+collections = "0.5.2"
+compose-animation = "1.12.1"
+compose-m3 = "1.5.0-alpha28"
+compose-m3-adaptive = "1.4.0"
+composeBom = "2026.09.00"
 coreKtx = "1.19.0"
 coroutines = "1.11.0"
 dagger = "2.60.1"
 datastore = "1.2.1"
 exif = "1.4.2"
 hilt = "1.4.0"
-kotlin = "2.4.10"
+kotlin = "2.4.20"
 ksp = "2.3.6"
 lifecycle = "2.11.0"
 paging = "3.5.1"
@@ -25,6 +26,7 @@ androidx-compose-animation = { group = "androidx.compose.animation", name = "ani
 androidx-compose-animation-graphics = { group = "androidx.compose.animation", name = "animation-graphics", version.ref = "compose-animation" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "compose-m3" }
+androidx-compose-material3-adaptive-navigation = { group = "androidx.compose.material3", name = "material3-adaptive-navigation-suite", version.ref = "compose-m3-adaptive" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
