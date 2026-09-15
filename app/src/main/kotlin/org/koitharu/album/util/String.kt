@@ -12,7 +12,7 @@ fun StringBuilder.appendIfNotEmpty(what: String): StringBuilder = if (isNotEmpty
     this
 }
 
-public fun Int.formatTimeSeconds(): String {
+fun Int.formatTimeSeconds(): String {
     if (this == 0) {
         return "00:00"
     }
@@ -26,4 +26,10 @@ public fun Int.formatTimeSeconds(): String {
     } else {
         "%02d:%02d:%02d".format(hours, minutes, seconds)
     }
+}
+
+fun commonPrefix(a: String?, b: String?): String? = when {
+    a == null -> b
+    b == null -> a
+    else -> a.commonPrefixWith(b)
 }

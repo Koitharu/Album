@@ -81,6 +81,10 @@ class SettingsRepository @Inject constructor(
         prefs[Keys.homeBanner, HomeBannerSource.RANDOM]
     }.distinctUntilChanged()
 
+    val showAllDCIMFolders = context.dataStore.data.map { prefs ->
+        prefs[Keys.showAllDCIMFolders] ?: false
+    }.distinctUntilChanged()
+
     suspend fun setGridScale(scale: Float) {
         context.dataStore.edit { prefs ->
             prefs[Keys.gridScale] = scale
@@ -141,9 +145,16 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    suspend fun setShowAllDCIMFolders(value: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.showAllDCIMFolders] = value
+        }
+    }
+
     object Keys {
 
         val useRecycleBin = booleanPreferencesKey("recycle_bin")
+        val showAllDCIMFolders = booleanPreferencesKey("show_dcim")
         val allowRotationGesture = booleanPreferencesKey("rotation_gesture")
         val muteVideoOnStart = booleanPreferencesKey("video_muted")
         val gridScale = floatPreferencesKey("grid_scale")

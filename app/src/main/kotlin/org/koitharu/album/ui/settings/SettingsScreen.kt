@@ -30,6 +30,7 @@ import org.koitharu.album.ui.settings.SettingsIntent.SetAppTheme
 import org.koitharu.album.ui.settings.SettingsIntent.SetHomeBanner
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRecycleBinEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRotationGestureEnabled
+import org.koitharu.album.ui.settings.SettingsIntent.SetShowAllDCIMFolders
 import org.koitharu.album.ui.settings.SettingsIntent.SetUseExternalEditor
 import org.koitharu.album.ui.settings.SettingsIntent.SetVideosMutedOnStart
 import org.koitharu.album.ui.settings.SettingsIntent.SetViewerTheme
@@ -103,6 +104,17 @@ fun SettingsScreen(
                 entryValues = HomeBannerSource.entries.toPersistentList(),
                 selectedValue = state.homeBanner,
                 onEntryClick = { handleIntent(SetHomeBanner(it)) }
+            )
+        }
+        item(Keys.showAllDCIMFolders.name) {
+            SwitchPreference(
+                title = stringResource(R.string.show_all_dcim_folders),
+                summary = stringResource(
+                    R.string.show_all_dcim_folders_summary,
+                    stringResource(R.string.photos),
+                ),
+                isChecked = state.showAllDCIMFolders,
+                onClick = { handleIntent(SetShowAllDCIMFolders(!state.showAllDCIMFolders)) },
             )
         }
         item(key = R.string.behavior) {

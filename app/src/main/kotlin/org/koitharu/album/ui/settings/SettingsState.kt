@@ -14,6 +14,7 @@ data class SettingsState(
     val homeBanner: HomeBannerSource,
     val useExternalEditor: Boolean,
     val isVideosMutedOnStart: Boolean,
+    val showAllDCIMFolders: Boolean,
 ) {
 
     constructor() : this(
@@ -24,5 +25,6 @@ data class SettingsState(
         homeBanner = HomeBannerSource.RANDOM,
         useExternalEditor = false,
         isVideosMutedOnStart = false,
+        showAllDCIMFolders = false,
     )
 }

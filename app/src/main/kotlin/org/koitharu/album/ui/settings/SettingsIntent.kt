@@ -19,5 +19,7 @@ sealed interface SettingsIntent {
 
     data class SetVideosMutedOnStart(val value: Boolean) : SettingsIntent
 
+    data class SetShowAllDCIMFolders(val value: Boolean) : SettingsIntent
+
     data class OpenUrl(val url: String): SettingsIntent
 }

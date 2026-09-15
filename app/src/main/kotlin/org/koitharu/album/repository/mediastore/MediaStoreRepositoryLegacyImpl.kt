@@ -29,6 +29,7 @@ import org.koitharu.album.repository.observeChanges
 import org.koitharu.album.repository.pagingsource.DateRangeSource
 import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.ActivityContextProvider
+import org.koitharu.album.util.commonPrefix
 import org.koitharu.album.util.resolve
 
 open class MediaStoreRepositoryLegacyImpl(
@@ -94,6 +95,11 @@ open class MediaStoreRepositoryLegacyImpl(
             FileColumns.BUCKET_DISPLAY_NAME,
             FileColumns.MEDIA_TYPE,
             FileColumns._ID,
+            if (Features.isPathColumnSupported) {
+                FileColumns.RELATIVE_PATH
+            } else {
+                FileColumns.DATA
+            }
         ),
         selection = buildString {
             append('(')
@@ -126,15 +132,24 @@ open class MediaStoreRepositoryLegacyImpl(
         val mediaTypeColumn = cursor.getColumnIndexOrThrow(FileColumns.MEDIA_TYPE)
         val nameColumn =
             cursor.getColumnIndexOrThrow(FileColumns.BUCKET_DISPLAY_NAME)
+        val pathColumn = if (Features.isPathColumnSupported) {
+            cursor.getColumnIndex(FileColumns.RELATIVE_PATH)
+        } else {
+            cursor.getColumnIndex(FileColumns.DATA)
+        }
 
         val result = HashMap<String, MediaFolder>()
         while (cursor.moveToNext()) {
 
             val bucketId = cursor.getString(bucketIdColumn)
-            val bucketName = cursor.getString(nameColumn) ?: "Unknown Folder"
+            val bucketName = cursor.getStringOrNull(nameColumn) ?: "Unknown Folder"
+            val path = cursor.getStringOrNull(pathColumn)
 
             if (result.containsKey(bucketId)) {
-                result[bucketId]?.let { it.size++ }
+                result[bucketId]?.let {
+                    it.size++
+                    it.path = commonPrefix(it.path, path)
+                }
             } else {
                 val id = cursor.getLong(idColumn)
                 val isVideo = cursor.getInt(mediaTypeColumn) == FileColumns.MEDIA_TYPE_VIDEO
@@ -148,6 +163,7 @@ open class MediaStoreRepositoryLegacyImpl(
                     name = bucketName,
                     size = 1,
                     thumbnail = contentUri.thumbnailUri(),
+                    path = path,
                 )
                 result[bucketId] = newFolder
             }

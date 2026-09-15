@@ -10,10 +10,12 @@ import org.koitharu.album.model.ThemeVariant
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.common.ShellIntegrationHelper
+import org.koitharu.album.ui.settings.SettingsIntent.OpenUrl
 import org.koitharu.album.ui.settings.SettingsIntent.SetAppTheme
 import org.koitharu.album.ui.settings.SettingsIntent.SetHomeBanner
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRecycleBinEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRotationGestureEnabled
+import org.koitharu.album.ui.settings.SettingsIntent.SetShowAllDCIMFolders
 import org.koitharu.album.ui.settings.SettingsIntent.SetUseExternalEditor
 import org.koitharu.album.ui.settings.SettingsIntent.SetVideosMutedOnStart
 import org.koitharu.album.ui.settings.SettingsIntent.SetViewerTheme
@@ -37,6 +39,7 @@ class SettingsViewModel @Inject constructor(
                 repository.homeBannerSource,
                 repository.useExternalEditor,
                 repository.isVideMutedOnStart,
+                repository.showAllDCIMFolders,
             ) { data ->
                 SettingsState(
                     isRecycleBinEnabled = data[0] as Boolean,
@@ -46,6 +49,7 @@ class SettingsViewModel @Inject constructor(
                     homeBanner = data[4] as HomeBannerSource,
                     useExternalEditor = data[5] as Boolean,
                     isVideosMutedOnStart = data[6] as Boolean,
+                    showAllDCIMFolders = data[7] as Boolean,
                 )
             }.collect {
                 state.value = it
@@ -64,7 +68,8 @@ class SettingsViewModel @Inject constructor(
                     is SetHomeBanner -> repository.setHomeBannerSource(intent.value)
                     is SetUseExternalEditor -> repository.setUseExternalEditor(intent.value)
                     is SetVideosMutedOnStart -> repository.setVideosMutedOnStart(intent.value)
-                    is SettingsIntent.OpenUrl -> shellIntegrationHelper.openLink(intent.url)
+                    is SetShowAllDCIMFolders -> repository.setShowAllDCIMFolders(intent.value)
+                    is OpenUrl -> shellIntegrationHelper.openLink(intent.url)
                 }
             }.onFailure { e ->
                 e.printStackTraceDebug()

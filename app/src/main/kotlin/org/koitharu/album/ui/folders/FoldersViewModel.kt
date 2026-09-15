@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import org.koitharu.album.model.MediaFolder
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.HiddenMediaRepository
+import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.ui.common.MviViewModel
 import javax.inject.Inject
@@ -20,6 +21,7 @@ import javax.inject.Inject
 class FoldersViewModel @Inject constructor(
     private val repository: MediaStoreRepository,
     private val hiddenMediaRepository: HiddenMediaRepository,
+    private val settingsRepository: SettingsRepository,
 ) : MviViewModel<FoldersState, FoldersIntent, Nothing>(FoldersState()) {
 
     init {
@@ -28,11 +30,13 @@ class FoldersViewModel @Inject constructor(
                 repository.observeFolders(),
                 repository.observeFavoritesSize(),
                 hiddenMediaRepository.observeHiddenCount(),
-            ) { list, favoritesCount, hiddenCount ->
+                settingsRepository.showAllDCIMFolders,
+            ) { list, favoritesCount, hiddenCount, showDCIM ->
                 mapFolders(
                     list = list,
                     favoritesCount = favoritesCount,
                     hiddenCount = hiddenCount,
+                    showDCIMFolders = showDCIM,
                 )
             }.catch { e ->
                 state.update {
@@ -54,6 +58,7 @@ class FoldersViewModel @Inject constructor(
         list: List<MediaFolder>,
         favoritesCount: Int,
         hiddenCount: Int,
+        showDCIMFolders: Boolean,
     ): PersistentList<FolderItem> =
         buildList(list.size + 2) {
             add(
@@ -88,13 +93,17 @@ class FoldersViewModel @Inject constructor(
                     thumbnail = null,
                 )
             )
-            list.mapTo(this) {
-                FolderItem.Bucket(
-                    id = it.id,
-                    name = it.name,
-                    size = it.size,
-                    thumbnail = it.thumbnail,
-                )
+            list.mapNotNullTo(this) {
+                if (!showDCIMFolders && it.isDCIM()) {
+                    null
+                } else {
+                    FolderItem.Bucket(
+                        id = it.id,
+                        name = it.name,
+                        size = it.size,
+                        thumbnail = it.thumbnail,
+                    )
+                }
             }
         }.toPersistentList()
 }
