@@ -43,6 +43,9 @@ open class MediaStoreRepositoryLegacyImpl(
     protected val baseUri: Uri = MediaStore.Files.getContentUri("external")
 
     override suspend fun deleteMedia(media: Collection<Uri>, useRecycleBin: Boolean) {
+        if (useRecycleBin) {
+            throw UnsupportedOperationException("Recycle Bin is not supported")
+        }
         if (!confirmationDialogs.confirmDeletion(media)) {
             return
         }
@@ -62,7 +65,10 @@ open class MediaStoreRepositoryLegacyImpl(
     }
 
     override suspend fun recoverMedia(media: Collection<Uri>): Unit =
-        throw UnsupportedOperationException()
+        throw UnsupportedOperationException("Recycle Bin is not supported")
+
+    override suspend fun clearRecycleBin(): Unit =
+        throw UnsupportedOperationException("Recycle Bin is not supported")
 
     override suspend fun isFavorite(id: Long): Boolean = withContext(Dispatchers.IO) {
         legacyFavoritesRepository.isFavorite(id)

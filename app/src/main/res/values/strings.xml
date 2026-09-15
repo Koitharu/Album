@@ -113,6 +113,10 @@
     <string name="error">Error</string>
     <string name="about_app">About</string>
     <string name="source_code">Source code</string>
+    <string name="clear_recycle_bin">Clear Recycle Bin</string>
+    <string name="open_camera">Open camera</string>
+    <string name="clear">Clear</string>
+    <string name="clear_recycle_bin_confirmation">Do you really want to permanently delete all items from the Recycle Bin? This action cannot be undone.</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>

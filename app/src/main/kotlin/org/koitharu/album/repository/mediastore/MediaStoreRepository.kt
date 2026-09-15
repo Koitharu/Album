@@ -11,6 +11,8 @@ interface MediaStoreRepository {
 
     suspend fun recoverMedia(media: Collection<Uri>)
 
+    suspend fun clearRecycleBin()
+
     suspend fun isFavorite(id: Long): Boolean
 
     suspend fun setIsFavorite(media: Collection<Uri>, isFavorite: Boolean)

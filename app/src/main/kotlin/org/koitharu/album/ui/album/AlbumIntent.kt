@@ -18,6 +18,10 @@ sealed interface AlbumIntent {
         val factor: Float
     ) : AlbumIntent
 
+    data object OpenCamera: AlbumIntent
+
+    data object ClearRecycleBin: AlbumIntent
+
     data object CancelSelectionMode : AlbumIntent
 
     enum class SelectionAlbumIntent : AlbumIntent {

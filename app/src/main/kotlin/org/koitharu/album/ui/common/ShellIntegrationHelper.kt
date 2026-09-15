@@ -2,6 +2,7 @@ package org.koitharu.album.ui.common
 
 import android.content.ComponentName
 import android.content.Intent
+import android.provider.MediaStore
 import android.util.ArraySet
 import androidx.core.app.ShareCompat
 import androidx.core.net.toUri
@@ -93,6 +94,12 @@ class ShellIntegrationHelper @Inject constructor(
         val intent = Intent(Intent.ACTION_VIEW, link.toUri())
         val chooserIntent = Intent.createChooser(intent, context.getString(R.string.open_with))
         context.startActivity(chooserIntent)
+    }
+
+    suspend fun openCamera() = withContext(Dispatchers.Main.immediate) {
+        val context = activityContextProvider.get()
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        context.startActivity(intent)
     }
 
     @Suppress("SuspendCoroutineLacksCancellationGuarantees")

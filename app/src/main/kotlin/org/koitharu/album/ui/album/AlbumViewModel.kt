@@ -33,9 +33,12 @@ import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.ui.album.AlbumIntent.CancelSelectionMode
+import org.koitharu.album.ui.album.AlbumIntent.ClearRecycleBin
 import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
 import org.koitharu.album.ui.album.AlbumIntent.HandleClick
 import org.koitharu.album.ui.album.AlbumIntent.HandleLongClick
+import org.koitharu.album.ui.album.AlbumIntent.OpenCamera
+import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent
 import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Delete
 import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Hide
 import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Recover
@@ -192,7 +195,7 @@ class AlbumViewModel @AssistedInject constructor(
                 it.copy(selectedItems = persistentSetOf())
             }
 
-            is AlbumIntent.SelectionAlbumIntent -> viewModelScope.launch(Dispatchers.Default) {
+            is SelectionAlbumIntent -> viewModelScope.launch(Dispatchers.Default) {
                 val selectedItems = gridContent.getSelectedItems(
                     ids = state.value.selectedItems
                 )
@@ -200,12 +203,24 @@ class AlbumViewModel @AssistedInject constructor(
                     handleIntent(CancelSelectionMode)
                 }
             }
+
+            ClearRecycleBin -> viewModelScope.launch(Dispatchers.Default) {
+                runCatchingCancellable {
+                    repository.clearRecycleBin()
+                }.onFailure { e ->
+                    e.printStackTraceDebug()
+                }
+            }
+
+            OpenCamera -> viewModelScope.launch {
+                shellIntegrationHelper.openCamera()
+            }
         }
     }
 
     private suspend fun handleSelectionIntent(
         selectedItems: Collection<AlbumItem.Media>,
-        intent: AlbumIntent.SelectionAlbumIntent,
+        intent: SelectionAlbumIntent,
     ): Boolean = when (intent) {
         Share -> {
             shellIntegrationHelper.shareMedia(selectedItems)

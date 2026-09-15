@@ -1,10 +1,12 @@
 package org.koitharu.album.repository.mediastore
 
 import android.content.ContentResolver
+import android.content.ContentUris
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.provider.MediaStore.Files.FileColumns
+import android.util.ArraySet
 import androidx.annotation.RequiresApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -61,6 +63,38 @@ class MediaStoreRepository30Impl(
             0,
             0
         )
+    }
+
+    override suspend fun clearRecycleBin() {
+        val trashedMedia = contentResolver.queryCompat(
+            uri = baseUri,
+            projection = arrayOf(FileColumns._ID, FileColumns.MEDIA_TYPE),
+            selection = "(${FileColumns.MEDIA_TYPE} = ? OR ${FileColumns.MEDIA_TYPE} = ?) AND ${FileColumns.IS_TRASHED} = ?",
+            selectionArgs = arrayOf(
+                FileColumns.MEDIA_TYPE_IMAGE.toString(),
+                FileColumns.MEDIA_TYPE_VIDEO.toString(),
+                "1",
+            )
+        ).use { cursor ->
+            val result = ArraySet<Uri>(cursor.count)
+            if (cursor.moveToFirst()) {
+                val idColumn = cursor.getColumnIndexOrThrow(FileColumns._ID)
+                val typeColumn = cursor.getColumnIndexOrThrow(FileColumns.MEDIA_TYPE)
+                do {
+                    val id = cursor.getLong(idColumn)
+                    val uri = ContentUris.withAppendedId(
+                        when (cursor.getInt(typeColumn)) {
+                            FileColumns.MEDIA_TYPE_VIDEO -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                            FileColumns.MEDIA_TYPE_IMAGE -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                            else -> continue
+                        }, id
+                    )
+                    result.add(uri)
+                } while (cursor.moveToNext())
+            }
+            result
+        }
+        deleteMedia(trashedMedia, useRecycleBin = false)
     }
 
     override suspend fun isFavorite(id: Long): Boolean = contentResolver.queryCompat(

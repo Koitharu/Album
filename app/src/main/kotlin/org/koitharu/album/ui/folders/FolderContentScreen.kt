@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -24,8 +27,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -35,12 +41,16 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.rememberViewModelStoreOwner
 import org.koitharu.album.R
 import org.koitharu.album.ui.album.AlbumActionMode
+import org.koitharu.album.ui.album.AlbumIntent
 import org.koitharu.album.ui.album.AlbumIntent.CancelSelectionMode
+import org.koitharu.album.ui.album.AlbumIntent.ClearRecycleBin
+import org.koitharu.album.ui.album.AlbumIntent.OpenCamera
 import org.koitharu.album.ui.album.AlbumScope
 import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.album.Gallery
 import org.koitharu.album.ui.common.AlbumItem.Media
 import org.koitharu.album.ui.common.EmptyState
+import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.common.SetSystemBarsColorsEffect
 import org.koitharu.album.ui.viewer.ViewerScreen
 import org.koitharu.album.util.IconButtonWithTooltip
@@ -90,6 +100,12 @@ fun FolderContentScreen(
                                             contentDescription = stringResource(R.string.back)
                                         )
                                     }
+                                },
+                                actions = {
+                                    ContextMenu(
+                                        folder = folder,
+                                        handleIntent = viewModel,
+                                    )
                                 },
                                 scrollBehavior = scrollBehavior,
                             )
@@ -167,3 +183,86 @@ fun FolderContentScreen(
         SetSystemBarsColorsEffect()
     }
 }
+
+@Composable
+private fun ContextMenu(
+    folder: FolderItem,
+    handleIntent: MviIntentHandler<AlbumIntent>,
+) {
+    when (folder) {
+        is FolderItem.RecycleBin -> {
+            var isDialogVisible by rememberSaveable { mutableStateOf(false) }
+            IconButtonWithTooltip(
+                tooltip = stringResource(R.string.clear_recycle_bin),
+                onClick = { isDialogVisible = true },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_delete_sweep),
+                    contentDescription = stringResource(R.string.clear_recycle_bin),
+                )
+            }
+            if (isDialogVisible) {
+                ClearRecycleBinDialog(
+                    onConfirmed = {
+                        handleIntent(ClearRecycleBin)
+                    },
+                    onDismissRequest = {
+                        isDialogVisible = false
+                    },
+                )
+            }
+        }
+
+        is FolderItem.Photos -> {
+            IconButtonWithTooltip(
+                tooltip = stringResource(R.string.open_camera),
+                onClick = { handleIntent(OpenCamera) },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_photo_camera),
+                    contentDescription = stringResource(R.string.open_camera),
+                )
+            }
+        }
+
+        else -> Unit
+    }
+}
+
+@Composable
+fun ClearRecycleBinDialog(
+    onConfirmed: () -> Unit,
+    onDismissRequest: () -> Unit,
+) = AlertDialog(
+    onDismissRequest = onDismissRequest,
+    title = {
+        Text(
+            text = stringResource(R.string.clear_recycle_bin)
+        )
+    },
+    text = {
+        Text(
+            text = stringResource(R.string.clear_recycle_bin_confirmation)
+        )
+    },
+    dismissButton = {
+        TextButton(
+            onClick = {
+                onDismissRequest()
+            }
+        ) {
+            Text(stringResource(android.R.string.cancel))
+        }
+    },
+    confirmButton = {
+        TextButton(
+            onClick = {
+                onConfirmed()
+                onDismissRequest()
+            },
+            colors = ButtonDefaults.textButtonColors(contentColor = Color.Red),
+        ) {
+            Text(stringResource(R.string.clear))
+        }
+    },
+)
