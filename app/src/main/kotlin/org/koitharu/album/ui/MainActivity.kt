@@ -5,8 +5,10 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyListState
@@ -30,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import org.koitharu.album.R
 import org.koitharu.album.ui.album.AlbumContent
 import org.koitharu.album.ui.album.AlbumIntent.HandleClick
@@ -58,9 +62,14 @@ import org.koitharu.album.ui.common.SetSystemBarsColorsEffect
 import org.koitharu.album.ui.folders.FolderContentScreen
 import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.folders.FoldersContent
+import org.koitharu.album.ui.search.SearchBar
+import org.koitharu.album.ui.search.SearchResults
+import org.koitharu.album.ui.search.SearchState
+import org.koitharu.album.ui.search.rememberSearchState
 import org.koitharu.album.ui.settings.SettingsActivity
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.viewer.ViewerScreen
+import org.koitharu.album.util.IconButtonWithTooltip
 import org.koitharu.album.util.ifThen
 import org.koitharu.album.util.rememberNestedScrollDirectionConnection
 import org.koitharu.album.util.rememberPermissionCheck
@@ -118,6 +127,7 @@ fun HomeScreen() {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val foldersListState = rememberLazyListState()
     val gridState = rememberLazyGridState()
+    val searchState = rememberSearchState()
     selectedFolder?.let { folder ->
         FolderContentScreen(
             folder = folder,
@@ -150,6 +160,7 @@ fun HomeScreen() {
                             animatedVisibilityScope = this@AnimatedContent,
                             headerOffset = remember { mutableStateOf(0.dp) },
                         ),
+                        searchState = searchState,
                         onFolderClick = { selectedFolder = it },
                         onNavigationClick = { selectedTab = it },
                         onBannerClick = { viewModel.handleIntent(HandleClick(it)) },
@@ -168,6 +179,7 @@ private fun HomeContent(
     isBannerDark: Boolean,
     isSelectionMode: Boolean,
     albumScope: AlbumScope,
+    searchState: SearchState,
     onNavigationClick: (Int) -> Unit,
     onFolderClick: (FolderItem) -> Unit,
     onBannerClick: (AlbumItem.Image) -> Unit,
@@ -177,8 +189,12 @@ private fun HomeContent(
     val navState = rememberNavigationSuiteScaffoldState()
     val layoutType =
         NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfoV2())
+    val scope = rememberCoroutineScope()
+    BackHandler(searchState.isExpanded) {
+        scope.launch { searchState.collapse() }
+    }
     val isNavigationVisible =
-        layoutType == NavigationSuiteType.NavigationRail || (scrollDirection >= 0 && !isSelectionMode)
+        layoutType == NavigationSuiteType.NavigationRail || (scrollDirection >= 0 && !isSelectionMode && searchState.isCollapsed)
     LaunchedEffect(isNavigationVisible) {
         if (isNavigationVisible) {
             navState.show()
@@ -220,12 +236,20 @@ private fun HomeContent(
         Scaffold(
             modifier = Modifier
                 .nestedScroll(scrollConnection)
-                .ifThen(banner == null || selectedTab != 0) {
+                .ifThen((banner == null || selectedTab != 0) && searchState.isCollapsed) {
                     nestedScroll(scrollBehavior.nestedScrollConnection)
                 }
                 .fillMaxSize(),
             topBar = {
-                if (banner != null && selectedTab == 0) {
+                if (searchState.isExpanded) {
+                    SearchBar(
+                        modifier = Modifier
+                            .background(TopAppBarDefaults.topAppBarColors().containerColor)
+                            .statusBarsPadding(),
+                        state = searchState,
+                        onCollapse = { scope.launch { searchState.collapse() } },
+                    )
+                } else if (banner != null && selectedTab == 0) {
                     HomeScreenBanner(
                         banner = banner,
                         albumScope = albumScope,
@@ -249,8 +273,19 @@ private fun HomeContent(
                 } else {
                     TopAppBar(
                         modifier = Modifier.statusBarsPadding(),
-                        title = { Text(stringResource(R.string.app_name)) },
+                        title = {
+                            Text(stringResource(R.string.app_name))
+                        },
                         actions = {
+                            IconButtonWithTooltip(
+                                tooltip = stringResource(R.string.search),
+                                onClick = { scope.launch { searchState.expand() } },
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_search),
+                                    contentDescription = stringResource(R.string.search),
+                                )
+                            }
                             OptionsMenu { onDismissRequest ->
                                 OptionsMenuContent(onDismissRequest)
                             }
@@ -260,22 +295,35 @@ private fun HomeContent(
                 }
             },
         ) { innerPadding ->
-            when (selectedTab) {
-                0 -> AlbumContent(
-                    folder = null,
-                    innerPadding = innerPadding,
-                    albumScope = albumScope,
+            if (searchState.isExpanded) {
+                SearchResults(
+                    query = searchState.textFieldState.text.toString(),
+                    albumScope = albumScope.copy(
+                        gridState = searchState.gridState,
+                    ),
+                    contentPadding = innerPadding,
+                    handleIntent = hiltViewModel<AlbumViewModel, AlbumViewModel.Factory> {
+                        it.create(null)
+                    }
                 )
+            } else {
+                when (selectedTab) {
+                    0 -> AlbumContent(
+                        folder = null,
+                        innerPadding = innerPadding,
+                        albumScope = albumScope,
+                    )
 
-                1 -> FoldersContent(
-                    innerPadding = innerPadding,
-                    listState = foldersListState,
-                    onFolderClick = onFolderClick,
-                )
+                    1 -> FoldersContent(
+                        innerPadding = innerPadding,
+                        listState = foldersListState,
+                        onFolderClick = onFolderClick,
+                    )
+                }
             }
         }
         SetSystemBarsColorsEffect(
-            isLightStatusBar = !if (selectedTab == 0 && banner != null) {
+            isLightStatusBar = !if (selectedTab == 0 && banner != null && searchState.isExpanded) {
                 isBannerDark
             } else {
                 LocalDarkMode.current

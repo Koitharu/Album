@@ -134,7 +134,7 @@ fun BoxScope.Gallery(
 }
 
 @Composable
-private fun AlbumScope.GalleryImageItem(
+fun AlbumScope.GalleryImageItem(
     image: AlbumItem.Image,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -169,7 +169,7 @@ private fun AlbumScope.GalleryImageItem(
 }
 
 @Composable
-private fun AlbumScope.GalleryVideoItem(
+fun AlbumScope.GalleryVideoItem(
     image: AlbumItem.Video,
     isSelected: Boolean,
     onClick: () -> Unit,

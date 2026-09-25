@@ -119,6 +119,7 @@
     <string name="clear_recycle_bin_confirmation">Do you really want to permanently delete all items from the Recycle Bin? This action cannot be undone.</string>
     <string name="show_all_dcim_folders">Show all camera folders</string>
     <string name="show_all_dcim_folders_summary">If disabled, all photos are available in the %s folder.</string>
+    <string name="search">Search</string>
     <plurals name="items">
         <item quantity="one">%d item</item>
         <item quantity="few">%d items</item>
