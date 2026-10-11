@@ -1,4 +1,4 @@
-package org.koitharu.album.ui.album
+package org.koitharu.album.ui.gallery
 
 import android.content.ContentResolver
 import android.net.Uri
@@ -16,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -28,29 +29,31 @@ import kotlinx.coroutines.plus
 import org.koitharu.album.model.HomeBannerSource.NONE
 import org.koitharu.album.model.HomeBannerSource.RANDOM
 import org.koitharu.album.model.HomeBannerSource.YEAR_AGO
+import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.model.isSameMonth
 import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
-import org.koitharu.album.ui.album.AlbumIntent.CancelSelectionMode
-import org.koitharu.album.ui.album.AlbumIntent.ClearRecycleBin
-import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
-import org.koitharu.album.ui.album.AlbumIntent.HandleClick
-import org.koitharu.album.ui.album.AlbumIntent.HandleLongClick
-import org.koitharu.album.ui.album.AlbumIntent.OpenCamera
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Delete
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Hide
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Recover
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Share
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Trash
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Unfavorite
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Unhide
-import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
+import org.koitharu.album.repository.pagingsource.GallerySource
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.common.ShellIntegrationHelper
-import org.koitharu.album.ui.folders.FolderItem
+import org.koitharu.album.ui.gallery.GalleryEffect.ShowError
+import org.koitharu.album.ui.gallery.GalleryIntent.CancelSelectionMode
+import org.koitharu.album.ui.gallery.GalleryIntent.ClearRecycleBin
+import org.koitharu.album.ui.gallery.GalleryIntent.CloseMedia
+import org.koitharu.album.ui.gallery.GalleryIntent.HandleClick
+import org.koitharu.album.ui.gallery.GalleryIntent.HandleLongClick
+import org.koitharu.album.ui.gallery.GalleryIntent.OpenCamera
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Delete
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Hide
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Recover
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Share
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Trash
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Unfavorite
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Unhide
+import org.koitharu.album.ui.gallery.GalleryIntent.UpdateScale
 import org.koitharu.album.ui.info.BitmapAnalyzer
 import org.koitharu.album.util.getSelectedItems
 import org.koitharu.album.util.printStackTraceDebug
@@ -60,37 +63,44 @@ import org.koitharu.album.util.toggling
 import java.util.Calendar
 import kotlin.time.Duration.Companion.seconds
 
-@HiltViewModel(assistedFactory = AlbumViewModel.Factory::class)
-class AlbumViewModel @AssistedInject constructor(
-    @Assisted private val folder: FolderItem?,
-    private val gallerySourceFactory: GallerySourceFactory,
+@HiltViewModel(assistedFactory = GalleryViewModel.Factory::class)
+class GalleryViewModel @AssistedInject constructor(
+    @Assisted query: MediaQuery,
+    private val gallerySourceFactory: GallerySource.Factory,
     private val repository: MediaStoreRepository,
     private val settingsRepository: SettingsRepository,
     private val shellIntegrationHelper: ShellIntegrationHelper,
     private val hiddenMediaRepository: HiddenMediaRepository,
     private val contentResolver: ContentResolver,
-) : MviViewModel<AlbumState, AlbumIntent, Nothing>(AlbumState(folder)) {
+) : MviViewModel<GalleryState, GalleryIntent, GalleryEffect>(GalleryState(query)) {
 
-    val pagerContent = Pager(
-        config = PagingConfig(
-            pageSize = 30,
-            enablePlaceholders = true,
-        ),
-        pagingSourceFactory = {
-            gallerySourceFactory.create(folder)
-        }
-    ).flow.map { pagingData ->
-        pagingData.map { mediaItem ->
-            AlbumItem.Media(mediaItem)
-        }
-    }.cachedIn(viewModelScope + Dispatchers.Default)
+    private val isCommonAlbum = query == MediaQuery()
+
+    val pagerContent = state.map {
+        it.query
+    }.distinctUntilChanged()
+        .flatMapLatest { mediaQuery ->
+            Pager(
+                config = PagingConfig(
+                    pageSize = 30,
+                    enablePlaceholders = true,
+                ),
+                pagingSourceFactory = {
+                    gallerySourceFactory.create(mediaQuery)
+                }
+            ).flow
+        }.map { pagingData ->
+            pagingData.map { mediaItem ->
+                AlbumItem.Media(mediaItem)
+            }
+        }.cachedIn(viewModelScope + Dispatchers.Default)
 
     val gridContent: Flow<PagingData<AlbumItem>> = pagerContent.map { pagingData ->
         pagingData.insertSeparators { before, after ->
             when {
                 after == null -> null
                 before == null ->
-                    if (folder != null) {
+                    if (!isCommonAlbum) {
                         AlbumItem.DateHeader(after.dateAdded)
                     } else {
                         null
@@ -107,7 +117,7 @@ class AlbumViewModel @AssistedInject constructor(
     }.cachedIn(viewModelScope + Dispatchers.Default)
 
     init {
-        if (folder == null) {
+        if (isCommonAlbum) {
             observeBanner()
         }
         viewModelScope.launch(Dispatchers.Default) {
@@ -138,10 +148,8 @@ class AlbumViewModel @AssistedInject constructor(
                                 )
 
                                 YEAR_AGO -> repository.findByDate(
-                                    dateTo = yearAgo(minusDays = 0),
-                                    dateFrom = yearAgo(minusDays = 30),
+                                    dateRange = yearAgo(30)..yearAgo(0),
                                     limit = 40,
-                                    excludeHidden = true,
                                 ).randomOrNull()
 
                                 NONE -> null
@@ -164,7 +172,7 @@ class AlbumViewModel @AssistedInject constructor(
         }
     }
 
-    override fun handleIntent(intent: AlbumIntent) {
+    override fun handleIntent(intent: GalleryIntent) {
         when (intent) {
             is HandleClick -> state.update {
                 if (it.selectedItems.isEmpty()) {
@@ -195,12 +203,17 @@ class AlbumViewModel @AssistedInject constructor(
                 it.copy(selectedItems = persistentSetOf())
             }
 
-            is SelectionAlbumIntent -> viewModelScope.launch(Dispatchers.Default) {
+            is SelectedMediaIntent -> viewModelScope.launch(Dispatchers.Default) {
                 val selectedItems = gridContent.getSelectedItems(
                     ids = state.value.selectedItems
                 )
-                if (handleSelectionIntent(selectedItems = selectedItems, intent = intent)) {
+                runCatchingCancellable {
+                    handleSelectionIntent(selectedItems = selectedItems, intent = intent)
+                }.onSuccess {
                     handleIntent(CancelSelectionMode)
+                }.onFailure { e ->
+                    e.printStackTraceDebug()
+                    sendEffect(ShowError(e))
                 }
             }
 
@@ -209,6 +222,7 @@ class AlbumViewModel @AssistedInject constructor(
                     repository.clearRecycleBin()
                 }.onFailure { e ->
                     e.printStackTraceDebug()
+                    sendEffect(ShowError(e))
                 }
             }
 
@@ -220,48 +234,27 @@ class AlbumViewModel @AssistedInject constructor(
 
     private suspend fun handleSelectionIntent(
         selectedItems: Collection<AlbumItem.Media>,
-        intent: SelectionAlbumIntent,
-    ): Boolean = when (intent) {
-        Share -> {
-            shellIntegrationHelper.shareMedia(selectedItems)
-            true
-        }
+        intent: SelectedMediaIntent,
+    ): Unit = when (intent) {
+        Share -> shellIntegrationHelper.shareMedia(selectedItems)
 
-        Delete -> {
-            repository.deleteMedia(
-                media = selectedItems.map { it.uri },
-                useRecycleBin = false,
-            )
-            true
-        }
+        Delete -> repository.deleteMedia(
+            media = selectedItems.map { it.uri },
+            useRecycleBin = false,
+        )
 
-        Hide -> {
-            hiddenMediaRepository.setIsHidden(selectedItems.map { it.id }, true)
-            true
-        }
+        Hide -> hiddenMediaRepository.setIsHidden(selectedItems.map { it.id }, true)
 
-        Recover -> {
-            repository.recoverMedia(selectedItems.map { it.uri })
-            true
-        }
+        Recover -> repository.recoverMedia(selectedItems.map { it.uri })
 
-        Unfavorite -> {
-            repository.setIsFavorite(selectedItems.map { it.uri }, false)
-            true
-        }
+        Unfavorite -> repository.setIsFavorite(selectedItems.map { it.uri }, false)
 
-        Unhide -> {
-            hiddenMediaRepository.setIsHidden(selectedItems.map { it.id }, false)
-            true
-        }
+        Unhide -> hiddenMediaRepository.setIsHidden(selectedItems.map { it.id }, false)
 
-        Trash -> {
-            repository.deleteMedia(
-                media = selectedItems.map { it.uri },
-                useRecycleBin = true,
-            )
-            true
-        }
+        Trash -> repository.deleteMedia(
+            media = selectedItems.map { it.uri },
+            useRecycleBin = true,
+        )
     }
 
     private fun yearAgo(minusDays: Int): Long {
@@ -275,11 +268,13 @@ class AlbumViewModel @AssistedInject constructor(
         contentResolver.openInputStream(image)?.use {
             BitmapAnalyzer().isTopRegionDark(it)
         } == true
+    }.onFailure { e ->
+        e.printStackTraceDebug()
     }.getOrDefault(true)
 
     @AssistedFactory
     interface Factory {
 
-        fun create(folder: FolderItem?): AlbumViewModel
+        fun create(query: MediaQuery): GalleryViewModel
     }
 }

@@ -34,10 +34,8 @@ interface MediaStoreRepository {
     suspend fun getVideosCount(): Int
 
     suspend fun findByDate(
-        dateFrom: Long,
-        dateTo: Long,
+        dateRange: LongRange,
         limit: Int,
-        excludeHidden: Boolean,
     ): List<MediaItem>
 
     suspend fun getMedia(id: Long): MediaItem

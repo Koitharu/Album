@@ -22,10 +22,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.model.isSameMonth
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
-import org.koitharu.album.repository.pagingsource.PickerSource
+import org.koitharu.album.repository.pagingsource.GallerySource
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.folders.FolderItem
@@ -40,13 +41,14 @@ import org.koitharu.album.ui.picker.PickerIntent.ToggleImagesOnly
 import org.koitharu.album.ui.picker.PickerIntent.ToggleVideosOnly
 import org.koitharu.album.ui.picker.PickerIntent.UpdateScale
 import org.koitharu.album.util.getSelectedItems
+import org.koitharu.album.util.persistentSetOfNotNull
 import org.koitharu.album.util.toggling
 
 @HiltViewModel(assistedFactory = PickerViewModel.Factory::class)
 class PickerViewModel @AssistedInject constructor(
     @Assisted private val options: PickerOptions,
     private val settingsRepository: SettingsRepository,
-    private val sourceFactory: PickerSource.Factory,
+    private val sourceFactory: GallerySource.Factory,
     private val mediaStoreRepository: MediaStoreRepository,
 ) : MviViewModel<PickerState, PickerIntent, PickerEffect>(
     PickerState()
@@ -68,10 +70,12 @@ class PickerViewModel @AssistedInject constructor(
                 ),
                 pagingSourceFactory = {
                     sourceFactory.create(
-                        includeVideos = options.isVideosAllowed && !filters.isImagesOnly,
-                        includeImages = options.isImagesAllowed && !filters.isVideosOnly,
-                        isFavoriteOnly = filters.isFavoritesOnly,
-                        bucketId = filters.bucketId,
+                        MediaQuery(
+                            includeVideos = options.isVideosAllowed && !filters.isImagesOnly,
+                            includeImages = options.isImagesAllowed && !filters.isVideosOnly,
+                            isFavorites = filters.isFavoritesOnly,
+                            bucketIds = persistentSetOfNotNull(filters.bucketId),
+                        )
                     )
                 }
             ).flow

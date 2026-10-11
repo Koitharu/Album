@@ -47,12 +47,13 @@ import coil3.request.ImageRequest
 import kotlinx.coroutines.flow.Flow
 import org.koitharu.album.R
 import org.koitharu.album.model.format
-import org.koitharu.album.ui.album.AlbumIntent.HandleClick
-import org.koitharu.album.ui.album.AlbumIntent.HandleLongClick
-import org.koitharu.album.ui.album.AlbumIntent.UpdateScale
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.ErrorImageFactory
 import org.koitharu.album.ui.common.MviIntentHandler
+import org.koitharu.album.ui.gallery.GalleryIntent
+import org.koitharu.album.ui.gallery.GalleryIntent.HandleClick
+import org.koitharu.album.ui.gallery.GalleryIntent.HandleLongClick
+import org.koitharu.album.ui.gallery.GalleryState
 import org.koitharu.album.util.ifThen
 import org.koitharu.album.util.isLoadFinished
 import org.koitharu.album.util.toTitleCase
@@ -60,11 +61,11 @@ import org.koitharu.album.util.toTitleCase
 @Composable
 fun BoxScope.Gallery(
     pagingData: Flow<PagingData<AlbumItem>>,
-    state: AlbumState,
+    state: GalleryState,
     contentPadding: PaddingValues,
     scrollerPadding: PaddingValues,
     albumScope: AlbumScope,
-    handleIntent: MviIntentHandler<AlbumIntent>,
+    handleIntent: MviIntentHandler<GalleryIntent>,
     emptyContent: @Composable BoxScope.() -> Unit,
 ) {
     val size = 42.dp
@@ -76,7 +77,7 @@ fun BoxScope.Gallery(
     val selectedItems = state.selectedItems
     LazyVerticalGrid(
         modifier = Modifier.handleZoomGesture { zoom ->
-            handleIntent(UpdateScale(zoom))
+            handleIntent(GalleryIntent.UpdateScale(zoom))
         },
         state = albumScope.gridState,
         contentPadding = contentPadding + PaddingValues(4.dp),

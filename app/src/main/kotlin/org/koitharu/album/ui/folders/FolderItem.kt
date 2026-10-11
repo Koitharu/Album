@@ -8,9 +8,11 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.res.stringResource
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import org.koitharu.album.R
+import org.koitharu.album.model.MediaQuery
 
 @Immutable
 sealed interface FolderItem : Parcelable {
@@ -34,11 +36,13 @@ sealed interface FolderItem : Parcelable {
         is Hidden -> stringResource(R.string.hidden)
     }
 
+    fun getMediaQuery(): MediaQuery
+
     @Parcelize
     @Immutable
     data class Favorites(
         override val size: Int,
-        override val thumbnail: Uri?
+        override val thumbnail: Uri?,
     ) : FolderItem {
 
         @IgnoredOnParcel
@@ -47,13 +51,17 @@ sealed interface FolderItem : Parcelable {
         @Stable
         override val iconId: Int
             get() = R.drawable.ic_star_outline
+
+        override fun getMediaQuery() = MediaQuery(
+            isFavorites = true,
+        )
     }
 
     @Parcelize
     @Immutable
     data class RecycleBin(
         override val size: Int,
-        override val thumbnail: Uri?
+        override val thumbnail: Uri?,
     ) : FolderItem {
 
         @IgnoredOnParcel
@@ -62,13 +70,17 @@ sealed interface FolderItem : Parcelable {
         @Stable
         override val iconId: Int
             get() = R.drawable.ic_delete
+
+        override fun getMediaQuery() = MediaQuery(
+            isTrashed = true,
+        )
     }
 
     @Parcelize
     @Immutable
     data class Photos(
         override val size: Int,
-        override val thumbnail: Uri?
+        override val thumbnail: Uri?,
     ) : FolderItem {
 
         @IgnoredOnParcel
@@ -77,13 +89,18 @@ sealed interface FolderItem : Parcelable {
         @Stable
         override val iconId: Int
             get() = R.drawable.ic_photo_camera
+
+        override fun getMediaQuery() = MediaQuery(
+            includeVideos = false,
+            pathPattern = "DCIM",
+        )
     }
 
     @Parcelize
     @Immutable
     data class Videos(
         override val size: Int,
-        override val thumbnail: Uri?
+        override val thumbnail: Uri?,
     ) : FolderItem {
 
         @IgnoredOnParcel
@@ -92,13 +109,17 @@ sealed interface FolderItem : Parcelable {
         @Stable
         override val iconId: Int
             get() = R.drawable.ic_movie
+
+        override fun getMediaQuery() = MediaQuery(
+            includeImages = false,
+        )
     }
 
     @Parcelize
     @Immutable
     data class Hidden(
         override val size: Int,
-        override val thumbnail: Uri?
+        override val thumbnail: Uri?,
     ) : FolderItem {
 
         @IgnoredOnParcel
@@ -107,6 +128,10 @@ sealed interface FolderItem : Parcelable {
         @Stable
         override val iconId: Int
             get() = R.drawable.ic_hide
+
+        override fun getMediaQuery() = MediaQuery(
+            isHidden = true,
+        )
     }
 
     @Parcelize
@@ -121,5 +146,9 @@ sealed interface FolderItem : Parcelable {
         @Stable
         override val iconId: Int
             get() = R.drawable.ic_folder
+
+        override fun getMediaQuery() = MediaQuery(
+            bucketIds = persistentSetOf(id),
+        )
     }
 }

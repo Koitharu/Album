@@ -18,7 +18,7 @@ import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.MediaStoreConfirmationDialogs
 import org.koitharu.album.repository.observeChanges
-import org.koitharu.album.repository.pagingsource.DateRangeSource
+import org.koitharu.album.repository.pagingsource.GallerySource
 import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.ActivityContextProvider
 
@@ -28,14 +28,14 @@ class MediaStoreRepository30Impl(
     contentResolver: ContentResolver,
     legacyFavoritesRepository: LegacyFavoritesRepository,
     confirmationDialogs: MediaStoreConfirmationDialogs,
-    dateRangeSourceFactory: DateRangeSource.Factory,
+    gallerySourceFactory: GallerySource.Factory,
     hiddenMediaRepository: HiddenMediaRepository,
 ) : MediaStoreRepositoryLegacyImpl(
     activityContextProvider = activityContextProvider,
     contentResolver = contentResolver,
     legacyFavoritesRepository = legacyFavoritesRepository,
     confirmationDialogs = confirmationDialogs,
-    dateRangeSourceFactory = dateRangeSourceFactory,
+    gallerySourceFactory = gallerySourceFactory,
     hiddenMediaRepository = hiddenMediaRepository,
 ) {
 

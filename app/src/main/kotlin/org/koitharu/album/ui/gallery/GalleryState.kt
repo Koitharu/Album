@@ -1,32 +1,32 @@
-package org.koitharu.album.ui.album
+package org.koitharu.album.ui.gallery
 
 import androidx.compose.runtime.Immutable
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentSetOf
+import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.SettingsRepository.Companion.GRID_SCALE_DEFAULT
 import org.koitharu.album.ui.common.AlbumItem
-import org.koitharu.album.ui.folders.FolderItem
 
 @Immutable
-data class AlbumState(
+data class GalleryState(
     val scale: Float,
     val openedItem: AlbumItem.Media?,
     val banner: AlbumItem.Image?,
     val isBannerDark: Boolean,
     val selectedItems: PersistentSet<Long>,
-    val folder: FolderItem?,
+    val query: MediaQuery,
     val isRecycleBinEnabled: Boolean,
 ) {
 
     constructor(
-        folder: FolderItem?,
+        query: MediaQuery,
     ) : this(
         scale = GRID_SCALE_DEFAULT,
         openedItem = null,
         banner = null,
         isBannerDark = false,
-        folder = folder,
+        query = query,
         selectedItems = persistentSetOf(),
         isRecycleBinEnabled = Features.isRecycleBinSupported,
     )

@@ -67,14 +67,14 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import org.koitharu.album.R
-import org.koitharu.album.ui.album.AlbumIntent.CloseMedia
-import org.koitharu.album.ui.album.AlbumViewModel
+import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.common.OptionsMenu
 import org.koitharu.album.ui.common.SetSystemBarsColorsEffect
 import org.koitharu.album.ui.editor.ImageEditorActivity
-import org.koitharu.album.ui.folders.FolderItem
+import org.koitharu.album.ui.gallery.GalleryIntent.CloseMedia
+import org.koitharu.album.ui.gallery.GalleryViewModel
 import org.koitharu.album.ui.info.MediaInfoBottomSheet
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.theme.resolveThemeVariant
@@ -100,15 +100,15 @@ import org.koitharu.album.util.slideUpToClose
 
 @Composable
 fun ViewerScreen(
-    folder: FolderItem?,
+    query: MediaQuery,
     media: AlbumItem.Media,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
-    val albumViewModel = hiltViewModel<AlbumViewModel, AlbumViewModel.Factory>(
-        key = folder?.id
+    val albumViewModel = hiltViewModel<GalleryViewModel, GalleryViewModel.Factory>(
+        key = query.stringKey()
     ) {
-        it.create(folder)
+        it.create(query)
     }
     val localStoreOwner = rememberViewModelStoreOwner()
     CompositionLocalProvider(LocalViewModelStoreOwner provides localStoreOwner) {

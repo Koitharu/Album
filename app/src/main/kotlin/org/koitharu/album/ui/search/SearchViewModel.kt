@@ -14,7 +14,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.plus
-import org.koitharu.album.repository.pagingsource.SearchSource
+import org.koitharu.album.model.MediaQuery
+import org.koitharu.album.repository.pagingsource.GallerySource
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.search.SearchIntent.DoSearch
@@ -23,7 +24,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val sourceFactory: SearchSource.Factory,
+    private val sourceFactory: GallerySource.Factory,
 ) : MviViewModel<Any, SearchIntent, Nothing>(Any()) {
 
     private val currentQuery = MutableStateFlow("")
@@ -41,7 +42,9 @@ class SearchViewModel @Inject constructor(
                         enablePlaceholders = false,
                     ),
                     pagingSourceFactory = {
-                        sourceFactory.create(query)
+                        sourceFactory.create(
+                            MediaQuery(searchQuery = query)
+                        )
                     }
                 ).flow
             }

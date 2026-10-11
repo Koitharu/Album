@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
 import org.koitharu.album.model.MediaFolder
 import org.koitharu.album.model.MediaItem
+import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
@@ -26,7 +27,7 @@ import org.koitharu.album.repository.MediaStoreConfirmationDialogs
 import org.koitharu.album.repository.OrderDirection.DESC
 import org.koitharu.album.repository.ThumbnailFetcher.Companion.thumbnailUri
 import org.koitharu.album.repository.observeChanges
-import org.koitharu.album.repository.pagingsource.DateRangeSource
+import org.koitharu.album.repository.pagingsource.GallerySource
 import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.ActivityContextProvider
 import org.koitharu.album.util.commonPrefix
@@ -38,7 +39,7 @@ open class MediaStoreRepositoryLegacyImpl(
     protected val hiddenMediaRepository: HiddenMediaRepository,
     private val legacyFavoritesRepository: LegacyFavoritesRepository,
     private val confirmationDialogs: MediaStoreConfirmationDialogs,
-    private val dateRangeSourceFactory: DateRangeSource.Factory,
+    private val gallerySourceFactory: GallerySource.Factory,
 ) : MediaStoreRepository {
 
     protected val baseUri: Uri = MediaStore.Files.getContentUri("external")
@@ -219,15 +220,11 @@ open class MediaStoreRepositoryLegacyImpl(
     }
 
     override suspend fun findByDate(
-        dateFrom: Long,
-        dateTo: Long,
+        dateRange: LongRange,
         limit: Int,
-        excludeHidden: Boolean,
     ): List<MediaItem> {
-        val source = dateRangeSourceFactory.create(
-            dateFrom = dateFrom,
-            dateTo = dateTo,
-            excludeHidden = excludeHidden,
+        val source = gallerySourceFactory.create(
+            MediaQuery(dateRange = dateRange)
         )
         val params = Refresh(
             key = 0,

@@ -24,20 +24,22 @@ import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import org.koitharu.album.R
-import org.koitharu.album.ui.album.AlbumIntent.CancelSelectionMode
+import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.ui.common.EmptyState
-import org.koitharu.album.ui.folders.FolderItem
+import org.koitharu.album.ui.gallery.GalleryIntent.CancelSelectionMode
+import org.koitharu.album.ui.gallery.GalleryViewModel
 
 @Composable
 fun AlbumContent(
-    folder: FolderItem?,
+    query: MediaQuery,
+    title: String?,
     innerPadding: PaddingValues,
     albumScope: AlbumScope,
 ) {
-    val viewModel = hiltViewModel<AlbumViewModel, AlbumViewModel.Factory>(
-        key = folder?.id
+    val viewModel = hiltViewModel<GalleryViewModel, GalleryViewModel.Factory>(
+        key = query.stringKey()
     ) {
-        it.create(folder)
+        it.create(query)
     }
     val state by viewModel.collectState()
     Box(
@@ -84,7 +86,7 @@ fun AlbumContent(
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
             AlbumActionMode(
-                folder = state.folder,
+                query = state.query,
                 isRecycleBinEnabled = state.isRecycleBinEnabled,
                 selectedItemCount = state.selectedItems.size,
                 onCancel = { viewModel.handleIntent(CancelSelectionMode) },

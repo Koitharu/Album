@@ -41,17 +41,17 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.rememberViewModelStoreOwner
 import org.koitharu.album.R
 import org.koitharu.album.ui.album.AlbumActionMode
-import org.koitharu.album.ui.album.AlbumIntent
-import org.koitharu.album.ui.album.AlbumIntent.CancelSelectionMode
-import org.koitharu.album.ui.album.AlbumIntent.ClearRecycleBin
-import org.koitharu.album.ui.album.AlbumIntent.OpenCamera
 import org.koitharu.album.ui.album.AlbumScope
-import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.album.Gallery
 import org.koitharu.album.ui.common.AlbumItem.Media
 import org.koitharu.album.ui.common.EmptyState
 import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.common.SetSystemBarsColorsEffect
+import org.koitharu.album.ui.gallery.GalleryIntent
+import org.koitharu.album.ui.gallery.GalleryIntent.CancelSelectionMode
+import org.koitharu.album.ui.gallery.GalleryIntent.ClearRecycleBin
+import org.koitharu.album.ui.gallery.GalleryIntent.OpenCamera
+import org.koitharu.album.ui.gallery.GalleryViewModel
 import org.koitharu.album.ui.viewer.ViewerScreen
 import org.koitharu.album.util.IconButtonWithTooltip
 
@@ -62,10 +62,11 @@ fun FolderContentScreen(
 ) {
     val localStoreOwner = rememberViewModelStoreOwner()
     CompositionLocalProvider(LocalViewModelStoreOwner provides localStoreOwner) {
-        val viewModel = hiltViewModel<AlbumViewModel, AlbumViewModel.Factory>(
-            key = folder.id,
+        val query = remember(folder) { folder.getMediaQuery() }
+        val viewModel = hiltViewModel<GalleryViewModel, GalleryViewModel.Factory>(
+            key = query.stringKey(),
         ) {
-            it.create(folder)
+            it.create(query)
         }
         val gridState = rememberLazyGridState()
         val state by viewModel.collectState()
@@ -75,7 +76,7 @@ fun FolderContentScreen(
             AnimatedContent(state.openedItem) { openedItem ->
                 when (openedItem) {
                     is Media -> ViewerScreen(
-                        folder = folder,
+                        query = query,
                         media = openedItem,
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@AnimatedContent,
@@ -168,7 +169,7 @@ fun FolderContentScreen(
                                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
                             ) {
                                 AlbumActionMode(
-                                    folder = state.folder,
+                                    query = query,
                                     isRecycleBinEnabled = state.isRecycleBinEnabled,
                                     selectedItemCount = state.selectedItems.size,
                                     onCancel = { viewModel.handleIntent(CancelSelectionMode) },
@@ -187,7 +188,7 @@ fun FolderContentScreen(
 @Composable
 private fun ContextMenu(
     folder: FolderItem,
-    handleIntent: MviIntentHandler<AlbumIntent>,
+    handleIntent: MviIntentHandler<GalleryIntent>,
 ) {
     when (folder) {
         is FolderItem.RecycleBin -> {

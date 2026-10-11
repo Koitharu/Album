@@ -47,10 +47,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import org.koitharu.album.R
+import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.ui.album.AlbumContent
-import org.koitharu.album.ui.album.AlbumIntent.HandleClick
 import org.koitharu.album.ui.album.AlbumScope
-import org.koitharu.album.ui.album.AlbumViewModel
 import org.koitharu.album.ui.album.HomeScreenBanner
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.AlbumItem.Media
@@ -62,6 +61,8 @@ import org.koitharu.album.ui.common.SetSystemBarsColorsEffect
 import org.koitharu.album.ui.folders.FolderContentScreen
 import org.koitharu.album.ui.folders.FolderItem
 import org.koitharu.album.ui.folders.FoldersContent
+import org.koitharu.album.ui.gallery.GalleryIntent.HandleClick
+import org.koitharu.album.ui.gallery.GalleryViewModel
 import org.koitharu.album.ui.search.SearchBar
 import org.koitharu.album.ui.search.SearchResults
 import org.koitharu.album.ui.search.SearchState
@@ -134,15 +135,17 @@ fun HomeScreen() {
             onClose = { selectedFolder = null }
         )
     } ?: run {
-        val viewModel = hiltViewModel<AlbumViewModel, AlbumViewModel.Factory> {
-            it.create(null)
+        val viewModel = hiltViewModel<GalleryViewModel, GalleryViewModel.Factory>(
+            key = MediaQuery.DEFAULT.stringKey()
+        ) {
+            it.create(MediaQuery.DEFAULT)
         }
         val state by viewModel.collectState()
         SharedTransitionLayout {
             AnimatedContent(state.openedItem) { openedItem ->
                 when (openedItem) {
                     is Media -> ViewerScreen(
-                        folder = null,
+                        query = state.query,
                         media = openedItem,
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@AnimatedContent,
@@ -302,14 +305,17 @@ private fun HomeContent(
                         gridState = searchState.gridState,
                     ),
                     contentPadding = innerPadding,
-                    handleIntent = hiltViewModel<AlbumViewModel, AlbumViewModel.Factory> {
-                        it.create(null)
+                    handleIntent = hiltViewModel<GalleryViewModel, GalleryViewModel.Factory>(
+                        key = MediaQuery.DEFAULT.stringKey()
+                    ) {
+                        it.create(MediaQuery.DEFAULT)
                     }
                 )
             } else {
                 when (selectedTab) {
                     0 -> AlbumContent(
-                        folder = null,
+                        query = MediaQuery(),
+                        title = null,
                         innerPadding = innerPadding,
                         albumScope = albumScope,
                     )

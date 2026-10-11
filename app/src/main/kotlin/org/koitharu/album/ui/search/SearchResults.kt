@@ -14,15 +14,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
-import org.koitharu.album.ui.album.AlbumIntent
-import org.koitharu.album.ui.album.AlbumIntent.HandleClick
-import org.koitharu.album.ui.album.AlbumIntent.HandleLongClick
 import org.koitharu.album.ui.album.AlbumScope
 import org.koitharu.album.ui.album.GalleryImageItem
 import org.koitharu.album.ui.album.GalleryItemPlaceholder
 import org.koitharu.album.ui.album.GalleryVideoItem
 import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.MviIntentHandler
+import org.koitharu.album.ui.gallery.GalleryIntent
+import org.koitharu.album.ui.gallery.GalleryIntent.HandleClick
+import org.koitharu.album.ui.gallery.GalleryIntent.HandleLongClick
 import org.koitharu.album.ui.search.SearchIntent.DoSearch
 
 @Composable
@@ -30,7 +30,7 @@ fun SearchResults(
     query: String,
     albumScope: AlbumScope,
     contentPadding: PaddingValues,
-    handleIntent: MviIntentHandler<AlbumIntent>
+    handleIntent: MviIntentHandler<GalleryIntent>
 ) {
     val viewModel = hiltViewModel<SearchViewModel>()
     LaunchedEffect(query) {

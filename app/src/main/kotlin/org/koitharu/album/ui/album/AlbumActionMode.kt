@@ -15,27 +15,27 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.koitharu.album.R
+import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.model.ThemeVariant
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Delete
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Hide
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Recover
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Share
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Trash
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Unfavorite
-import org.koitharu.album.ui.album.AlbumIntent.SelectionAlbumIntent.Unhide
 import org.koitharu.album.ui.common.MviIntentHandler
-import org.koitharu.album.ui.folders.FolderItem
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Delete
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Hide
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Recover
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Share
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Trash
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Unfavorite
+import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Unhide
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.util.IconButtonWithTooltip
 
 @Composable
 fun AlbumActionMode(
     selectedItemCount: Int,
-    folder: FolderItem?,
+    query: MediaQuery,
     isRecycleBinEnabled: Boolean,
     onCancel: () -> Unit,
-    handleIntent: MviIntentHandler<SelectionAlbumIntent>,
+    handleIntent: MviIntentHandler<SelectedMediaIntent>,
 ) = HorizontalFloatingToolbar(
     expanded = true,
     leadingContent = {
@@ -70,7 +70,7 @@ fun AlbumActionMode(
                 contentDescription = stringResource(R.string.share),
             )
         }
-        if (folder is FolderItem.Favorites) {
+        if (query.isFavorites) {
             IconButtonWithTooltip(
                 tooltip = stringResource(R.string.remove_from_favorites),
                 tooltipAnchorPosition = TooltipAnchorPosition.Above,
@@ -82,7 +82,7 @@ fun AlbumActionMode(
                 )
             }
         }
-        if (folder is FolderItem.Hidden) {
+        if (query.isHidden) {
             IconButtonWithTooltip(
                 tooltip = stringResource(R.string.unhide),
                 tooltipAnchorPosition = TooltipAnchorPosition.Above,
@@ -93,7 +93,7 @@ fun AlbumActionMode(
                     contentDescription = stringResource(R.string.unhide),
                 )
             }
-        } else if (folder == null) {
+        } else {
             IconButtonWithTooltip(
                 tooltip = stringResource(R.string.hide),
                 tooltipAnchorPosition = TooltipAnchorPosition.Above,
@@ -105,7 +105,7 @@ fun AlbumActionMode(
                 )
             }
         }
-        if (folder is FolderItem.RecycleBin) {
+        if (query.isTrashed) {
             IconButtonWithTooltip(
                 tooltip = stringResource(R.string.restore),
                 tooltipAnchorPosition = TooltipAnchorPosition.Above,
@@ -158,7 +158,7 @@ private fun PreviewAlbumActionModeLight() = AlbumTheme(
     variant = ThemeVariant.LIGHT,
 ) {
     AlbumActionMode(
-        folder = null,
+        query = MediaQuery(),
         selectedItemCount = 5,
         isRecycleBinEnabled = true,
         onCancel = { /* no-op */ },
@@ -172,7 +172,7 @@ private fun PreviewAlbumActionModeDark() = AlbumTheme(
     variant = ThemeVariant.DARK,
 ) {
     AlbumActionMode(
-        folder = null,
+        query = MediaQuery(),
         selectedItemCount = 5,
         isRecycleBinEnabled = false,
         onCancel = { /* no-op */ },
