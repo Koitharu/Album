@@ -1,13 +1,13 @@
 package org.koitharu.album.ui.home
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -23,7 +23,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -36,8 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigation3.ui.NavDisplay
-import kotlinx.coroutines.launch
 import kotlinx.serialization.serializer
 import org.koitharu.album.R
 import org.koitharu.album.model.MediaQuery
@@ -53,9 +52,7 @@ import org.koitharu.album.ui.folders.FolderContentScreen
 import org.koitharu.album.ui.folders.FoldersContent
 import org.koitharu.album.ui.gallery.galleryViewModel
 import org.koitharu.album.ui.home.NavDestination.HomeTab
-import org.koitharu.album.ui.search.SearchBar
-import org.koitharu.album.ui.search.SearchResults
-import org.koitharu.album.ui.search.rememberSearchState
+import org.koitharu.album.ui.search.SearchScreen
 import org.koitharu.album.ui.viewer.ViewerScreen
 import org.koitharu.album.util.IconButtonWithTooltip
 import org.koitharu.album.util.ifThen
@@ -91,6 +88,13 @@ fun HomeNavHost() {
                             folder = it.folder,
                         )
                     }
+                    entry<NavDestination.Search>(
+                        clazzContentKey = { MediaQuery(searchQuery = it.searchQuery).stringKey() }
+                    ) {
+                        SearchScreen(
+                            initialQuery = it.searchQuery,
+                        )
+                    }
                     entry<NavDestination.MediaViewer>(
                         metadata = { key ->
                             SharedViewModelStoreNavEntryDecorator.parent(key.query.stringKey())
@@ -118,16 +122,11 @@ fun HomeNavContent(
     val navState = rememberNavigationSuiteScaffoldState()
     val layoutType =
         NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfoV2())
-    val scope = rememberCoroutineScope()
-    val searchState = rememberSearchState()
-    BackHandler(searchState.isExpanded) {
-        scope.launch { searchState.collapse() }
-    }
     val albumViewModel = galleryViewModel(MediaQuery.DEFAULT)
     val state by albumViewModel.collectState()
     val isSelectionMode = state.selectedItems.isNotEmpty()
     val isNavigationVisible =
-        layoutType == NavigationSuiteType.NavigationRail || (scrollDirection >= 0 && !isSelectionMode && searchState.isCollapsed)
+        layoutType == NavigationSuiteType.NavigationRail || (scrollDirection >= 0 && !isSelectionMode)
     LaunchedEffect(isNavigationVisible) {
         if (isNavigationVisible) {
             navState.show()
@@ -172,93 +171,111 @@ fun HomeNavContent(
         Scaffold(
             modifier = Modifier
                 .nestedScroll(scrollConnection)
-                .ifThen((banner == null || selectedTab != HomeTab.Album) && searchState.isCollapsed) {
+                .ifThen((banner == null || selectedTab != HomeTab.Album)) {
                     nestedScroll(scrollBehavior.nestedScrollConnection)
                 }
                 .fillMaxSize(),
             topBar = {
-                if (searchState.isExpanded) {
-                    SearchBar(
-                        modifier = Modifier
-                            .background(TopAppBarDefaults.topAppBarColors().containerColor)
-                            .statusBarsPadding(),
-                        state = searchState,
-                        onCollapse = { scope.launch { searchState.collapse() } },
-                    )
-                } else if (banner != null && selectedTab == HomeTab.Album) {
-                    HomeScreenBanner(
-                        banner = banner,
-                        sharedTransitionScope = sharedTransitionScope,
-                        onOffsetChanged = { headerOffset = it },
-                        gridState = gridState,
-                        overlayContent = {
-                            OptionsMenu(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .statusBarsPadding(),
-                                iconColor = if (state.isBannerDark) {
-                                    Color.White
-                                } else {
-                                    Color.Black
-                                },
-                                content = { onDismissRequest ->
+                with(sharedTransitionScope) {
+                    if (banner != null && selectedTab == HomeTab.Album) {
+                        HomeScreenBanner(
+                            banner = banner,
+                            sharedTransitionScope = sharedTransitionScope,
+                            onOffsetChanged = { headerOffset = it },
+                            gridState = gridState,
+                            overlayContent = {
+                                Row(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .statusBarsPadding(),
+                                ) {
+                                    IconButtonWithTooltip(
+                                        modifier = Modifier.sharedElement(
+                                            sharedContentState = rememberSharedContentState("search"),
+                                            animatedVisibilityScope = LocalNavAnimatedContentScope.current
+                                        ),
+                                        tooltip = stringResource(R.string.search),
+                                        colors = IconButtonDefaults.iconButtonColors(
+                                            contentColor = if (state.isBannerDark) {
+                                                Color.White
+                                            } else {
+                                                Color.Black
+                                            }
+                                        ),
+                                        onClick = {
+                                            backStack.add(NavDestination.Search())
+                                        },
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_search),
+                                            contentDescription = stringResource(R.string.search),
+                                        )
+                                    }
+                                    OptionsMenu(
+                                        iconColor = if (state.isBannerDark) {
+                                            Color.White
+                                        } else {
+                                            Color.Black
+                                        },
+                                        content = { onDismissRequest ->
+                                            OptionsMenuContent(onDismissRequest)
+                                        },
+                                    )
+                                }
+                            }
+                        )
+                    } else {
+                        TopAppBar(
+                            modifier = Modifier.statusBarsPadding(),
+                            title = {
+                                Text(stringResource(R.string.app_name))
+                            },
+                            actions = {
+                                IconButtonWithTooltip(
+                                    modifier = Modifier.sharedElement(
+                                        sharedContentState = rememberSharedContentState("search"),
+                                        animatedVisibilityScope = LocalNavAnimatedContentScope.current
+                                    ),
+                                    tooltip = stringResource(R.string.search),
+                                    onClick = {
+                                        backStack.add(NavDestination.Search())
+                                    },
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_search),
+                                        contentDescription = stringResource(R.string.search),
+                                    )
+                                }
+                                OptionsMenu { onDismissRequest ->
                                     OptionsMenuContent(onDismissRequest)
-                                },
-                            )
-                        }
-                    )
-                } else {
-                    TopAppBar(
-                        modifier = Modifier.statusBarsPadding(),
-                        title = {
-                            Text(stringResource(R.string.app_name))
-                        },
-                        actions = {
-                            IconButtonWithTooltip(
-                                tooltip = stringResource(R.string.search),
-                                onClick = { scope.launch { searchState.expand() } },
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_search),
-                                    contentDescription = stringResource(R.string.search),
-                                )
-                            }
-                            OptionsMenu { onDismissRequest ->
-                                OptionsMenuContent(onDismissRequest)
-                            }
-                        },
-                        scrollBehavior = scrollBehavior,
-                    )
+                                }
+                            },
+                            scrollBehavior = scrollBehavior,
+                        )
+                    }
                 }
             },
         ) { innerPadding ->
             CompositionLocalProvider(LocalNavBackStack provides backStack) {
-                if (searchState.isExpanded) {
-                    SearchResults(
-                        query = searchState.textFieldState.text.toString(),
-                        contentPadding = innerPadding,
-                    )
-                } else {
-                    when (selectedTab) {
-                        HomeTab.Album -> with(sharedTransitionScope) {
-                            AlbumContent(
-                                query = MediaQuery.DEFAULT,
-                                title = null,
-                                gridState = gridState,
-                                headerOffset = headerOffset,
-                                innerPadding = innerPadding,
-                            )
-                        }
-
-                        HomeTab.Folders -> FoldersContent(
+                when (selectedTab) {
+                    HomeTab.Album -> with(sharedTransitionScope) {
+                        AlbumContent(
+                            query = MediaQuery.DEFAULT,
+                            title = null,
+                            gridState = gridState,
+                            headerOffset = headerOffset,
                             innerPadding = innerPadding,
                         )
                     }
+
+                    HomeTab.Folders -> FoldersContent(
+                        innerPadding = innerPadding,
+                    )
                 }
             }
         }
         SetSystemBarsColorsEffect(
-            isLightStatusBar = !if (selectedTab == HomeTab.Album && banner != null && searchState.isCollapsed) {
+            isLightStatusBar = !if (selectedTab == HomeTab.Album && banner != null) {
                 state.isBannerDark
             } else {
                 LocalDarkMode.current

@@ -1,5 +1,6 @@
 package org.koitharu.album.ui.search
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -38,15 +39,17 @@ fun SearchResults(
             is GalleryEffect.ShowError -> Unit
         }
     }
-    val state by viewModel.collectState()
     with(sharedTransitionScope) {
-        Gallery(
-            pagingData = viewModel.gridContent,
-            state = state,
-            contentPadding = contentPadding,
-            scrollerPadding = contentPadding,
-            handleIntent = viewModel,
-            emptyContent = { },
-        )
+        AnimatedVisibility(query.length >= 3) {
+            val state by viewModel.collectState()
+            Gallery(
+                pagingData = viewModel.gridContent,
+                state = state,
+                contentPadding = contentPadding,
+                scrollerPadding = contentPadding,
+                handleIntent = viewModel,
+                emptyContent = { },
+            )
+        }
     }
 }

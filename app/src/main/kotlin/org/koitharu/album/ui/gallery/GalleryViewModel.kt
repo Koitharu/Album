@@ -42,6 +42,7 @@ import org.koitharu.album.ui.common.AlbumItem
 import org.koitharu.album.ui.common.LocalSharedViewModelStoreOwner
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.common.ShellIntegrationHelper
+import org.koitharu.album.ui.gallery.GalleryEffect.OpenMedia
 import org.koitharu.album.ui.gallery.GalleryEffect.ShowError
 import org.koitharu.album.ui.gallery.GalleryIntent.CancelSelectionMode
 import org.koitharu.album.ui.gallery.GalleryIntent.ClearRecycleBin
@@ -57,6 +58,7 @@ import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Trash
 import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Unfavorite
 import org.koitharu.album.ui.gallery.GalleryIntent.SelectedMediaIntent.Unhide
 import org.koitharu.album.ui.gallery.GalleryIntent.UpdateScale
+import org.koitharu.album.ui.gallery.GalleryIntent.UpdateSearchQuery
 import org.koitharu.album.ui.info.BitmapAnalyzer
 import org.koitharu.album.util.getSelectedItems
 import org.koitharu.album.util.printStackTraceDebug
@@ -179,7 +181,7 @@ class GalleryViewModel @AssistedInject constructor(
         when (intent) {
             is HandleClick -> state.update {
                 if (it.selectedItems.isEmpty()) {
-                    sendEffectAsync(GalleryEffect.OpenMedia(intent.media))
+                    sendEffectAsync(OpenMedia(intent.media))
                     it
                 } else {
                     it.copy(selectedItems = it.selectedItems.toggling(intent.media.id))
@@ -228,6 +230,14 @@ class GalleryViewModel @AssistedInject constructor(
 
             OpenCamera -> viewModelScope.launch {
                 shellIntegrationHelper.openCamera()
+            }
+
+            is UpdateSearchQuery -> state.update {
+                it.copy(
+                    query = it.query.copy(
+                        searchQuery = intent.value,
+                    ),
+                )
             }
         }
     }

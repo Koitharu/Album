@@ -29,4 +29,10 @@ sealed interface NavDestination : NavKey {
         val query: MediaQuery,
         val media: AlbumItem.Media,
     ) : NavDestination
+
+    @Immutable
+    @Serializable
+    data class Search(
+        val searchQuery: String = "",
+    ) : NavDestination
 }

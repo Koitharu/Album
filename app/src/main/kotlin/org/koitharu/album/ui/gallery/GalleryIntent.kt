@@ -16,6 +16,10 @@ sealed interface GalleryIntent {
         val factor: Float
     ) : GalleryIntent
 
+    data class UpdateSearchQuery(
+        val value: String
+    ): GalleryIntent
+
     data object OpenCamera : GalleryIntent
 
     data object ClearRecycleBin : GalleryIntent

@@ -1,11 +1,13 @@
 package org.koitharu.album.ui.search
 
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -16,25 +18,35 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.input.ImeAction
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import org.koitharu.album.R
 import org.koitharu.album.util.IconButtonWithTooltip
 
 @Composable
-fun SearchBar(
+fun SharedTransitionScope.SearchBar(
     modifier: Modifier,
-    state: SearchState,
+    text: String,
+    onTextChanged: (String) -> Unit,
     onCollapse: () -> Unit,
 ) = Box(
     modifier = modifier,
 ) {
     val focusRequester = remember { FocusRequester() }
-    SearchBarDefaults.InputField(
+    TextField(
         modifier = Modifier
             .fillMaxWidth()
+            .sharedElement(
+                sharedContentState = rememberSharedContentState("search"),
+                animatedVisibilityScope = LocalNavAnimatedContentScope.current
+            )
             .focusRequester(focusRequester),
-        textFieldState = state.textFieldState,
-        searchBarState = state.searchBarState,
-        onSearch = { },
+        value = text,
+        onValueChange = onTextChanged,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Search,
+        ),
         placeholder = {
             Text(
                 modifier = Modifier.clearAndSetSemantics {},
@@ -54,7 +66,7 @@ fun SearchBar(
         },
         trailingIcon = {
             IconButtonWithTooltip(
-                onClick = { state.clearText() },
+                onClick = { onTextChanged("") },
                 tooltip = stringResource(R.string.clear),
             ) {
                 Icon(
@@ -70,7 +82,7 @@ fun SearchBar(
             .align(Alignment.BottomCenter)
     )
     LaunchedEffect(Unit) {
-        if (state.textFieldState.text.isEmpty()) {
+        if (text.isEmpty()) {
             focusRequester.requestFocus()
         }
     }

@@ -35,7 +35,7 @@ data class MediaQuery(
         joiner.add(isFavorites.toString())
         joiner.add(isHidden.toString())
         joiner.add(dateRange.toString())
-        joiner.add(searchQuery.toString())
+        joiner.add((searchQuery != null).toString())
         joiner.add(pathPattern.toString())
         return joiner.toString()
     }
