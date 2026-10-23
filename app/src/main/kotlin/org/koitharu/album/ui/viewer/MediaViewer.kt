@@ -2,7 +2,6 @@ package org.koitharu.album.ui.viewer
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.Crossfade
@@ -36,7 +35,6 @@ import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,8 +53,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowInsetsCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-import androidx.lifecycle.viewmodel.compose.rememberViewModelStoreOwner
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -73,8 +70,8 @@ import org.koitharu.album.ui.common.MviIntentHandler
 import org.koitharu.album.ui.common.OptionsMenu
 import org.koitharu.album.ui.common.SetSystemBarsColorsEffect
 import org.koitharu.album.ui.editor.ImageEditorActivity
-import org.koitharu.album.ui.gallery.GalleryIntent.CloseMedia
-import org.koitharu.album.ui.gallery.GalleryViewModel
+import org.koitharu.album.ui.gallery.galleryViewModel
+import org.koitharu.album.ui.home.LocalNavBackStack
 import org.koitharu.album.ui.info.MediaInfoBottomSheet
 import org.koitharu.album.ui.theme.AlbumTheme
 import org.koitharu.album.ui.theme.resolveThemeVariant
@@ -99,62 +96,54 @@ import org.koitharu.album.util.rememberWindowInsetsController
 import org.koitharu.album.util.slideUpToClose
 
 @Composable
+context(sharedTransitionScope: SharedTransitionScope)
 fun ViewerScreen(
     query: MediaQuery,
     media: AlbumItem.Media,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
-    val albumViewModel = hiltViewModel<GalleryViewModel, GalleryViewModel.Factory>(
-        key = query.stringKey()
-    ) {
-        it.create(query)
+    val galleryViewModel = galleryViewModel(query)
+    val backStack = LocalNavBackStack.current
+    val viewModel = hiltViewModel<ViewerViewModel, ViewerViewModel.Factory> {
+        it.create(media)
     }
-    val localStoreOwner = rememberViewModelStoreOwner()
-    CompositionLocalProvider(LocalViewModelStoreOwner provides localStoreOwner) {
-        val viewModel = hiltViewModel<ViewerViewModel, ViewerViewModel.Factory> {
-            it.create(media)
-        }
-        val state by viewModel.collectState()
-        val resources = LocalResources.current
-        val context = LocalContext.current
-        val snackbarHostState = remember { SnackbarHostState() }
-        LaunchedEffect(Unit) {
-            viewModel.effect.collect { effect ->
-                when (effect) {
-                    is OnError -> snackbarHostState.showSnackbar(
-                        effect.error.message ?: resources.getString(R.string.error_message_generic)
-                    )
+    val state by viewModel.collectState()
+    val resources = LocalResources.current
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is OnError -> snackbarHostState.showSnackbar(
+                    effect.error.message ?: resources.getString(R.string.error_message_generic)
+                )
 
-                    is OpenImageEditor -> context.startActivity(
-                        Intent(
-                            context,
-                            ImageEditorActivity::class.java
-                        ).setData(effect.uri)
-                            .putExtra(ImageEditorActivity.EXTRA_NAME, effect.name)
-                    )
+                is OpenImageEditor -> context.startActivity(
+                    Intent(
+                        context,
+                        ImageEditorActivity::class.java
+                    ).setData(effect.uri)
+                        .putExtra(ImageEditorActivity.EXTRA_NAME, effect.name)
+                )
 
-                    CloseViewer -> albumViewModel.handleIntent(CloseMedia)
-                }
+                CloseViewer -> backStack.removeLastOrNull()
             }
         }
-        PagerMediaViewer(
-            pagingData = albumViewModel.pagerContent,
-            media = state.currentMedia,
-            snackbarHostState = snackbarHostState,
-            sharedTransitionScope = sharedTransitionScope,
-            animatedVisibilityScope = animatedVisibilityScope,
-            isRotationGestureEnabled = state.isRotationGestureEnabled,
-            isVideosMutedOnStart = state.isVideosMutedOnStart,
-            handleIntent = viewModel,
-            onClose = { albumViewModel.handleIntent(CloseMedia) }
+    }
+    PagerMediaViewer(
+        pagingData = galleryViewModel.pagerContent,
+        media = state.currentMedia,
+        snackbarHostState = snackbarHostState,
+        sharedTransitionScope = sharedTransitionScope,
+        animatedVisibilityScope = LocalNavAnimatedContentScope.current,
+        isRotationGestureEnabled = state.isRotationGestureEnabled,
+        isVideosMutedOnStart = state.isVideosMutedOnStart,
+        handleIntent = viewModel,
+    )
+    state.infoBottomSheetImage?.let {
+        MediaInfoBottomSheet(
+            image = it,
+            onDismissRequest = { viewModel.handleIntent(CloseInfo) },
         )
-        state.infoBottomSheetImage?.let {
-            MediaInfoBottomSheet(
-                image = it,
-                onDismissRequest = { viewModel.handleIntent(CloseInfo) },
-            )
-        }
     }
 }
 
@@ -169,7 +158,6 @@ private fun PagerMediaViewer(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     handleIntent: MviIntentHandler<ViewerIntent>,
-    onClose: () -> Unit,
 ) = AlbumTheme(variant = resolveThemeVariant(isForViewer = true)) {
     val insetsController = rememberWindowInsetsController()
     var isUiVisible by remember { mutableStateOf(true) }
@@ -188,6 +176,7 @@ private fun PagerMediaViewer(
             }
         }
     }
+    val backStack = LocalNavBackStack.current
     Scaffold(
         topBar = {
             AnimatedVisibility(
@@ -211,7 +200,7 @@ private fun PagerMediaViewer(
                     navigationIcon = {
                         IconButtonWithTooltip(
                             tooltip = stringResource(R.string.back),
-                            onClick = onClose,
+                            onClick = { backStack.removeLastOrNull() },
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_arrow_back),
@@ -248,7 +237,6 @@ private fun PagerMediaViewer(
         },
         contentWindowInsets = WindowInsets.systemBarsIgnoringVisibility,
     ) { innerPadding ->
-        BackHandler(onBack = onClose)
         val images = pagingData.collectAsLazyPagingItems(Dispatchers.Default)
         val initialIndex = remember(media) {
             computeInitialIndex(media, images)
@@ -257,7 +245,7 @@ private fun PagerMediaViewer(
             SingleViewer(
                 modifier = Modifier
                     .fillMaxSize()
-                    .slideUpToClose(onClose),
+                    .slideUpToClose { backStack.removeLastOrNull() },
                 media = media,
                 contentPadding = innerPadding,
                 sharedTransitionScope = sharedTransitionScope,
@@ -273,7 +261,7 @@ private fun PagerMediaViewer(
             ViewerPager(
                 modifier = Modifier
                     .fillMaxSize()
-                    .slideUpToClose(onClose),
+                    .slideUpToClose { backStack.removeLastOrNull() },
                 images = images,
                 contentPadding = innerPadding,
                 initialIndex = initialIndex,
@@ -333,7 +321,7 @@ fun ViewerPager(
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
             handleIntent = handleIntent,
-            isActive = page == pagerState.currentPage,
+            isActive = page == pagerState.settledPage,
             isUiVisible = isUiVisible,
             isRotationGestureEnabled = isRotationGestureEnabled,
             isVideosMutedOnStart = isVideosMutedOnStart,
@@ -358,10 +346,12 @@ fun SingleViewer(
 ) {
     with(sharedTransitionScope) {
         val modifier = if (isActive && media is AlbumItem.Media) {
-            modifier.sharedElement(
-                rememberSharedContentState(key = "image_${media.id}"),
-                animatedVisibilityScope = animatedVisibilityScope
-            )
+            Modifier
+                .sharedElement(
+                    sharedContentState = rememberSharedContentState(media.sharedContentKey),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                )
+                .then(modifier)
         } else {
             modifier
         }

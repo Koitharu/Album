@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -30,20 +29,20 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import org.koitharu.album.R
+import org.koitharu.album.ui.home.LocalNavBackStack
+import org.koitharu.album.ui.home.NavDestination
 
 @Composable
 fun FoldersContent(
     innerPadding: PaddingValues,
-    listState: LazyListState,
-    onFolderClick: (FolderItem) -> Unit,
 ) {
     val viewModel = hiltViewModel<FoldersViewModel>()
     val state by viewModel.collectState()
     val folders = state.items
+    val backStack = LocalNavBackStack.current
     LazyColumn(
         modifier = Modifier
             .fillMaxSize(),
-        state = listState,
         contentPadding = innerPadding,
     ) {
         items(
@@ -52,7 +51,9 @@ fun FoldersContent(
         ) {
             Folder(
                 folder = it,
-                onClick = { onFolderClick(it) }
+                onClick = {
+                    backStack.add(NavDestination.FolderContent(it))
+                }
             )
         }
         state.error?.let { error ->

@@ -2,10 +2,12 @@ package org.koitharu.album.model
 
 import android.text.format.DateFormat
 import androidx.compose.runtime.Immutable
+import kotlinx.serialization.Serializable
 import java.util.concurrent.TimeUnit
 
 @JvmInline
 @Immutable
+@Serializable
 value class ImmutableDateTime(
     val millis: Long,
 ) {

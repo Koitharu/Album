@@ -1,11 +1,16 @@
+@file:UseSerializers(UriSerializer::class)
+
 package org.koitharu.album.ui.common
 
 import android.net.Uri
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.UseSerializers
 import org.koitharu.album.model.ImmutableDateTime
 import org.koitharu.album.model.MediaItem
 import org.koitharu.album.repository.ThumbnailFetcher.Companion.thumbnailUri
+import org.koitharu.album.util.serializers.UriSerializer
 
 @Immutable
 sealed interface AlbumItem {
@@ -24,6 +29,7 @@ sealed interface AlbumItem {
     }
 
     @Immutable
+    @Serializable
     sealed interface Media : AlbumItem {
         override val id: Long
         val index: Int
@@ -83,6 +89,7 @@ sealed interface AlbumItem {
     }
 
     @Immutable
+    @Serializable
     data class Image(
         override val index: Int,
         override val id: Long,
@@ -101,6 +108,7 @@ sealed interface AlbumItem {
     }
 
     @Immutable
+    @Serializable
     data class Video(
         override val index: Int,
         override val id: Long,

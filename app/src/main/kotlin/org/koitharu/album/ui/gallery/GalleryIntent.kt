@@ -12,8 +12,6 @@ sealed interface GalleryIntent {
         val media: AlbumItem.Media,
     ) : GalleryIntent
 
-    data object CloseMedia : GalleryIntent
-
     data class UpdateScale(
         val factor: Float
     ) : GalleryIntent

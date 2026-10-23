@@ -1,11 +1,17 @@
+@file:UseSerializers(LongRangeSerializer::class)
+
 package org.koitharu.album.model
 
 import androidx.compose.runtime.Immutable
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.UseSerializers
+import org.koitharu.album.util.serializers.LongRangeSerializer
 import java.util.StringJoiner
 
 @Immutable
+@Serializable
 data class MediaQuery(
     val includeImages: Boolean = true,
     val includeVideos: Boolean = true,

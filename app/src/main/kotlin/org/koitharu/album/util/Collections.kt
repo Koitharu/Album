@@ -24,3 +24,12 @@ fun <T : Any> persistentSetOfNotNull(e: T?): PersistentSet<T> = if (e != null) {
 } else {
     persistentSetOf()
 }
+
+fun <T> MutableList<T>.setLast(value: T) {
+    val index = lastIndex
+    if (index < 0) {
+        add(value)
+    } else {
+        set(index, value)
+    }
+}

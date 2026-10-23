@@ -2,7 +2,10 @@ package org.koitharu.album.ui.gallery
 
 import android.content.ContentResolver
 import android.net.Uri
+import androidx.compose.runtime.Composable
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
@@ -36,12 +39,12 @@ import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.repository.pagingsource.GallerySource
 import org.koitharu.album.ui.common.AlbumItem
+import org.koitharu.album.ui.common.LocalSharedViewModelStoreOwner
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.common.ShellIntegrationHelper
 import org.koitharu.album.ui.gallery.GalleryEffect.ShowError
 import org.koitharu.album.ui.gallery.GalleryIntent.CancelSelectionMode
 import org.koitharu.album.ui.gallery.GalleryIntent.ClearRecycleBin
-import org.koitharu.album.ui.gallery.GalleryIntent.CloseMedia
 import org.koitharu.album.ui.gallery.GalleryIntent.HandleClick
 import org.koitharu.album.ui.gallery.GalleryIntent.HandleLongClick
 import org.koitharu.album.ui.gallery.GalleryIntent.OpenCamera
@@ -74,7 +77,7 @@ class GalleryViewModel @AssistedInject constructor(
     private val contentResolver: ContentResolver,
 ) : MviViewModel<GalleryState, GalleryIntent, GalleryEffect>(GalleryState(query)) {
 
-    private val isCommonAlbum = query == MediaQuery()
+    private val isCommonAlbum = query == MediaQuery.DEFAULT
 
     val pagerContent = state.map {
         it.query
@@ -176,7 +179,8 @@ class GalleryViewModel @AssistedInject constructor(
         when (intent) {
             is HandleClick -> state.update {
                 if (it.selectedItems.isEmpty()) {
-                    it.copy(openedItem = intent.media)
+                    sendEffectAsync(GalleryEffect.OpenMedia(intent.media))
+                    it
                 } else {
                     it.copy(selectedItems = it.selectedItems.toggling(intent.media.id))
                 }
@@ -186,10 +190,6 @@ class GalleryViewModel @AssistedInject constructor(
                 it.copy(
                     selectedItems = it.selectedItems.toggling(intent.media.id)
                 )
-            }
-
-            CloseMedia -> state.update {
-                it.copy(openedItem = null)
             }
 
             is UpdateScale -> viewModelScope.launch(Dispatchers.Default) {
@@ -276,5 +276,17 @@ class GalleryViewModel @AssistedInject constructor(
     interface Factory {
 
         fun create(query: MediaQuery): GalleryViewModel
+    }
+}
+
+@Composable
+fun galleryViewModel(query: MediaQuery): GalleryViewModel {
+    return hiltViewModel<GalleryViewModel, GalleryViewModel.Factory>(
+        viewModelStoreOwner = LocalSharedViewModelStoreOwner.current
+            ?: LocalViewModelStoreOwner.current
+            ?: error("No ViewModelStoreOwner was provided via LocalViewModelStoreOwner"),
+        key = query.stringKey()
+    ) {
+        it.create(query)
     }
 }

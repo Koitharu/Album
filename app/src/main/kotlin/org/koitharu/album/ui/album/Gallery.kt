@@ -1,5 +1,6 @@
 package org.koitharu.album.ui.album
 
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
@@ -18,7 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +39,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
@@ -59,12 +63,13 @@ import org.koitharu.album.util.isLoadFinished
 import org.koitharu.album.util.toTitleCase
 
 @Composable
+context(sharedTransitionScope: SharedTransitionScope)
 fun BoxScope.Gallery(
     pagingData: Flow<PagingData<AlbumItem>>,
     state: GalleryState,
+    gridState: LazyGridState = rememberLazyGridState(),
     contentPadding: PaddingValues,
     scrollerPadding: PaddingValues,
-    albumScope: AlbumScope,
     handleIntent: MviIntentHandler<GalleryIntent>,
     emptyContent: @Composable BoxScope.() -> Unit,
 ) {
@@ -79,7 +84,7 @@ fun BoxScope.Gallery(
         modifier = Modifier.handleZoomGesture { zoom ->
             handleIntent(GalleryIntent.UpdateScale(zoom))
         },
-        state = albumScope.gridState,
+        state = gridState,
         contentPadding = contentPadding + PaddingValues(4.dp),
         columns = GridCells.Adaptive(size * state.scale),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -104,14 +109,14 @@ fun BoxScope.Gallery(
                     item.date.format("LLLL yyyy").toTitleCase()
                 )
 
-                is AlbumItem.Image -> albumScope.GalleryImageItem(
+                is AlbumItem.Image -> sharedTransitionScope.GalleryImageItem(
                     image = item,
                     isSelected = item.id in selectedItems,
                     onLongClick = { handleIntent(HandleLongClick(item)) },
                     onClick = { handleIntent(HandleClick(item)) },
                 )
 
-                is AlbumItem.Video -> albumScope.GalleryVideoItem(
+                is AlbumItem.Video -> sharedTransitionScope.GalleryVideoItem(
                     image = item,
                     isSelected = item.id in selectedItems,
                     onLongClick = { handleIntent(HandleLongClick(item)) },
@@ -127,7 +132,7 @@ fun BoxScope.Gallery(
             .padding(scrollerPadding)
             .fillMaxHeight()
             .align(Alignment.TopEnd),
-        gridState = albumScope.gridState,
+        gridState = gridState,
         dateProvider = { index ->
             images.peek(index)?.dateTime()
         }
@@ -135,7 +140,7 @@ fun BoxScope.Gallery(
 }
 
 @Composable
-fun AlbumScope.GalleryImageItem(
+fun SharedTransitionScope.GalleryImageItem(
     image: AlbumItem.Image,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -148,29 +153,27 @@ fun AlbumScope.GalleryImageItem(
             onLongClick = onLongClick,
         ),
 ) {
-    with(sharedTransitionScope) {
-        AsyncImage(
-            modifier = Modifier
-                .fillMaxSize()
-                .sharedElement(
-                    rememberSharedContentState(key = "image_${image.id}"),
-                    animatedVisibilityScope = animatedVisibilityScope
-                ),
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(image.thumbnail)
-                .diskCachePolicy(CachePolicy.DISABLED)
-                .placeholder(ColorImage(MaterialTheme.colorScheme.surfaceContainer.toArgb()))
-                .error(ErrorImageFactory())
-                .memoryCacheKey(image.memoryCacheKey)
-                .build(),
-            contentDescription = image.name,
-            contentScale = ContentScale.Crop,
-        )
-    }
+    AsyncImage(
+        modifier = Modifier
+            .sharedElement(
+                sharedContentState = rememberSharedContentState(image.sharedContentKey),
+                animatedVisibilityScope = LocalNavAnimatedContentScope.current
+            )
+            .fillMaxSize(),
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(image.thumbnail)
+            .diskCachePolicy(CachePolicy.DISABLED)
+            .placeholder(ColorImage(MaterialTheme.colorScheme.surfaceContainer.toArgb()))
+            .error(ErrorImageFactory())
+            .memoryCacheKey(image.memoryCacheKey)
+            .build(),
+        contentDescription = image.name,
+        contentScale = ContentScale.Crop,
+    )
 }
 
 @Composable
-fun AlbumScope.GalleryVideoItem(
+fun SharedTransitionScope.GalleryVideoItem(
     image: AlbumItem.Video,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -183,25 +186,23 @@ fun AlbumScope.GalleryVideoItem(
             onLongClick = onLongClick
         ),
 ) {
-    with(sharedTransitionScope) {
-        AsyncImage(
-            modifier = Modifier
-                .fillMaxSize()
-                .sharedElement(
-                    rememberSharedContentState(key = "image_${image.id}"),
-                    animatedVisibilityScope = animatedVisibilityScope
-                ),
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(image.thumbnail)
-                .diskCachePolicy(CachePolicy.DISABLED)
-                .memoryCacheKey(image.memoryCacheKey)
-                .placeholder(ColorImage(MaterialTheme.colorScheme.surfaceContainer.toArgb()))
-                .error(ErrorImageFactory())
-                .build(),
-            contentDescription = image.name,
-            contentScale = ContentScale.Crop,
-        )
-    }
+    AsyncImage(
+        modifier = Modifier
+            .sharedElement(
+                sharedContentState = rememberSharedContentState(image.sharedContentKey),
+                animatedVisibilityScope = LocalNavAnimatedContentScope.current
+            )
+            .fillMaxSize(),
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(image.thumbnail)
+            .diskCachePolicy(CachePolicy.DISABLED)
+            .memoryCacheKey(image.memoryCacheKey)
+            .placeholder(ColorImage(MaterialTheme.colorScheme.surfaceContainer.toArgb()))
+            .error(ErrorImageFactory())
+            .build(),
+        contentDescription = image.name,
+        contentScale = ContentScale.Crop,
+    )
     Image(
         modifier = Modifier
             .fillMaxSize(0.6f)

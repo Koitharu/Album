@@ -1,72 +1,52 @@
 package org.koitharu.album.ui.search
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.plus
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.paging.compose.collectAsLazyPagingItems
-import androidx.paging.compose.itemContentType
-import androidx.paging.compose.itemKey
-import org.koitharu.album.ui.album.AlbumScope
-import org.koitharu.album.ui.album.GalleryImageItem
-import org.koitharu.album.ui.album.GalleryItemPlaceholder
-import org.koitharu.album.ui.album.GalleryVideoItem
-import org.koitharu.album.ui.common.AlbumItem
-import org.koitharu.album.ui.common.MviIntentHandler
-import org.koitharu.album.ui.gallery.GalleryIntent
-import org.koitharu.album.ui.gallery.GalleryIntent.HandleClick
-import org.koitharu.album.ui.gallery.GalleryIntent.HandleLongClick
-import org.koitharu.album.ui.search.SearchIntent.DoSearch
+import org.koitharu.album.model.MediaQuery
+import org.koitharu.album.ui.album.Gallery
+import org.koitharu.album.ui.gallery.GalleryEffect
+import org.koitharu.album.ui.gallery.galleryViewModel
+import org.koitharu.album.ui.home.LocalNavBackStack
+import org.koitharu.album.ui.home.NavDestination
+import org.koitharu.album.util.FlowCollectEffect
 
 @Composable
+context(sharedTransitionScope: SharedTransitionScope)
 fun SearchResults(
     query: String,
-    albumScope: AlbumScope,
     contentPadding: PaddingValues,
-    handleIntent: MviIntentHandler<GalleryIntent>
+) = Box(
+    modifier = Modifier.fillMaxSize(),
 ) {
-    val viewModel = hiltViewModel<SearchViewModel>()
-    LaunchedEffect(query) {
-        viewModel.handleIntent(DoSearch(query))
-    }
-    val results = viewModel.searchResults.collectAsLazyPagingItems()
-    LazyVerticalGrid(
-        modifier = Modifier.fillMaxSize(),
-        state = albumScope.gridState,
-        contentPadding = contentPadding + PaddingValues(4.dp),
-        columns = GridCells.Fixed(4),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        items(
-            results.itemCount,
-            contentType = results.itemContentType { it::class.java.simpleName },
-            key = results.itemKey { it.id },
-        ) { i ->
-            when (val item = results[i]) {
-                is AlbumItem.Image -> albumScope.GalleryImageItem(
-                    image = item,
-                    isSelected = false,
-                    onLongClick = { handleIntent(HandleLongClick(item)) },
-                    onClick = { handleIntent(HandleClick(item)) },
+    val mediaQuery = MediaQuery(searchQuery = query)
+    val viewModel = galleryViewModel(mediaQuery)
+    val backStack = LocalNavBackStack.current
+    FlowCollectEffect(viewModel.effect) { effect ->
+        when (effect) {
+            is GalleryEffect.OpenMedia -> backStack.add(
+                NavDestination.MediaViewer(
+                    query = mediaQuery,
+                    media = effect.media,
                 )
+            )
 
-                is AlbumItem.Video -> albumScope.GalleryVideoItem(
-                    image = item,
-                    isSelected = false,
-                    onLongClick = { handleIntent(HandleLongClick(item)) },
-                    onClick = { handleIntent(HandleClick(item)) },
-                )
-
-                null -> GalleryItemPlaceholder()
-            }
+            is GalleryEffect.ShowError -> Unit
         }
+    }
+    val state by viewModel.collectState()
+    with(sharedTransitionScope) {
+        Gallery(
+            pagingData = viewModel.gridContent,
+            state = state,
+            contentPadding = contentPadding,
+            scrollerPadding = contentPadding,
+            handleIntent = viewModel,
+            emptyContent = { },
+        )
     }
 }

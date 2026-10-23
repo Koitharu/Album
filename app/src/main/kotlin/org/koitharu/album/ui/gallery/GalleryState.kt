@@ -11,7 +11,6 @@ import org.koitharu.album.ui.common.AlbumItem
 @Immutable
 data class GalleryState(
     val scale: Float,
-    val openedItem: AlbumItem.Media?,
     val banner: AlbumItem.Image?,
     val isBannerDark: Boolean,
     val selectedItems: PersistentSet<Long>,
@@ -23,7 +22,6 @@ data class GalleryState(
         query: MediaQuery,
     ) : this(
         scale = GRID_SCALE_DEFAULT,
-        openedItem = null,
         banner = null,
         isBannerDark = false,
         query = query,

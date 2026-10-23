@@ -1,6 +1,7 @@
 package org.koitharu.album.ui.album
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -26,30 +27,38 @@ import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import coil3.compose.AsyncImage
+import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.ui.common.AlbumItem
+import org.koitharu.album.ui.home.LocalNavBackStack
+import org.koitharu.album.ui.home.NavDestination
 import kotlin.math.min
 
 @Composable
 fun HomeScreenBanner(
     banner: AlbumItem.Image,
-    albumScope: AlbumScope,
+    sharedTransitionScope: SharedTransitionScope,
     overlayContent: @Composable BoxScope.() -> Unit,
-    onClick: () -> Unit,
-) = with(albumScope.sharedTransitionScope) {
+    gridState: LazyGridState,
+    onOffsetChanged: (Dp) -> Unit,
+) = with(sharedTransitionScope) {
+    val backStack = LocalNavBackStack.current
     ImageBanner(
         modifier = Modifier
             .fillMaxWidth()
             .sharedElement(
-                rememberSharedContentState(key = banner.sharedContentKey),
-                animatedVisibilityScope = albumScope.animatedVisibilityScope
+                sharedContentState = rememberSharedContentState(banner.sharedContentKey),
+                animatedVisibilityScope = LocalNavAnimatedContentScope.current,
             ),
         image = banner,
-        gridState = albumScope.gridState,
+        gridState = gridState,
         height = 240.dp,
         overlayContent = overlayContent,
-        onOffsetChanged = { albumScope.headerOffset.value = it },
-        onClick = onClick,
+        onOffsetChanged = onOffsetChanged,
+        onClick = {
+            backStack.add(NavDestination.MediaViewer(MediaQuery.DEFAULT, banner))
+        },
     )
 }
 
