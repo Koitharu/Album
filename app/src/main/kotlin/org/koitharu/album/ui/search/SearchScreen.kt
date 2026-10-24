@@ -13,11 +13,15 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.unit.dp
+import org.koitharu.album.R
 import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.ui.album.AlbumActionMode
 import org.koitharu.album.ui.album.Gallery
@@ -38,6 +42,8 @@ fun SearchScreen(
     val viewModel = galleryViewModel(MediaQuery(searchQuery = initialQuery))
     val state by viewModel.collectState()
     val backStack = LocalNavBackStack.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val resources = LocalResources.current
     FlowCollectEffect(viewModel.effect) { effect ->
         when (effect) {
             is GalleryEffect.OpenMedia -> backStack.add(
@@ -47,7 +53,9 @@ fun SearchScreen(
                 )
             )
 
-            is GalleryEffect.ShowError -> TODO()
+            is GalleryEffect.ShowError -> snackbarHostState.showSnackbar(
+                message = effect.error.message ?: resources.getString(R.string.error_message_generic)
+            )
         }
     }
     Scaffold(

@@ -47,6 +47,7 @@ import org.koitharu.album.util.rememberWindowInsetsController
 @Composable
 fun SingleViewerScreen(
     uri: String,
+    onShareClick: () -> Unit,
     onClose: () -> Unit,
 ) {
     var isUiVisible by remember { mutableStateOf(true) }
@@ -85,7 +86,9 @@ fun SingleViewerScreen(
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
-                BottomBar(uri)
+                BottomBar(
+                    onShareClick = onShareClick,
+                )
             }
         },
         contentWindowInsets = WindowInsets.systemBarsIgnoringVisibility,
@@ -150,7 +153,7 @@ fun SingleViewerScreen(
 
 @Composable
 private fun BottomBar(
-    uri: String,
+    onShareClick: () -> Unit,
 ) = Row(
     modifier = Modifier
         .fillMaxWidth()
@@ -162,7 +165,7 @@ private fun BottomBar(
 ) {
     IconButtonWithTooltip(
         tooltip = stringResource(R.string.share),
-        onClick = { /* TODO */ },
+        onClick = onShareClick,
     ) {
         Icon(
             painter = painterResource(R.drawable.ic_share),
