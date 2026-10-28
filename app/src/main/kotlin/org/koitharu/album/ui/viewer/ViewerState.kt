@@ -7,6 +7,7 @@ import org.koitharu.album.ui.common.AlbumItem
 data class ViewerState(
     val currentMedia: AlbumItem.Media,
     val isRotationGestureEnabled: Boolean,
+    val isCloseGestureEnabled: Boolean,
     val isVideosMutedOnStart: Boolean,
     val infoBottomSheetImage: AlbumItem.Image?,
 ) {
@@ -14,6 +15,7 @@ data class ViewerState(
     constructor(media: AlbumItem.Media) : this(
         currentMedia = media,
         isRotationGestureEnabled = false,
+        isCloseGestureEnabled = true,
         infoBottomSheetImage = null,
         isVideosMutedOnStart = false,
     )

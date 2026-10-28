@@ -22,6 +22,7 @@ import org.koitharu.album.AlbumApp.Companion.GITHUB_URL
 import org.koitharu.album.R
 import org.koitharu.album.model.HomeBannerSource
 import org.koitharu.album.model.ThemeVariant
+import org.koitharu.album.model.VideosAvailability
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.SettingsRepository.Keys
 import org.koitharu.album.ui.common.MviIntentHandler
@@ -31,6 +32,7 @@ import org.koitharu.album.ui.settings.SettingsIntent.SetHomeBanner
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRecycleBinEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRotationGestureEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetShowAllDCIMFolders
+import org.koitharu.album.ui.settings.SettingsIntent.SetShowVideos
 import org.koitharu.album.ui.settings.SettingsIntent.SetUseExternalEditor
 import org.koitharu.album.ui.settings.SettingsIntent.SetVideosMutedOnStart
 import org.koitharu.album.ui.settings.SettingsIntent.SetViewerTheme
@@ -133,13 +135,23 @@ fun SettingsScreen(
                 )
             }
         }
-        item(Keys.allowRotationGesture.name) {
+        item(Keys.closeGesture.name) {
             SwitchPreference(
-                title = stringResource(R.string.allow_rotation_gesture),
-                summary = stringResource(R.string.allow_rotation_gesture_summary),
+                title = stringResource(R.string.close_gesture),
+                summary = stringResource(R.string.close_gesture_summary),
+                isChecked = state.isCloseGestureEnabled,
+            ) {
+                handleIntent(SettingsIntent.SetIsCloseGestureEnabled(!state.isCloseGestureEnabled))
+            }
+        }
+        item(Keys.imageRotationGesture.name) {
+            SwitchPreference(
+                title = stringResource(R.string.rotation_gesture_beta),
+                summary = stringResource(R.string.rotation_gesture_summary),
                 isChecked = state.isRotationGestureEnabled,
-                onClick = { handleIntent(SetIsRotationGestureEnabled(!state.isRotationGestureEnabled)) },
-            )
+            ) {
+                handleIntent(SetIsRotationGestureEnabled(!state.isRotationGestureEnabled))
+            }
         }
         item(Keys.useExternalEditor.name) {
             SwitchPreference(
@@ -148,6 +160,16 @@ fun SettingsScreen(
                 isChecked = state.useExternalEditor,
                 onClick = { handleIntent(SetUseExternalEditor(!state.useExternalEditor)) },
             )
+        }
+        item(Keys.showVideos.name) {
+            ListPreference(
+                title = stringResource(R.string.show_videos),
+                entries = rememberVideosAvailability(),
+                entryValues = VideosAvailability.entries.toPersistentList(),
+                selectedValue = state.showVideos
+            ) {
+                handleIntent(SetShowVideos(it))
+            }
         }
         item(Keys.muteVideoOnStart.name) {
             SwitchPreference(
@@ -186,6 +208,18 @@ private fun rememberThemeVariants(): PersistentList<String> {
             resources.getString(R.string.follow_system),
             resources.getString(R.string.light),
             resources.getString(R.string.dark),
+        )
+    }
+}
+
+@Composable
+private fun rememberVideosAvailability(): PersistentList<String> {
+    val resources = LocalResources.current
+    return remember(resources) {
+        persistentListOf(
+            resources.getString(R.string.all),
+            resources.getString(R.string.only_from_camera),
+            resources.getString(R.string.none),
         )
     }
 }

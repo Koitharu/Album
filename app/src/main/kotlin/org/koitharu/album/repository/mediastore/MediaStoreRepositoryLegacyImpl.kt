@@ -20,11 +20,15 @@ import kotlinx.coroutines.withContext
 import org.koitharu.album.model.MediaFolder
 import org.koitharu.album.model.MediaItem
 import org.koitharu.album.model.MediaQuery
+import org.koitharu.album.model.MediaQuery.Companion.PATTERN_DCIM
+import org.koitharu.album.model.VideosAvailability.CAMERA
+import org.koitharu.album.model.VideosAvailability.NONE
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.MediaStoreConfirmationDialogs
 import org.koitharu.album.repository.OrderDirection.DESC
+import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.ThumbnailFetcher.Companion.thumbnailUri
 import org.koitharu.album.repository.observeChanges
 import org.koitharu.album.repository.pagingsource.GallerySource
@@ -39,6 +43,7 @@ open class MediaStoreRepositoryLegacyImpl(
     protected val hiddenMediaRepository: HiddenMediaRepository,
     private val legacyFavoritesRepository: LegacyFavoritesRepository,
     private val confirmationDialogs: MediaStoreConfirmationDialogs,
+    private val settingsRepository: SettingsRepository,
     private val gallerySourceFactory: GallerySource.Factory,
 ) : MediaStoreRepository {
 
@@ -106,7 +111,7 @@ open class MediaStoreRepositoryLegacyImpl(
             append('(')
             append(FileColumns.MEDIA_TYPE)
             append(" = ? OR ")
-            append(FileColumns.MEDIA_TYPE)
+            append(FileColumns.MEDIA_TYPE) // TODO
             append(" = ?)")
             if (Features.isRecycleBinSupported) {
                 append(" AND ")
@@ -199,7 +204,7 @@ open class MediaStoreRepositoryLegacyImpl(
             selection = "${FileColumns.MEDIA_TYPE} = ? AND $pathColumn LIKE ?",
             selectionArgs = arrayOf(
                 FileColumns.MEDIA_TYPE_IMAGE.toString(),
-                "%DCIM%"
+                PATTERN_DCIM
             )
         ).use {
             it.count
@@ -207,13 +212,38 @@ open class MediaStoreRepositoryLegacyImpl(
     }
 
     override suspend fun getVideosCount(): Int {
+        val mode = videosAvailability()
+        if (mode == NONE) {
+            return 0
+        }
         return contentResolver.queryCompat(
             uri = baseUri,
             projection = arrayOf(FileColumns._ID),
-            selection = "${FileColumns.MEDIA_TYPE} = ?",
-            selectionArgs = arrayOf(
-                FileColumns.MEDIA_TYPE_VIDEO.toString()
-            )
+            selection = buildString {
+                append(FileColumns.MEDIA_TYPE)
+                append(" = ?")
+                if (Features.isRecycleBinSupported) {
+                    append(" AND ")
+                    append(FileColumns.IS_TRASHED)
+                    append(" = ?")
+                }
+                if (mode == CAMERA) {
+                    append(" AND ")
+                    if (Features.isPathColumnSupported) {
+                        append(FileColumns.RELATIVE_PATH)
+                    } else {
+                        append(FileColumns.DATA)
+                    }
+                    append(" LIKE ?")
+                }
+            },
+            selectionArgs = buildList(3) {
+                add(FileColumns.MEDIA_TYPE_VIDEO.toString())
+                add("0")
+                if (mode == CAMERA) {
+                    add(PATTERN_DCIM)
+                }
+            }.toTypedArray()
         ).use {
             it.count
         }
@@ -430,4 +460,6 @@ open class MediaStoreRepositoryLegacyImpl(
         } while (moveToNext())
         return result
     }
+
+    protected suspend fun videosAvailability() = settingsRepository.getVideosAvailability()
 }

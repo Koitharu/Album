@@ -2,7 +2,6 @@ package org.koitharu.album.repository
 
 import android.content.Context
 import androidx.core.content.edit
-import dagger.Reusable
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -11,8 +10,9 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 import org.koitharu.album.util.observeChanges
 import javax.inject.Inject
+import javax.inject.Singleton
 
-@Reusable
+@Singleton
 class HiddenMediaRepository @Inject constructor(
     @ApplicationContext context: Context,
 ) {

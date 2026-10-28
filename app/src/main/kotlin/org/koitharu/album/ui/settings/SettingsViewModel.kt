@@ -7,15 +7,18 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.koitharu.album.model.HomeBannerSource
 import org.koitharu.album.model.ThemeVariant
+import org.koitharu.album.model.VideosAvailability
 import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.ui.common.MviViewModel
 import org.koitharu.album.ui.common.ShellIntegrationHelper
 import org.koitharu.album.ui.settings.SettingsIntent.OpenUrl
 import org.koitharu.album.ui.settings.SettingsIntent.SetAppTheme
 import org.koitharu.album.ui.settings.SettingsIntent.SetHomeBanner
+import org.koitharu.album.ui.settings.SettingsIntent.SetIsCloseGestureEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRecycleBinEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetIsRotationGestureEnabled
 import org.koitharu.album.ui.settings.SettingsIntent.SetShowAllDCIMFolders
+import org.koitharu.album.ui.settings.SettingsIntent.SetShowVideos
 import org.koitharu.album.ui.settings.SettingsIntent.SetUseExternalEditor
 import org.koitharu.album.ui.settings.SettingsIntent.SetVideosMutedOnStart
 import org.koitharu.album.ui.settings.SettingsIntent.SetViewerTheme
@@ -40,6 +43,8 @@ class SettingsViewModel @Inject constructor(
                 repository.useExternalEditor,
                 repository.isVideMutedOnStart,
                 repository.showAllDCIMFolders,
+                repository.showVideos,
+                repository.isCloseGestureEnabled,
             ) { data ->
                 SettingsState(
                     isRecycleBinEnabled = data[0] as Boolean,
@@ -50,6 +55,8 @@ class SettingsViewModel @Inject constructor(
                     useExternalEditor = data[5] as Boolean,
                     isVideosMutedOnStart = data[6] as Boolean,
                     showAllDCIMFolders = data[7] as Boolean,
+                    showVideos = data[8] as VideosAvailability,
+                    isCloseGestureEnabled = data[9] as Boolean,
                 )
             }.collect {
                 state.value = it
@@ -70,6 +77,8 @@ class SettingsViewModel @Inject constructor(
                     is SetVideosMutedOnStart -> repository.setVideosMutedOnStart(intent.value)
                     is SetShowAllDCIMFolders -> repository.setShowAllDCIMFolders(intent.value)
                     is OpenUrl -> shellIntegrationHelper.openLink(intent.url)
+                    is SetIsCloseGestureEnabled -> repository.setCloseGestureEnabled(intent.value)
+                    is SetShowVideos -> repository.setShowVideos(intent.value)
                 }
             }.onFailure { e ->
                 e.printStackTraceDebug()

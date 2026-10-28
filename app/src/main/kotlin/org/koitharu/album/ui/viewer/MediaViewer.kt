@@ -91,6 +91,7 @@ import org.koitharu.album.ui.viewer.ViewerIntent.Share
 import org.koitharu.album.ui.viewer.ViewerIntent.UseAs
 import org.koitharu.album.util.IconButtonWithTooltip
 import org.koitharu.album.util.formattedDateTime
+import org.koitharu.album.util.ifThen
 import org.koitharu.album.util.printStackTraceDebug
 import org.koitharu.album.util.rememberWindowInsetsController
 import org.koitharu.album.util.slideUpToClose
@@ -136,6 +137,7 @@ fun ViewerScreen(
         sharedTransitionScope = sharedTransitionScope,
         animatedVisibilityScope = LocalNavAnimatedContentScope.current,
         isRotationGestureEnabled = state.isRotationGestureEnabled,
+        isCloseGestureEnabled = state.isCloseGestureEnabled,
         isVideosMutedOnStart = state.isVideosMutedOnStart,
         handleIntent = viewModel,
     )
@@ -153,6 +155,7 @@ private fun PagerMediaViewer(
     pagingData: Flow<PagingData<AlbumItem.Media>>,
     media: AlbumItem.Media,
     isRotationGestureEnabled: Boolean,
+    isCloseGestureEnabled: Boolean,
     isVideosMutedOnStart: Boolean,
     snackbarHostState: SnackbarHostState,
     sharedTransitionScope: SharedTransitionScope,
@@ -245,7 +248,9 @@ private fun PagerMediaViewer(
             SingleViewer(
                 modifier = Modifier
                     .fillMaxSize()
-                    .slideUpToClose { backStack.removeLastOrNull() },
+                    .ifThen(isCloseGestureEnabled) {
+                        slideUpToClose { backStack.removeLastOrNull() }
+                    },
                 media = media,
                 contentPadding = innerPadding,
                 sharedTransitionScope = sharedTransitionScope,

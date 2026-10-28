@@ -14,21 +14,23 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.LifecycleCoroutineScope
-import dagger.Reusable
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.plus
 import org.koitharu.album.model.HomeBannerSource
 import org.koitharu.album.model.ThemeVariant
+import org.koitharu.album.model.VideosAvailability
 import javax.inject.Inject
+import javax.inject.Singleton
 
-@Reusable
+@Singleton
 class SettingsRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     coroutineScope: LifecycleCoroutineScope,
@@ -41,7 +43,12 @@ class SettingsRepository @Inject constructor(
 
     val isRotationGestureEnabled: Flow<Boolean>
         get() = context.dataStore.data.map { prefs ->
-            prefs[Keys.allowRotationGesture] ?: false
+            prefs[Keys.imageRotationGesture] ?: false
+        }.distinctUntilChanged()
+
+    val isCloseGestureEnabled: Flow<Boolean>
+        get() = context.dataStore.data.map { prefs ->
+            prefs[Keys.closeGesture] ?: true
         }.distinctUntilChanged()
 
     val isVideMutedOnStart: Flow<Boolean>
@@ -85,6 +92,14 @@ class SettingsRepository @Inject constructor(
         prefs[Keys.showAllDCIMFolders] ?: false
     }.distinctUntilChanged()
 
+    val showVideos = context.dataStore.data.map { prefs ->
+        prefs[Keys.showVideos, VideosAvailability.ALL]
+    }.stateIn(coroutineScope + Dispatchers.Default, SharingStarted.Eagerly, VideosAvailability.ALL)
+
+    suspend fun getVideosAvailability() = context.dataStore.data.map { prefs ->
+        prefs[Keys.showVideos, VideosAvailability.ALL]
+    }.first()
+
     suspend fun setGridScale(scale: Float) {
         context.dataStore.edit { prefs ->
             prefs[Keys.gridScale] = scale
@@ -97,9 +112,15 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    suspend fun setCloseGestureEnabled(value: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.closeGesture] = value
+        }
+    }
+
     suspend fun setRotationGestureEnabled(value: Boolean) {
         context.dataStore.edit { prefs ->
-            prefs[Keys.allowRotationGesture] = value
+            prefs[Keys.imageRotationGesture] = value
         }
     }
 
@@ -133,6 +154,12 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    suspend fun setShowVideos(value: VideosAvailability) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.showVideos] = value.name
+        }
+    }
+
     suspend fun setEditorColor(value: Color) {
         context.dataStore.edit { prefs ->
             prefs[Keys.editorColor] = value.toArgb()
@@ -155,7 +182,9 @@ class SettingsRepository @Inject constructor(
 
         val useRecycleBin = booleanPreferencesKey("recycle_bin")
         val showAllDCIMFolders = booleanPreferencesKey("show_dcim")
-        val allowRotationGesture = booleanPreferencesKey("rotation_gesture")
+        val imageRotationGesture = booleanPreferencesKey("rotation_gesture")
+        val closeGesture = booleanPreferencesKey("close_gesture")
+        val showVideos = stringPreferencesKey("videos")
         val muteVideoOnStart = booleanPreferencesKey("video_muted")
         val gridScale = floatPreferencesKey("grid_scale")
         val appTheme = stringPreferencesKey("app_theme")

@@ -15,6 +15,7 @@ import dagger.hilt.components.SingletonComponent
 import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.MediaStoreConfirmationDialogs
+import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository30Impl
 import org.koitharu.album.repository.mediastore.MediaStoreRepositoryLegacyImpl
@@ -41,6 +42,7 @@ class AppModule {
         contentResolver: ContentResolver,
         legacyFavoritesRepository: LegacyFavoritesRepository,
         confirmationDialogs: MediaStoreConfirmationDialogs,
+        settingsRepository: SettingsRepository,
         gallerySourceFactory: GallerySource.Factory,
         hiddenMediaRepository: HiddenMediaRepository,
     ): MediaStoreRepository = when {
@@ -50,16 +52,18 @@ class AppModule {
             legacyFavoritesRepository = legacyFavoritesRepository,
             confirmationDialogs = confirmationDialogs,
             gallerySourceFactory = gallerySourceFactory,
+            settingsRepository = settingsRepository,
             hiddenMediaRepository = hiddenMediaRepository,
         )
 
         else -> MediaStoreRepositoryLegacyImpl(
             activityContextProvider = activityContextProvider,
             contentResolver = contentResolver,
+            hiddenMediaRepository = hiddenMediaRepository,
             legacyFavoritesRepository = legacyFavoritesRepository,
             confirmationDialogs = confirmationDialogs,
+            settingsRepository = settingsRepository,
             gallerySourceFactory = gallerySourceFactory,
-            hiddenMediaRepository = hiddenMediaRepository,
         )
     }
 }

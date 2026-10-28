@@ -19,13 +19,20 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.album.model.MediaItem
 import org.koitharu.album.model.MediaQuery
+import org.koitharu.album.model.MediaQuery.Companion.PATTERN_DCIM
+import org.koitharu.album.model.VideosAvailability.ALL
+import org.koitharu.album.model.VideosAvailability.CAMERA
+import org.koitharu.album.model.VideosAvailability.NONE
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.OrderDirection.DESC
+import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.getOrDefault
 import org.koitharu.album.util.suspendLazy
@@ -36,7 +43,10 @@ class GallerySource @AssistedInject constructor(
     private val hiddenMediaRepository: HiddenMediaRepository,
     private val contentResolver: ContentResolver,
     private val legacyFavoritesRepository: LegacyFavoritesRepository,
+    settingsRepository: SettingsRepository,
 ) : PagingSource<Int, MediaItem>() {
+
+    private val videosAvailability = settingsRepository.showVideos.value
 
     val projection = buildList(10) {
         add(FileColumns._ID)
@@ -65,11 +75,31 @@ class GallerySource @AssistedInject constructor(
             append(" = ?")
         }
         if (mediaQuery.includeVideos) {
-            if (mediaQuery.includeImages) {
-                append(" OR ")
+            when (videosAvailability) {
+                ALL -> {
+                    if (mediaQuery.includeImages) {
+                        append(" OR ")
+                    }
+                    append(FileColumns.MEDIA_TYPE)
+                    append(" = ?")
+                }
+
+                CAMERA -> {
+                    if (mediaQuery.includeImages) {
+                        append(" OR ")
+                    }
+                    append("(")
+                    append(FileColumns.MEDIA_TYPE)
+                    append(" = ? AND ")
+                    if (Features.isPathColumnSupported) {
+                        append(FileColumns.RELATIVE_PATH)
+                    } else {
+                        append(FileColumns.DATA)
+                    }
+                    append(" LIKE ?)")
+                }
+                NONE -> Unit
             }
-            append(FileColumns.MEDIA_TYPE)
-            append(" = ?")
         }
         append(")")
         if (Features.isRecycleBinSupported) {
@@ -148,7 +178,15 @@ class GallerySource @AssistedInject constructor(
             add(FileColumns.MEDIA_TYPE_IMAGE.toString())
         }
         if (mediaQuery.includeVideos) {
-            add(FileColumns.MEDIA_TYPE_VIDEO.toString())
+            when (videosAvailability) {
+                ALL -> add(FileColumns.MEDIA_TYPE_VIDEO.toString())
+                CAMERA -> {
+                    add(FileColumns.MEDIA_TYPE_VIDEO.toString())
+                    add(PATTERN_DCIM)
+                }
+
+                NONE -> Unit
+            }
         }
         if (Features.isRecycleBinSupported) {
             add(if (mediaQuery.isTrashed) "1" else "0")
@@ -192,6 +230,13 @@ class GallerySource @AssistedInject constructor(
         }
         registerInvalidatedCallback {
             sourceScope.cancel()
+        }
+        sourceScope.launch {
+            settingsRepository.showVideos
+                .drop(1)
+                .collect {
+                    invalidate()
+                }
         }
     }
 

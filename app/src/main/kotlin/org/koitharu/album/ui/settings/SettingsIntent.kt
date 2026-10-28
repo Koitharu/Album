@@ -2,10 +2,13 @@ package org.koitharu.album.ui.settings
 
 import org.koitharu.album.model.HomeBannerSource
 import org.koitharu.album.model.ThemeVariant
+import org.koitharu.album.model.VideosAvailability
 
 sealed interface SettingsIntent {
 
     data class SetIsRecycleBinEnabled(val value: Boolean) : SettingsIntent
+
+    data class SetIsCloseGestureEnabled(val value: Boolean) : SettingsIntent
 
     data class SetIsRotationGestureEnabled(val value: Boolean) : SettingsIntent
 
@@ -18,6 +21,8 @@ sealed interface SettingsIntent {
     data class SetUseExternalEditor(val value: Boolean) : SettingsIntent
 
     data class SetVideosMutedOnStart(val value: Boolean) : SettingsIntent
+
+    data class SetShowVideos(val value: VideosAvailability) : SettingsIntent
 
     data class SetShowAllDCIMFolders(val value: Boolean) : SettingsIntent
 

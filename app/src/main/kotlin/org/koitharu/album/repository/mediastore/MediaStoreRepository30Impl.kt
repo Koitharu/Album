@@ -13,10 +13,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
+import org.koitharu.album.model.MediaQuery.Companion.PATTERN_DCIM
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.MediaStoreConfirmationDialogs
+import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.observeChanges
 import org.koitharu.album.repository.pagingsource.GallerySource
 import org.koitharu.album.repository.queryCompat
@@ -29,14 +31,16 @@ class MediaStoreRepository30Impl(
     legacyFavoritesRepository: LegacyFavoritesRepository,
     confirmationDialogs: MediaStoreConfirmationDialogs,
     gallerySourceFactory: GallerySource.Factory,
+    settingsRepository: SettingsRepository,
     hiddenMediaRepository: HiddenMediaRepository,
 ) : MediaStoreRepositoryLegacyImpl(
     activityContextProvider = activityContextProvider,
     contentResolver = contentResolver,
+    hiddenMediaRepository = hiddenMediaRepository,
     legacyFavoritesRepository = legacyFavoritesRepository,
     confirmationDialogs = confirmationDialogs,
+    settingsRepository = settingsRepository,
     gallerySourceFactory = gallerySourceFactory,
-    hiddenMediaRepository = hiddenMediaRepository,
 ) {
 
     override suspend fun deleteMedia(media: Collection<Uri>, useRecycleBin: Boolean) {
@@ -150,21 +154,7 @@ class MediaStoreRepository30Impl(
             selection = "${FileColumns.MEDIA_TYPE} = ? AND $pathColumn LIKE ? AND ${FileColumns.IS_TRASHED} = ?",
             selectionArgs = arrayOf(
                 FileColumns.MEDIA_TYPE_IMAGE.toString(),
-                "%DCIM%",
-                "0",
-            )
-        ).use {
-            it.count
-        }
-    }
-
-    override suspend fun getVideosCount(): Int {
-        return contentResolver.queryCompat(
-            uri = baseUri,
-            projection = arrayOf(FileColumns._ID),
-            selection = "${FileColumns.MEDIA_TYPE} = ? AND ${FileColumns.IS_TRASHED} = ?",
-            selectionArgs = arrayOf(
-                FileColumns.MEDIA_TYPE_VIDEO.toString(),
+                PATTERN_DCIM,
                 "0",
             )
         ).use {

@@ -43,5 +43,7 @@ data class MediaQuery(
     companion object {
 
         val DEFAULT = MediaQuery()
+
+        const val PATTERN_DCIM = "%DCIM%"
     }
 }
