@@ -72,13 +72,18 @@ class ViewerViewModel @AssistedInject constructor(
                 }
         }
         viewModelScope.launch(Dispatchers.Default) {
-            settingsRepository.isRotationGestureEnabled.collect { allowRotation ->
-                state.update { it.copy(isRotationGestureEnabled = allowRotation) }
+            settingsRepository.isRotationGestureEnabled.collect { value ->
+                state.update { it.copy(isRotationGestureEnabled = value) }
             }
         }
         viewModelScope.launch(Dispatchers.Default) {
-            settingsRepository.isVideMutedOnStart.collect { muted ->
-                state.update { it.copy(isVideosMutedOnStart = muted) }
+            settingsRepository.isCloseGestureEnabled.collect { value ->
+                state.update { it.copy(isCloseGestureEnabled = value) }
+            }
+        }
+        viewModelScope.launch(Dispatchers.Default) {
+            settingsRepository.isVideMutedOnStart.collect { value ->
+                state.update { it.copy(isVideosMutedOnStart = value) }
             }
         }
     }

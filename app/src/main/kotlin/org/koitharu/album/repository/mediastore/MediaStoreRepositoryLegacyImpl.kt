@@ -9,8 +9,6 @@ import android.os.Build
 import android.provider.MediaStore
 import android.provider.MediaStore.Files.FileColumns
 import androidx.core.database.getStringOrNull
-import androidx.paging.PagingSource.LoadParams.Refresh
-import androidx.paging.PagingSource.LoadResult
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -21,17 +19,13 @@ import org.koitharu.album.model.MediaFolder
 import org.koitharu.album.model.MediaItem
 import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.model.MediaQuery.Companion.PATTERN_DCIM
-import org.koitharu.album.model.VideosAvailability.CAMERA
-import org.koitharu.album.model.VideosAvailability.NONE
 import org.koitharu.album.repository.Features
 import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.MediaStoreConfirmationDialogs
 import org.koitharu.album.repository.OrderDirection.DESC
-import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.ThumbnailFetcher.Companion.thumbnailUri
 import org.koitharu.album.repository.observeChanges
-import org.koitharu.album.repository.pagingsource.GallerySource
 import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.ActivityContextProvider
 import org.koitharu.album.util.commonPrefix
@@ -43,8 +37,7 @@ open class MediaStoreRepositoryLegacyImpl(
     protected val hiddenMediaRepository: HiddenMediaRepository,
     private val legacyFavoritesRepository: LegacyFavoritesRepository,
     private val confirmationDialogs: MediaStoreConfirmationDialogs,
-    private val settingsRepository: SettingsRepository,
-    private val gallerySourceFactory: GallerySource.Factory,
+    private val queryBuilder: QueryBuilder,
 ) : MediaStoreRepository {
 
     protected val baseUri: Uri = MediaStore.Files.getContentUri("external")
@@ -94,87 +87,73 @@ open class MediaStoreRepositoryLegacyImpl(
 
     override suspend fun getRecycleBinSize(): Int = 0
 
-    override suspend fun getFolders(): List<MediaFolder> = contentResolver.queryCompat(
-        uri = MediaStore.Files.getContentUri("external"),
-        projection = arrayOf(
-            FileColumns.BUCKET_ID,
-            FileColumns.BUCKET_DISPLAY_NAME,
-            FileColumns.MEDIA_TYPE,
-            FileColumns._ID,
-            if (Features.isPathColumnSupported) {
-                FileColumns.RELATIVE_PATH
-            } else {
-                FileColumns.DATA
-            }
-        ),
-        selection = buildString {
-            append('(')
-            append(FileColumns.MEDIA_TYPE)
-            append(" = ? OR ")
-            append(FileColumns.MEDIA_TYPE) // TODO
-            append(" = ?)")
-            if (Features.isRecycleBinSupported) {
-                append(" AND ")
-                append(FileColumns.IS_TRASHED)
-                append(" = ?")
-            }
-        },
-        selectionArgs = buildList(3) {
-            add(FileColumns.MEDIA_TYPE_IMAGE.toString())
-            add(FileColumns.MEDIA_TYPE_VIDEO.toString())
-            if (Features.isRecycleBinSupported) {
-                add("0")
-            }
-        }.toTypedArray(),
-        orderBy = FileColumns.DATE_ADDED,
-        orderDirection = DESC,
-    ).use { cursor ->
-        if (!cursor.moveToFirst()) {
-            return@use persistentListOf()
-        }
-        val idColumn = cursor.getColumnIndexOrThrow(FileColumns._ID)
-        val bucketIdColumn =
-            cursor.getColumnIndexOrThrow(FileColumns.BUCKET_ID)
-        val mediaTypeColumn = cursor.getColumnIndexOrThrow(FileColumns.MEDIA_TYPE)
-        val nameColumn =
-            cursor.getColumnIndexOrThrow(FileColumns.BUCKET_DISPLAY_NAME)
-        val pathColumn = if (Features.isPathColumnSupported) {
-            cursor.getColumnIndex(FileColumns.RELATIVE_PATH)
-        } else {
-            cursor.getColumnIndex(FileColumns.DATA)
-        }
-
-        val result = HashMap<String, MediaFolder>()
-        while (cursor.moveToNext()) {
-
-            val bucketId = cursor.getString(bucketIdColumn)
-            val bucketName = cursor.getStringOrNull(nameColumn) ?: "Unknown Folder"
-            val path = cursor.getStringOrNull(pathColumn)
-
-            if (result.containsKey(bucketId)) {
-                result[bucketId]?.let {
-                    it.size++
-                    it.path = commonPrefix(it.path, path)
-                }
-            } else {
-                val id = cursor.getLong(idColumn)
-                val isVideo = cursor.getInt(mediaTypeColumn) == FileColumns.MEDIA_TYPE_VIDEO
-                val contentUri = if (isVideo) {
-                    ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
+    override suspend fun getFolders(): List<MediaFolder> {
+        val queryParams = queryBuilder(MediaQuery.DEFAULT)
+        return contentResolver.queryCompat(
+            uri = MediaStore.Files.getContentUri("external"),
+            projection = arrayOf(
+                FileColumns.BUCKET_ID,
+                FileColumns.BUCKET_DISPLAY_NAME,
+                FileColumns.MEDIA_TYPE,
+                FileColumns._ID,
+                if (Features.isPathColumnSupported) {
+                    FileColumns.RELATIVE_PATH
                 } else {
-                    ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
+                    FileColumns.DATA
                 }
-                val newFolder = MediaFolder(
-                    id = bucketId,
-                    name = bucketName,
-                    size = 1,
-                    thumbnail = contentUri.thumbnailUri(),
-                    path = path,
-                )
-                result[bucketId] = newFolder
+            ),
+            selection = queryParams.selection,
+            selectionArgs = queryParams.selectionArgs.toTypedArray(),
+            orderBy = FileColumns.DATE_ADDED,
+            orderDirection = DESC,
+        ).use { cursor ->
+            if (!cursor.moveToFirst()) {
+                return@use persistentListOf()
             }
+            val idColumn = cursor.getColumnIndexOrThrow(FileColumns._ID)
+            val bucketIdColumn =
+                cursor.getColumnIndexOrThrow(FileColumns.BUCKET_ID)
+            val mediaTypeColumn = cursor.getColumnIndexOrThrow(FileColumns.MEDIA_TYPE)
+            val nameColumn =
+                cursor.getColumnIndexOrThrow(FileColumns.BUCKET_DISPLAY_NAME)
+            val pathColumn = if (Features.isPathColumnSupported) {
+                cursor.getColumnIndex(FileColumns.RELATIVE_PATH)
+            } else {
+                cursor.getColumnIndex(FileColumns.DATA)
+            }
+
+            val result = HashMap<String, MediaFolder>()
+            while (cursor.moveToNext()) {
+
+                val bucketId = cursor.getString(bucketIdColumn)
+                val bucketName = cursor.getStringOrNull(nameColumn) ?: "Unknown Folder"
+                val path = cursor.getStringOrNull(pathColumn)
+
+                if (result.containsKey(bucketId)) {
+                    result[bucketId]?.let {
+                        it.size++
+                        it.path = commonPrefix(it.path, path)
+                    }
+                } else {
+                    val id = cursor.getLong(idColumn)
+                    val isVideo = cursor.getInt(mediaTypeColumn) == FileColumns.MEDIA_TYPE_VIDEO
+                    val contentUri = if (isVideo) {
+                        ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
+                    } else {
+                        ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
+                    }
+                    val newFolder = MediaFolder(
+                        id = bucketId,
+                        name = bucketName,
+                        size = 1,
+                        thumbnail = contentUri.thumbnailUri(),
+                        path = path,
+                    )
+                    result[bucketId] = newFolder
+                }
+            }
+            result.values.toList()
         }
-        result.values.toList()
     }
 
     override fun observeFolders(): Flow<List<MediaFolder>> = contentResolver.observeChanges(
@@ -192,102 +171,37 @@ open class MediaStoreRepositoryLegacyImpl(
         return legacyFavoritesRepository.observeCount()
     }
 
-    override suspend fun getPhotosCount(): Int {
-        val pathColumn = if (Features.isPathColumnSupported) {
-            FileColumns.RELATIVE_PATH
-        } else {
-            FileColumns.DATA
-        }
+    override suspend fun getPhotosCount(): Int = queryCount(
+        MediaQuery(
+            includeVideos = false,
+            pathPattern = PATTERN_DCIM,
+        )
+    )
+
+    override suspend fun getVideosCount(): Int = queryCount(
+        MediaQuery(
+            includeImages = false,
+        )
+    )
+
+    override suspend fun getMediaList(query: MediaQuery, limit: Int): List<MediaItem> {
+        val params = queryBuilder(query)
         return contentResolver.queryCompat(
             uri = baseUri,
-            projection = arrayOf(FileColumns._ID),
-            selection = "${FileColumns.MEDIA_TYPE} = ? AND $pathColumn LIKE ?",
-            selectionArgs = arrayOf(
-                FileColumns.MEDIA_TYPE_IMAGE.toString(),
-                PATTERN_DCIM
-            )
-        ).use {
-            it.count
-        }
-    }
-
-    override suspend fun getVideosCount(): Int {
-        val mode = videosAvailability()
-        if (mode == NONE) {
-            return 0
-        }
-        return contentResolver.queryCompat(
-            uri = baseUri,
-            projection = arrayOf(FileColumns._ID),
-            selection = buildString {
-                append(FileColumns.MEDIA_TYPE)
-                append(" = ?")
-                if (Features.isRecycleBinSupported) {
-                    append(" AND ")
-                    append(FileColumns.IS_TRASHED)
-                    append(" = ?")
-                }
-                if (mode == CAMERA) {
-                    append(" AND ")
-                    if (Features.isPathColumnSupported) {
-                        append(FileColumns.RELATIVE_PATH)
-                    } else {
-                        append(FileColumns.DATA)
-                    }
-                    append(" LIKE ?")
-                }
-            },
-            selectionArgs = buildList(3) {
-                add(FileColumns.MEDIA_TYPE_VIDEO.toString())
-                add("0")
-                if (mode == CAMERA) {
-                    add(PATTERN_DCIM)
-                }
-            }.toTypedArray()
-        ).use {
-            it.count
-        }
-    }
-
-    override suspend fun findByDate(
-        dateRange: LongRange,
-        limit: Int,
-    ): List<MediaItem> {
-        val source = gallerySourceFactory.create(
-            MediaQuery(dateRange = dateRange)
-        )
-        val params = Refresh(
-            key = 0,
-            loadSize = limit,
-            placeholdersEnabled = false,
-        )
-        return when (val result = source.load(params)) {
-            is LoadResult.Error<*, *> -> throw result.throwable
-            is LoadResult.Invalid<*, *> -> emptyList()
-            is LoadResult.Page<Int, MediaItem> -> result.data
+            projection = defaultProjection(),
+            selection = params.selection,
+            selectionArgs = params.selectionArgs.toTypedArray(),
+            orderBy = FileColumns.DATE_ADDED,
+            orderDirection = DESC,
+            limit = limit,
+        ).use { cursor ->
+            cursor.parseMediaList(withIndices = true)
         }
     }
 
     override suspend fun getMedia(id: Long): MediaItem = contentResolver.queryCompat(
         uri = baseUri,
-        projection = buildList(8) {
-            add(FileColumns._ID)
-            add(FileColumns.DISPLAY_NAME)
-            add(FileColumns.MIME_TYPE)
-            add(FileColumns.DATE_ADDED)
-            add(FileColumns.MEDIA_TYPE)
-            if (Features.isNativeFavoritesSupported) {
-                add(FileColumns.IS_FAVORITE)
-            }
-            if (Features.isRecycleBinSupported) {
-                add(FileColumns.IS_TRASHED)
-            }
-            if (Features.isPathColumnSupported) {
-                add(FileColumns.RELATIVE_PATH)
-            } else {
-                add(FileColumns.DATA)
-            }
-        }.toTypedArray(),
+        projection = defaultProjection(),
         selection = "${FileColumns._ID} = ?",
         selectionArgs = arrayOf(id.toString()),
         limit = 1,
@@ -306,93 +220,14 @@ open class MediaStoreRepositoryLegacyImpl(
     }.distinctUntilChanged()
 
     override suspend fun getRandomMedia(
-        isImageOnly: Boolean,
-        isFavoriteOnly: Boolean,
-        excludeHidden: Boolean,
+        query: MediaQuery,
     ): MediaItem? {
-        val hiddenIds = if (excludeHidden) {
-            hiddenMediaRepository.getHiddenIds()
-        } else {
-            emptySet()
-        }
+        val params = queryBuilder(query)
         return contentResolver.queryCompat(
             uri = baseUri,
-            projection = buildList(10) {
-                add(FileColumns._ID)
-                add(FileColumns.DISPLAY_NAME)
-                add(FileColumns.MIME_TYPE)
-                add(FileColumns.DATE_ADDED)
-                add(FileColumns.DATE_MODIFIED)
-                add(FileColumns.MEDIA_TYPE)
-                if (Features.isNativeFavoritesSupported) {
-                    add(FileColumns.IS_FAVORITE)
-                }
-                if (Features.isPathColumnSupported) {
-                    add(FileColumns.RELATIVE_PATH)
-                } else {
-                    add(FileColumns.DATA)
-                }
-            }.toTypedArray(),
-            selection = buildString {
-                if (Features.isRecycleBinSupported) {
-                    append(FileColumns.IS_TRASHED)
-                    append(" = ? AND (")
-                } else {
-                    append('(')
-                }
-                append(FileColumns.MEDIA_TYPE)
-                append(" = ?")
-                if (!isImageOnly) {
-                    append(" OR ")
-                    append(FileColumns.MEDIA_TYPE)
-                    append(" = ?)")
-                } else {
-                    append(")")
-                }
-                if (isFavoriteOnly) {
-                    append(" AND ")
-                    if (Features.isNativeFavoritesSupported) {
-                        append(FileColumns.IS_FAVORITE)
-                        append(" = ?")
-                    } else {
-                        append(FileColumns._ID)
-                        append(" IN (")
-                        repeat(legacyFavoritesRepository.getFavoritesCount()) { i ->
-                            if (i != 0) {
-                                append(",")
-                            }
-                            append("?")
-                        }
-                        append(")")
-                    }
-                }
-                if (hiddenIds.isNotEmpty()) {
-                    append(" AND ")
-                    append(FileColumns._ID)
-                    append(" NOT IN (")
-                    hiddenIds.joinTo(this, ",") { "?" }
-                    append(")")
-                }
-            },
-            selectionArgs = buildList {
-                if (Features.isRecycleBinSupported) {
-                    add("0")
-                }
-                add(FileColumns.MEDIA_TYPE_IMAGE.toString())
-                if (!isImageOnly) {
-                    add(FileColumns.MEDIA_TYPE_VIDEO.toString())
-                }
-                if (isFavoriteOnly) {
-                    if (Features.isNativeFavoritesSupported) {
-                        add("1")
-                    } else {
-                        legacyFavoritesRepository.getFavorites().mapTo(this) {
-                            it.toString()
-                        }
-                    }
-                }
-                hiddenIds.mapTo(this) { it.toString() }
-            }.toTypedArray(),
+            projection = defaultProjection(),
+            selection = params.selection,
+            selectionArgs = params.selectionArgs.toTypedArray(),
             orderBy = "RANDOM()",
             limit = 1,
         ).use { cursor ->
@@ -461,5 +296,32 @@ open class MediaStoreRepositoryLegacyImpl(
         return result
     }
 
-    protected suspend fun videosAvailability() = settingsRepository.getVideosAvailability()
+    protected suspend fun queryCount(mediaQuery: MediaQuery): Int {
+        val queryParams = queryBuilder(mediaQuery)
+        return contentResolver.queryCompat(
+            uri = baseUri,
+            projection = arrayOf(FileColumns._ID),
+            selection = queryParams.selection,
+            selectionArgs = queryParams.selectionArgs.toTypedArray(),
+        ).use {
+            it.count
+        }
+    }
+
+    private fun defaultProjection() = buildList(10) {
+        add(FileColumns._ID)
+        add(FileColumns.DISPLAY_NAME)
+        add(FileColumns.MIME_TYPE)
+        add(FileColumns.DATE_ADDED)
+        add(FileColumns.DATE_MODIFIED)
+        add(FileColumns.MEDIA_TYPE)
+        if (Features.isNativeFavoritesSupported) {
+            add(FileColumns.IS_FAVORITE)
+        }
+        if (Features.isPathColumnSupported) {
+            add(FileColumns.RELATIVE_PATH)
+        } else {
+            add(FileColumns.DATA)
+        }
+    }.toTypedArray()
 }

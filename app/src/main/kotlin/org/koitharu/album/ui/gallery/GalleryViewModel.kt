@@ -29,9 +29,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
-import org.koitharu.album.model.HomeBannerSource.NONE
-import org.koitharu.album.model.HomeBannerSource.RANDOM
-import org.koitharu.album.model.HomeBannerSource.YEAR_AGO
 import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.model.isSameMonth
 import org.koitharu.album.repository.HiddenMediaRepository
@@ -65,7 +62,6 @@ import org.koitharu.album.util.printStackTraceDebug
 import org.koitharu.album.util.runCatchingCancellable
 import org.koitharu.album.util.tickerFlow
 import org.koitharu.album.util.toggling
-import java.util.Calendar
 import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel(assistedFactory = GalleryViewModel.Factory::class)
@@ -139,26 +135,15 @@ class GalleryViewModel @AssistedInject constructor(
 
     private fun observeBanner() {
         viewModelScope.launch(Dispatchers.Default) {
-            settingsRepository.homeBannerSource.flatMapLatest { bannerSource ->
-                if (bannerSource == NONE) {
+            settingsRepository.homeBannerSource.map {
+                it.toMediaQuery()
+            }.flatMapLatest { mediaQuery ->
+                if (mediaQuery == null) {
                     flowOf(null)
                 } else {
                     tickerFlow(10.seconds).mapNotNull {
                         runCatchingCancellable {
-                            when (bannerSource) {
-                                RANDOM -> repository.getRandomMedia(
-                                    isImageOnly = true,
-                                    isFavoriteOnly = false,
-                                    excludeHidden = true,
-                                )
-
-                                YEAR_AGO -> repository.findByDate(
-                                    dateRange = yearAgo(30)..yearAgo(0),
-                                    limit = 40,
-                                ).randomOrNull()
-
-                                NONE -> null
-                            }
+                            repository.getRandomMedia(mediaQuery)
                         }.onFailure {
                             it.printStackTraceDebug()
                         }.getOrNull()
@@ -265,13 +250,6 @@ class GalleryViewModel @AssistedInject constructor(
             media = selectedItems.map { it.uri },
             useRecycleBin = true,
         )
-    }
-
-    private fun yearAgo(minusDays: Int): Long {
-        val calendar = Calendar.getInstance()
-        calendar.add(Calendar.YEAR, -1)
-        calendar.add(Calendar.DAY_OF_MONTH, -minusDays)
-        return calendar.timeInMillis
     }
 
     private suspend fun isBannerDark(image: Uri) = runCatchingCancellable {

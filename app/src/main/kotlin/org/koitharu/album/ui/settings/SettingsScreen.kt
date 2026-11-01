@@ -102,6 +102,7 @@ fun SettingsScreen(
                     stringResource(R.string.none),
                     stringResource(R.string.random_image),
                     stringResource(R.string.year_ago),
+                    stringResource(R.string.favorites),
                 ),
                 entryValues = HomeBannerSource.entries.toPersistentList(),
                 selectedValue = state.homeBanner,

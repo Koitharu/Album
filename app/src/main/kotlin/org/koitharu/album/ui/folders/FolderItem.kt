@@ -13,6 +13,7 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import org.koitharu.album.R
 import org.koitharu.album.model.MediaQuery
+import org.koitharu.album.model.MediaQuery.Companion.PATTERN_DCIM
 
 @Immutable
 sealed interface FolderItem : Parcelable {
@@ -92,7 +93,7 @@ sealed interface FolderItem : Parcelable {
 
         override fun getMediaQuery() = MediaQuery(
             includeVideos = false,
-            pathPattern = "DCIM",
+            pathPattern = PATTERN_DCIM,
         )
     }
 

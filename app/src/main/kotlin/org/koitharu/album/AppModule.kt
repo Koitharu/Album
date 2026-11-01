@@ -15,11 +15,10 @@ import dagger.hilt.components.SingletonComponent
 import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.MediaStoreConfirmationDialogs
-import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository
 import org.koitharu.album.repository.mediastore.MediaStoreRepository30Impl
 import org.koitharu.album.repository.mediastore.MediaStoreRepositoryLegacyImpl
-import org.koitharu.album.repository.pagingsource.GallerySource
+import org.koitharu.album.repository.mediastore.QueryBuilder
 import org.koitharu.album.util.ActivityContextProvider
 
 @Module
@@ -42,8 +41,7 @@ class AppModule {
         contentResolver: ContentResolver,
         legacyFavoritesRepository: LegacyFavoritesRepository,
         confirmationDialogs: MediaStoreConfirmationDialogs,
-        settingsRepository: SettingsRepository,
-        gallerySourceFactory: GallerySource.Factory,
+        queryBuilder: QueryBuilder,
         hiddenMediaRepository: HiddenMediaRepository,
     ): MediaStoreRepository = when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> MediaStoreRepository30Impl(
@@ -51,8 +49,7 @@ class AppModule {
             contentResolver = contentResolver,
             legacyFavoritesRepository = legacyFavoritesRepository,
             confirmationDialogs = confirmationDialogs,
-            gallerySourceFactory = gallerySourceFactory,
-            settingsRepository = settingsRepository,
+            queryBuilder = queryBuilder,
             hiddenMediaRepository = hiddenMediaRepository,
         )
 
@@ -62,8 +59,7 @@ class AppModule {
             hiddenMediaRepository = hiddenMediaRepository,
             legacyFavoritesRepository = legacyFavoritesRepository,
             confirmationDialogs = confirmationDialogs,
-            settingsRepository = settingsRepository,
-            gallerySourceFactory = gallerySourceFactory,
+            queryBuilder = queryBuilder,
         )
     }
 }

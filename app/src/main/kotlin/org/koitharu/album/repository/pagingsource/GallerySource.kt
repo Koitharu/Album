@@ -24,29 +24,22 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.album.model.MediaItem
 import org.koitharu.album.model.MediaQuery
-import org.koitharu.album.model.MediaQuery.Companion.PATTERN_DCIM
-import org.koitharu.album.model.VideosAvailability.ALL
-import org.koitharu.album.model.VideosAvailability.CAMERA
-import org.koitharu.album.model.VideosAvailability.NONE
 import org.koitharu.album.repository.Features
-import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.OrderDirection.DESC
 import org.koitharu.album.repository.SettingsRepository
+import org.koitharu.album.repository.mediastore.QueryBuilder
 import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.getOrDefault
 import org.koitharu.album.util.suspendLazy
-import java.util.concurrent.TimeUnit
 
 class GallerySource @AssistedInject constructor(
     @Assisted mediaQuery: MediaQuery,
-    private val hiddenMediaRepository: HiddenMediaRepository,
     private val contentResolver: ContentResolver,
     private val legacyFavoritesRepository: LegacyFavoritesRepository,
+    private val queryBuilder: QueryBuilder,
     settingsRepository: SettingsRepository,
 ) : PagingSource<Int, MediaItem>() {
-
-    private val videosAvailability = settingsRepository.showVideos.value
 
     val projection = buildList(10) {
         add(FileColumns._ID)
@@ -68,150 +61,12 @@ class GallerySource @AssistedInject constructor(
         }
     }.toTypedArray()
 
-    val selection = buildString {
-        append("(")
-        if (mediaQuery.includeImages) {
-            append(FileColumns.MEDIA_TYPE)
-            append(" = ?")
-        }
-        if (mediaQuery.includeVideos) {
-            when (videosAvailability) {
-                ALL -> {
-                    if (mediaQuery.includeImages) {
-                        append(" OR ")
-                    }
-                    append(FileColumns.MEDIA_TYPE)
-                    append(" = ?")
-                }
-
-                CAMERA -> {
-                    if (mediaQuery.includeImages) {
-                        append(" OR ")
-                    }
-                    append("(")
-                    append(FileColumns.MEDIA_TYPE)
-                    append(" = ? AND ")
-                    if (Features.isPathColumnSupported) {
-                        append(FileColumns.RELATIVE_PATH)
-                    } else {
-                        append(FileColumns.DATA)
-                    }
-                    append(" LIKE ?)")
-                }
-                NONE -> Unit
-            }
-        }
-        append(")")
-        if (Features.isRecycleBinSupported) {
-            append(" AND ")
-            append(FileColumns.IS_TRASHED)
-            append(" = ?")
-        }
-        if (mediaQuery.bucketIds.isNotEmpty()) {
-            append(" AND ")
-            append(FileColumns.BUCKET_ID)
-            if (mediaQuery.bucketIds.size == 1) {
-                append(" = ?")
-            } else {
-                mediaQuery.bucketIds.joinTo(
-                    buffer = this,
-                    separator = ", ",
-                    prefix = " IN (",
-                    postfix = ")",
-                    transform = { "?" },
-                )
-            }
-        }
-        if (mediaQuery.isFavorites) {
-            append(" AND ")
-            if (Features.isNativeFavoritesSupported) {
-                append(FileColumns.IS_FAVORITE)
-                append(" = ?")
-            } else {
-                append(FileColumns._ID)
-                append(" IN (")
-                repeat(legacyFavoritesRepository.getFavoritesCount()) { i ->
-                    if (i != 0) {
-                        append(",")
-                    }
-                    append("?")
-                }
-                append(")")
-            }
-        }
-        append(" AND ")
-        append(FileColumns._ID)
-        if (!mediaQuery.isHidden) {
-            append(" NOT")
-        }
-        append(" IN (")
-        repeat(hiddenMediaRepository.getHiddenCount()) { i ->
-            if (i != 0) {
-                append(",")
-            }
-            append("?")
-        }
-        append(")")
-        if (mediaQuery.dateRange != null) {
-            append(" AND ")
-            append(FileColumns.DATE_ADDED)
-            append(" BETWEEN ? AND ?")
-        }
-        if (mediaQuery.searchQuery != null) {
-            append(" AND ")
-            append(FileColumns.DISPLAY_NAME)
-            append(" LIKE ?")
-        }
-        if (mediaQuery.pathPattern != null) {
-            append(" AND ")
-            if (Features.isPathColumnSupported) {
-                append(FileColumns.RELATIVE_PATH)
-            } else {
-                append(FileColumns.DATA)
-            }
-            append(" LIKE ?")
-        }
+    private val queryParams = suspendLazy {
+        queryBuilder(mediaQuery)
     }
 
-    val selectionArgs = buildList {
-        if (mediaQuery.includeImages) {
-            add(FileColumns.MEDIA_TYPE_IMAGE.toString())
-        }
-        if (mediaQuery.includeVideos) {
-            when (videosAvailability) {
-                ALL -> add(FileColumns.MEDIA_TYPE_VIDEO.toString())
-                CAMERA -> {
-                    add(FileColumns.MEDIA_TYPE_VIDEO.toString())
-                    add(PATTERN_DCIM)
-                }
-
-                NONE -> Unit
-            }
-        }
-        if (Features.isRecycleBinSupported) {
-            add(if (mediaQuery.isTrashed) "1" else "0")
-        }
-        addAll(mediaQuery.bucketIds)
-        if (mediaQuery.isFavorites) {
-            if (Features.isNativeFavoritesSupported) {
-                add("1")
-            } else {
-                legacyFavoritesRepository.getFavorites().mapTo(this) {
-                    it.toString()
-                }
-            }
-        }
-        hiddenMediaRepository.getHiddenIds().mapTo(this) { it.toString() }
-        mediaQuery.dateRange?.let {
-            add(TimeUnit.MILLISECONDS.toSeconds(it.first).toString())
-            add(TimeUnit.MILLISECONDS.toSeconds(it.last).toString())
-        }
-        mediaQuery.searchQuery?.let { add("%$it%") }
-        mediaQuery.pathPattern?.let { add("%$it%") }
-    }.toTypedArray()
-
-    val queryUri: Uri = MediaStore.Files.getContentUri("external")
-    val sourceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val queryUri: Uri = MediaStore.Files.getContentUri("external")
+    private val sourceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val totalCount = suspendLazy {
         queryCount()
@@ -358,8 +213,8 @@ class GallerySource @AssistedInject constructor(
     private suspend fun queryCount() = contentResolver.queryCompat(
         uri = queryUri,
         projection = arrayOf(MediaStore.Images.Media._ID),
-        selection = selection,
-        selectionArgs = selectionArgs,
+        selection = queryParams.get().selection,
+        selectionArgs = queryParams.get().selectionArgs.toTypedArray(),
     ).use {
         it.count
     }
@@ -367,8 +222,8 @@ class GallerySource @AssistedInject constructor(
     private suspend fun query(limit: Int, offset: Int) = contentResolver.queryCompat(
         uri = queryUri,
         projection = projection,
-        selection = selection,
-        selectionArgs = selectionArgs,
+        selection = queryParams.get().selection,
+        selectionArgs = queryParams.get().selectionArgs.toTypedArray(),
         orderBy = FileColumns.DATE_ADDED,
         orderDirection = DESC,
         offset = offset,

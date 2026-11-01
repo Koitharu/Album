@@ -4,6 +4,7 @@ import android.net.Uri
 import kotlinx.coroutines.flow.Flow
 import org.koitharu.album.model.MediaFolder
 import org.koitharu.album.model.MediaItem
+import org.koitharu.album.model.MediaQuery
 
 interface MediaStoreRepository {
 
@@ -33,18 +34,11 @@ interface MediaStoreRepository {
 
     suspend fun getVideosCount(): Int
 
-    suspend fun findByDate(
-        dateRange: LongRange,
-        limit: Int,
-    ): List<MediaItem>
+    suspend fun getMediaList(query: MediaQuery, limit: Int = -1): List<MediaItem>
 
     suspend fun getMedia(id: Long): MediaItem
 
     fun observeMedia(id: Long, withStartValue: Boolean): Flow<MediaItem>
 
-    suspend fun getRandomMedia(
-        isImageOnly: Boolean,
-        isFavoriteOnly: Boolean,
-        excludeHidden: Boolean,
-    ): MediaItem?
+    suspend fun getRandomMedia(query: MediaQuery): MediaItem?
 }

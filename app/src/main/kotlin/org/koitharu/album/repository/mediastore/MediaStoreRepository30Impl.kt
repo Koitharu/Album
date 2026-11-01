@@ -8,19 +8,14 @@ import android.provider.MediaStore
 import android.provider.MediaStore.Files.FileColumns
 import android.util.ArraySet
 import androidx.annotation.RequiresApi
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.mapLatest
-import kotlinx.coroutines.withContext
-import org.koitharu.album.model.MediaQuery.Companion.PATTERN_DCIM
-import org.koitharu.album.repository.Features
+import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.repository.HiddenMediaRepository
 import org.koitharu.album.repository.LegacyFavoritesRepository
 import org.koitharu.album.repository.MediaStoreConfirmationDialogs
-import org.koitharu.album.repository.SettingsRepository
 import org.koitharu.album.repository.observeChanges
-import org.koitharu.album.repository.pagingsource.GallerySource
 import org.koitharu.album.repository.queryCompat
 import org.koitharu.album.util.ActivityContextProvider
 
@@ -30,8 +25,7 @@ class MediaStoreRepository30Impl(
     contentResolver: ContentResolver,
     legacyFavoritesRepository: LegacyFavoritesRepository,
     confirmationDialogs: MediaStoreConfirmationDialogs,
-    gallerySourceFactory: GallerySource.Factory,
-    settingsRepository: SettingsRepository,
+    queryBuilder: QueryBuilder,
     hiddenMediaRepository: HiddenMediaRepository,
 ) : MediaStoreRepositoryLegacyImpl(
     activityContextProvider = activityContextProvider,
@@ -39,8 +33,7 @@ class MediaStoreRepository30Impl(
     hiddenMediaRepository = hiddenMediaRepository,
     legacyFavoritesRepository = legacyFavoritesRepository,
     confirmationDialogs = confirmationDialogs,
-    settingsRepository = settingsRepository,
-    gallerySourceFactory = gallerySourceFactory,
+    queryBuilder = queryBuilder,
 ) {
 
     override suspend fun deleteMedia(media: Collection<Uri>, useRecycleBin: Boolean) {
@@ -126,56 +119,17 @@ class MediaStoreRepository30Impl(
         )
     }
 
-    override suspend fun getFavoritesSize(): Int = withContext(Dispatchers.IO) {
-        contentResolver.queryCompat(
-            uri = baseUri,
-            projection = arrayOf(FileColumns._ID),
-            selection = "(${FileColumns.MEDIA_TYPE} = ? OR ${FileColumns.MEDIA_TYPE} = ?) AND ${FileColumns.IS_FAVORITE} = ? AND ${FileColumns.IS_TRASHED} = ?",
-            selectionArgs = arrayOf(
-                FileColumns.MEDIA_TYPE_IMAGE.toString(),
-                FileColumns.MEDIA_TYPE_VIDEO.toString(),
-                "1",
-                "0",
-            )
-        ).use {
-            it.count
-        }
-    }
+    override suspend fun getFavoritesSize(): Int = queryCount(
+        MediaQuery(
+            isFavorites = true,
+        )
+    )
 
-    override suspend fun getPhotosCount(): Int {
-        val pathColumn = if (Features.isPathColumnSupported) {
-            FileColumns.RELATIVE_PATH
-        } else {
-            FileColumns.DATA
-        }
-        return contentResolver.queryCompat(
-            uri = baseUri,
-            projection = arrayOf(FileColumns._ID),
-            selection = "${FileColumns.MEDIA_TYPE} = ? AND $pathColumn LIKE ? AND ${FileColumns.IS_TRASHED} = ?",
-            selectionArgs = arrayOf(
-                FileColumns.MEDIA_TYPE_IMAGE.toString(),
-                PATTERN_DCIM,
-                "0",
-            )
-        ).use {
-            it.count
-        }
-    }
-
-    override suspend fun getRecycleBinSize() = withContext(Dispatchers.IO) {
-        contentResolver.queryCompat(
-            uri = baseUri,
-            projection = arrayOf(FileColumns._ID),
-            selection = "(${FileColumns.MEDIA_TYPE} = ? OR ${FileColumns.MEDIA_TYPE} = ?) AND ${FileColumns.IS_TRASHED} = ?",
-            selectionArgs = arrayOf(
-                FileColumns.MEDIA_TYPE_IMAGE.toString(),
-                FileColumns.MEDIA_TYPE_VIDEO.toString(),
-                "1"
-            )
-        ).use {
-            it.count
-        }
-    }
+    override suspend fun getRecycleBinSize() = queryCount(
+        MediaQuery(
+            isTrashed = true,
+        )
+    )
 
     override fun observeIsFavorite(id: Long): Flow<Boolean> = contentResolver.observeChanges(
         uri = baseUri,
