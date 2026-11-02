@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,7 +34,16 @@ fun <T> ListPreference(
         entries.getOrNull(entryValues.indexOf(selectedValue))
     },
 ) { onDismissRequest ->
+    Text(
+        modifier = Modifier.padding(
+            horizontal = 12.dp,
+            vertical = 6.dp,
+        ),
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+    )
     DialogContent(
+        modifier = Modifier.padding(top = 4.dp),
         entries = entries,
         entryValues = entryValues,
         onEntryClick = onEntryClick,
@@ -44,17 +54,19 @@ fun <T> ListPreference(
 
 @Composable
 private fun <T> DialogContent(
+    modifier: Modifier,
     entries: ImmutableList<String>,
     entryValues: ImmutableList<T>,
     selectedValue: T?,
     onEntryClick: (T) -> Unit,
     onDismissRequest: () -> Unit,
-) = LazyColumn {
+) = LazyColumn(modifier = modifier) {
     items(entries.size) { i ->
         val value = entryValues[i]
         val isSelected = selectedValue == value
         Surface(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .minimumInteractiveComponentSize(),
             onClick = {
                 onEntryClick(value)
@@ -62,10 +74,12 @@ private fun <T> DialogContent(
             },
         ) {
             Row(
-                modifier = Modifier.padding(
-                    vertical = 8.dp,
-                    horizontal = 12.dp,
-                ).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(
+                        vertical = 8.dp,
+                        horizontal = 12.dp,
+                    )
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -84,7 +98,8 @@ private fun <T> DialogContent(
 @Preview
 @Composable
 private fun PreviewListPreference() = AlbumTheme {
-    DialogContent<String>(
+    DialogContent(
+        modifier = Modifier,
         entries = persistentListOf("Item 1", "Item 2"),
         entryValues = persistentListOf("1", "2"),
         onEntryClick = { /* no-op */ },

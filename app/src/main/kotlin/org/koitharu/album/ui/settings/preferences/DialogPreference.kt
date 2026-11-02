@@ -1,6 +1,7 @@
 package org.koitharu.album.ui.settings.preferences
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,7 +27,7 @@ import androidx.compose.ui.unit.dp
 fun DialogPreference(
     title: String,
     summary: String? = null,
-    dialogContent: @Composable (onDismissRequest: () -> Unit) -> Unit,
+    dialogContent: @Composable ColumnScope.(onDismissRequest: () -> Unit) -> Unit,
 ) {
     var isDialogVisible by rememberSaveable() { mutableStateOf(false) }
     Preference(
@@ -45,7 +46,7 @@ fun DialogPreference(
 @Composable
 private fun PreferenceDialog(
     onDismissRequest: () -> Unit,
-    dialogContent: @Composable (onDismissRequest: () -> Unit) -> Unit,
+    dialogContent: @Composable ColumnScope.(onDismissRequest: () -> Unit) -> Unit,
 ) = BasicAlertDialog(
     onDismissRequest = onDismissRequest
 ) {

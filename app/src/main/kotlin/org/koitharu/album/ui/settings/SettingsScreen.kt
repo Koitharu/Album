@@ -120,6 +120,16 @@ fun SettingsScreen(
                 onClick = { handleIntent(SetShowAllDCIMFolders(!state.showAllDCIMFolders)) },
             )
         }
+        item(Keys.showVideos.name) {
+            ListPreference(
+                title = stringResource(R.string.show_videos),
+                entries = rememberVideosAvailability(),
+                entryValues = VideosAvailability.entries.toPersistentList(),
+                selectedValue = state.showVideos
+            ) {
+                handleIntent(SetShowVideos(it))
+            }
+        }
         item(key = R.string.behavior) {
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 4.dp),
@@ -161,16 +171,6 @@ fun SettingsScreen(
                 isChecked = state.useExternalEditor,
                 onClick = { handleIntent(SetUseExternalEditor(!state.useExternalEditor)) },
             )
-        }
-        item(Keys.showVideos.name) {
-            ListPreference(
-                title = stringResource(R.string.show_videos),
-                entries = rememberVideosAvailability(),
-                entryValues = VideosAvailability.entries.toPersistentList(),
-                selectedValue = state.showVideos
-            ) {
-                handleIntent(SetShowVideos(it))
-            }
         }
         item(Keys.muteVideoOnStart.name) {
             SwitchPreference(
