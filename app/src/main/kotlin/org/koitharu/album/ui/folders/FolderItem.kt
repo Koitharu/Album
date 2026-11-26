@@ -1,7 +1,6 @@
 package org.koitharu.album.ui.folders
 
 import android.net.Uri
-import android.os.Parcelable
 import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -9,14 +8,15 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.res.stringResource
 import kotlinx.collections.immutable.persistentSetOf
-import kotlinx.parcelize.IgnoredOnParcel
-import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Serializable
 import org.koitharu.album.R
 import org.koitharu.album.model.MediaQuery
 import org.koitharu.album.model.MediaQuery.Companion.PATTERN_DCIM
+import org.koitharu.album.util.serializers.UriSerializer
 
 @Immutable
-sealed interface FolderItem : Parcelable {
+@Serializable
+sealed interface FolderItem {
 
     val id: String
     val size: Int
@@ -39,14 +39,14 @@ sealed interface FolderItem : Parcelable {
 
     fun getMediaQuery(): MediaQuery
 
-    @Parcelize
+    @Serializable
     @Immutable
     data class Favorites(
         override val size: Int,
+        @Serializable(with = UriSerializer::class)
         override val thumbnail: Uri?,
     ) : FolderItem {
 
-        @IgnoredOnParcel
         override val id = "_favorites"
 
         @Stable
@@ -58,14 +58,14 @@ sealed interface FolderItem : Parcelable {
         )
     }
 
-    @Parcelize
+    @Serializable
     @Immutable
     data class RecycleBin(
         override val size: Int,
+        @Serializable(with = UriSerializer::class)
         override val thumbnail: Uri?,
     ) : FolderItem {
 
-        @IgnoredOnParcel
         override val id = "_trash"
 
         @Stable
@@ -77,14 +77,14 @@ sealed interface FolderItem : Parcelable {
         )
     }
 
-    @Parcelize
+    @Serializable
     @Immutable
     data class Photos(
         override val size: Int,
+        @Serializable(with = UriSerializer::class)
         override val thumbnail: Uri?,
     ) : FolderItem {
 
-        @IgnoredOnParcel
         override val id = "_dcim"
 
         @Stable
@@ -97,14 +97,14 @@ sealed interface FolderItem : Parcelable {
         )
     }
 
-    @Parcelize
+    @Serializable
     @Immutable
     data class Videos(
         override val size: Int,
+        @Serializable(with = UriSerializer::class)
         override val thumbnail: Uri?,
     ) : FolderItem {
 
-        @IgnoredOnParcel
         override val id = "_videos"
 
         @Stable
@@ -116,14 +116,14 @@ sealed interface FolderItem : Parcelable {
         )
     }
 
-    @Parcelize
+    @Serializable
     @Immutable
     data class Hidden(
         override val size: Int,
+        @Serializable(with = UriSerializer::class)
         override val thumbnail: Uri?,
     ) : FolderItem {
 
-        @IgnoredOnParcel
         override val id = "_hidden"
 
         @Stable
@@ -135,12 +135,13 @@ sealed interface FolderItem : Parcelable {
         )
     }
 
-    @Parcelize
+    @Serializable
     @Immutable
     data class Bucket(
         override val id: String,
         val name: String,
         override val size: Int,
+        @Serializable(with = UriSerializer::class)
         override val thumbnail: Uri,
     ) : FolderItem {
 
