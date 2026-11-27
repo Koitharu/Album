@@ -10,15 +10,17 @@ plugins {
 android {
     namespace = "org.koitharu.album"
     compileSdk {
-        version = release(37)
+        version = release(37) {
+            minorApiLevel = 2
+        }
     }
 
     defaultConfig {
         applicationId = "org.koitharu.album"
         minSdk = 24
         targetSdk = 37
-        versionCode = 4
-        versionName = "0.4"
+        versionCode = 5
+        versionName = "1.0"
     }
 
     buildTypes {
@@ -89,5 +91,5 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.leakcanary)
+//    debugImplementation(libs.leakcanary)
 }

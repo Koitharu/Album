@@ -1,6 +1,7 @@
 package org.koitharu.album.ui.common
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -10,9 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -21,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.koitharu.album.R
+import org.koitharu.album.model.ThemeVariant
 import org.koitharu.album.ui.theme.AlbumTheme
 
 @Composable
@@ -35,48 +39,56 @@ fun EmptyState(
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.Center,
 ) {
-    Icon(
-        modifier = Modifier
-            .size(128.dp),
-        painter = painterResource(iconResId),
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.surfaceDim,
-    )
-    Text(
-        modifier = Modifier
-            .padding(
-                start = 16.dp,
-                end = 16.dp,
-                top = 8.dp,
-            ),
-        textAlign = TextAlign.Center,
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-    )
-    Text(
-        modifier = Modifier
-            .padding(
-                start = 16.dp,
-                end = 16.dp,
-                top = 6.dp,
-            ),
-        text = message,
-        textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.bodyMedium,
-    )
-    additionalContent?.let { content ->
-        Spacer(
-            modifier = Modifier.height(8.dp),
+    CompositionLocalProvider(
+        LocalContentColor provides MaterialTheme.colorScheme.onBackground
+    ) {
+        Icon(
+            modifier = Modifier
+                .size(128.dp),
+            painter = painterResource(iconResId),
+            contentDescription = null,
+            tint = LocalContentColor.current.copy(alpha = 0.6f),
         )
-        content()
+        Text(
+            modifier = Modifier
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 8.dp,
+                ),
+            textAlign = TextAlign.Center,
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            modifier = Modifier
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 6.dp,
+                ),
+            text = message,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        additionalContent?.let { content ->
+            Spacer(
+                modifier = Modifier.height(8.dp),
+            )
+            content()
+        }
     }
 }
 
 @Preview
 @Composable
-private fun PreviewEmptyState() = AlbumTheme {
+private fun PreviewEmptyState() = AlbumTheme(
+    variant = ThemeVariant.DARK,
+) {
     EmptyState(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
         iconResId = R.drawable.ic_folder_alert,
         title = stringResource(R.string.no_permissions),
         message = stringResource(R.string.no_permissions_message),
